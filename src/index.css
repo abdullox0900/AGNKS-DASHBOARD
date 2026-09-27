@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  --color-bg: #f5f6f8;
+  --color-surface: #ffffff;
+  --color-surface-alt: #fafbfc;
+  --color-border: #e5e7eb;
+  --color-ink: #14161a;
+  --color-ink-secondary: #5b6070;
+  --color-ink-tertiary: #9096a3;
+
+  --color-primary: #2563eb;
+  --color-primary-ink: #ffffff;
+  --color-primary-soft: #eaf1ff;
+  --color-primary-strong: #1d4ed8;
+
+  --color-amber: #b45309;
+  --color-amber-strong: #92400e;
+  --color-amber-soft: #fef3e2;
+
+  --color-success: #15803d;
+  --color-success-soft: #ecfdf3;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fef2f2;
+  --color-warning-soft: #fffbeb;
+  --color-warning-ink: #92400e;
+
+  --shadow-card: 0 1px 2px rgba(20, 22, 26, 0.04), 0 8px 24px -12px rgba(20, 22, 26, 0.10);
+  --shadow-float: 0 12px 32px -8px rgba(20, 22, 26, 0.20);
+  --shadow-popover: 0 4px 16px -4px rgba(20, 22, 26, 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #0f1115;
+    --color-surface: #1a1d24;
+    --color-surface-alt: #1f232b;
+    --color-border: #2a2e37;
+    --color-ink: #f2f3f5;
+    --color-ink-secondary: #a4aab8;
+    --color-ink-tertiary: #6d7280;
+
+    --color-primary: #4f8cff;
+    --color-primary-ink: #0b1220;
+    --color-primary-soft: #16233d;
+    --color-primary-strong: #6ea1ff;
+
+    --color-amber: #f0b155;
+    --color-amber-strong: #ffd08a;
+    --color-amber-soft: #2b2211;
+
+    --color-success: #4ade80;
+    --color-success-soft: #0f2a1a;
+    --color-danger: #f87171;
+    --color-danger-soft: #2c1414;
+    --color-warning-soft: #2b2211;
+    --color-warning-ink: #ffd08a;
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+    --shadow-float: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+    --shadow-popover: 0 4px 16px -4px rgba(0, 0, 0, 0.5);
+  }
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
