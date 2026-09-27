@@ -14,7 +14,9 @@ function newIdempotencyKey(): string {
 
 http.interceptors.request.use((config) => {
   const { accessToken } = useAuthStore.getState()
-  if (accessToken) {
+  // A request that already carries its own token (e.g. /me right after login, before the
+  // store is updated) must keep it — otherwise a stale stored token would replace it.
+  if (accessToken && !config.headers.has('Authorization')) {
     config.headers.set('Authorization', `Bearer ${accessToken}`)
   }
   const method = (config.method ?? 'get').toLowerCase()
