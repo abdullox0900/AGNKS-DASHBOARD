@@ -1,3 +1,4 @@
+import { formatMoneyFull } from '@/shared/lib/format'
 import type { Broadcast, Cashier, ClientRecord, DisputeRecord, Promotion, ReceiptRecord, Shift, Station, Terminal } from '@/entities/models'
 import type { DashboardRole, DashboardUser } from '@/entities/auth'
 import { http } from './http'
@@ -70,7 +71,7 @@ export async function apiGetOverview(filter: Filter): Promise<OverviewData> {
 }
 
 export interface AlertItem {
-  type: 'review' | 'dispute'
+  type: 'review' | 'dispute' | 'large'
   icon: string
   text: string
   href: string
@@ -87,7 +88,45 @@ export async function apiGetAlerts(filter: Filter): Promise<{ items: AlertItem[]
   if (raw.openDisputes.length > 0) {
     items.push({ type: 'dispute', icon: 'x', text: `${raw.openDisputes.length} ta ochiq shikoyat`, href: '/disputes' })
   }
+  // root_admin/seo only — other roles get 403 here, which just means no such alert.
+  const large = await apiGetLargeReceipts().catch(() => null)
+  if (large && large.items.length > 0) {
+    items.unshift({
+      type: 'large',
+      icon: 'alert',
+      text: `${large.items.length} ta katta chek (${formatMoneyFull(large.threshold)} va undan ko'p)`,
+      href: '/large-receipts',
+    })
+  }
   return { items }
+}
+
+// ---------- Large receipts ----------
+
+export interface LargeReceipt {
+  id: string
+  amount: number
+  bonus: number
+  status: string
+  receiptAt: string
+  createdAt: string
+  stationName: string
+  clientName: string
+  clientPhone: string | null
+  /** 'server' = our own soliq.uz lookup, 'client' = fetched on the client's phone */
+  taxSource: 'server' | 'client' | null
+  companyName: string | null
+  tin: string | null
+  items: { name: string; quantity: number; unit: string | null; price: number }[]
+  soliqUrl: string
+}
+
+export async function apiGetLargeReceipts(): Promise<{ threshold: number; items: LargeReceipt[] }> {
+  return unwrap(http.get('/admin/receipts/large'))
+}
+
+export async function apiAckLargeReceipt(id: string) {
+  return unwrap(http.post(`/admin/receipts/${id}/ack-large`))
 }
 
 export async function apiGetActivePromotions(filter: Filter): Promise<Promotion[]> {

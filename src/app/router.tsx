@@ -13,6 +13,7 @@ import { BonusPage } from '@/pages/bonus/BonusPage'
 import { AdminsPage } from '@/pages/admins/AdminsPage'
 import { ClientsPage } from '@/pages/clients/ClientsPage'
 import { BroadcastsPage } from '@/pages/broadcasts/BroadcastsPage'
+import { LargeReceiptsPage } from '@/pages/large-receipts/LargeReceiptsPage'
 import { ComingSoonPage } from '@/pages/coming-soon/ComingSoonPage'
 
 export const router = createBrowserRouter([
@@ -47,6 +48,14 @@ export const router = createBrowserRouter([
         ),
       },
       { path: '/clients', element: <ClientsPage /> },
+      {
+        path: '/large-receipts',
+        element: (
+          <RequirePermission permission="broadcasts.manage">
+            <LargeReceiptsPage />
+          </RequirePermission>
+        ),
+      },
       {
         path: '/broadcasts',
         element: (
