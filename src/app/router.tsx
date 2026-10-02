@@ -10,6 +10,7 @@ import { DisputesPage } from '@/pages/disputes/DisputesPage'
 import { CashiersPage } from '@/pages/cashiers/CashiersPage'
 import { StationsPage } from '@/pages/stations/StationsPage'
 import { BonusPage } from '@/pages/bonus/BonusPage'
+import { BonusReportPage } from '@/pages/bonus-report/BonusReportPage'
 import { AdminsPage } from '@/pages/admins/AdminsPage'
 import { ClientsPage } from '@/pages/clients/ClientsPage'
 import { ClientDetailPage } from '@/pages/clients/ClientDetailPage'
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
         ),
       },
       { path: '/bonus', element: <BonusPage /> },
+      { path: '/bonus-report', element: <BonusReportPage /> },
       {
         path: '/admins',
         element: (

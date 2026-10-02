@@ -17,6 +17,7 @@ export type Permission =
   | 'largeReceipts.view'
   | 'largeReceipts.ack'
   | 'bonus.view'
+  | 'bonusReport.view'
   | 'bonus.edit'
   | 'clients.view'
   | 'clients.detail'
@@ -39,6 +40,7 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'cashiers.view',
     'cashiers.manage',
     'bonus.view',
+    'bonusReport.view',
     'clients.view',
     'clients.detail',
   ],
@@ -54,6 +56,7 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'stations.view',
     'largeReceipts.view',
     'bonus.view',
+    'bonusReport.view',
     'clients.view',
     'audit.view',
     'broadcasts.view',
@@ -75,6 +78,7 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'largeReceipts.view',
     'largeReceipts.ack',
     'bonus.view',
+    'bonusReport.view',
     'bonus.edit',
     'clients.view',
     'clients.detail',
