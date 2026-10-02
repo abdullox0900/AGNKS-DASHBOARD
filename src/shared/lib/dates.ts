@@ -1,5 +1,10 @@
 import { toZonedTime, fromZonedTime, format as formatTz } from 'date-fns-tz'
 import { endOfMonth, startOfMonth, subDays, subMonths } from 'date-fns'
+import { ru, uz } from 'date-fns/locale'
+import { getLocale } from '@/shared/config/uiStore'
+import type { DictKey } from '@/shared/config/dictionaries'
+
+const dfLocale = () => (getLocale() === 'ru' ? ru : uz)
 
 export const TASHKENT_TZ = 'Asia/Tashkent'
 
@@ -49,12 +54,12 @@ export function resolvePreset(preset: PeriodPreset): { from: Date; to: Date } {
 
 export function formatDateShort(iso: string | Date): string {
   const d = typeof iso === 'string' ? new Date(iso) : iso
-  return formatTz(d, 'd MMM', { timeZone: TASHKENT_TZ })
+  return formatTz(d, 'd MMM', { timeZone: TASHKENT_TZ, locale: dfLocale() })
 }
 
 export function formatDateTime(iso: string | Date): string {
   const d = typeof iso === 'string' ? new Date(iso) : iso
-  return formatTz(d, 'd MMM, HH:mm', { timeZone: TASHKENT_TZ })
+  return formatTz(d, 'd MMM, HH:mm', { timeZone: TASHKENT_TZ, locale: dfLocale() })
 }
 
 export function formatDateInput(d: Date): string {
@@ -66,14 +71,14 @@ export function parseDateInput(s: string): Date {
   return fromZonedTime(new Date(y, (m ?? 1) - 1, day ?? 1), TASHKENT_TZ)
 }
 
-export const PERIOD_LABELS: Record<PeriodPreset, string> = {
-  today: 'Bugun',
-  yesterday: 'Kecha',
-  '7d': '7 kun',
-  '30d': '30 kun',
-  this_month: 'Shu oy',
-  last_month: "O'tgan oy",
-  custom: 'Ixtiyoriy oraliq',
+export const PERIOD_KEYS: Record<PeriodPreset, DictKey> = {
+  today: 'period.today',
+  yesterday: 'period.yesterday',
+  '7d': 'period.7d',
+  '30d': 'period.30d',
+  this_month: 'period.this_month',
+  last_month: 'period.last_month',
+  custom: 'period.custom',
 }
 
 /** Previous period of equal length, immediately preceding `from` — for KPI delta comparisons. */

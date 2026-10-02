@@ -11,13 +11,16 @@ import {
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ArrowDown, ArrowUp, ArrowUpDown, Columns3 } from 'lucide-react'
 import { cn } from '@/shared/lib/cn'
+import { useI18n } from '@/app/providers/I18nProvider'
+import { translate, type DictKey } from '@/shared/config/dictionaries'
 import { Skeleton } from './Skeleton'
 import { EmptyState } from './EmptyState'
 import { ErrorState } from './ErrorState'
 
 export interface DataTableColumn<T> {
   id: string
-  header: string
+  /** a dictionary key (translated on render) or a literal label */
+  header: DictKey | (string & {})
   accessor: (row: T) => unknown
   cell?: (row: T) => React.ReactNode
   numeric?: boolean
@@ -46,11 +49,12 @@ export function DataTable<T>({
   loading,
   error,
   onRetry,
-  emptyMessage = "Ma'lumot yo'q",
+  emptyMessage,
   onRowClick,
   getRowId,
   maxHeight = 560,
 }: DataTableProps<T>) {
+  const { t, locale } = useI18n()
   const [sorting, setSorting] = useState<SortingState>([])
   const [visibility, setVisibility] = useState<VisibilityState>({})
   const [columnsMenuOpen, setColumnsMenuOpen] = useState(false)
@@ -60,12 +64,12 @@ export function DataTable<T>({
     () =>
       columns.map((col) => ({
         id: col.id,
-        header: col.header,
+        header: translate(locale, col.header as DictKey),
         accessorFn: col.accessor,
         enableSorting: col.sortable !== false,
         cell: (ctx) => (col.cell ? col.cell(ctx.row.original) : String(ctx.getValue() ?? '—')),
       })),
-    [columns],
+    [columns, locale],
   )
 
   const table = useReactTable({
@@ -100,7 +104,7 @@ export function DataTable<T>({
     )
   }
   if (error) return <ErrorState message={error} onRetry={onRetry} />
-  if (data.length === 0) return <EmptyState title={emptyMessage} />
+  if (data.length === 0) return <EmptyState title={emptyMessage ?? t('common.no_data')} />
 
   const colMeta = new Map(columns.map((c) => [c.id, c]))
 
@@ -142,7 +146,7 @@ export function DataTable<T>({
             onClick={() => setColumnsMenuOpen((v) => !v)}
             className="flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-2.5 py-1.5 text-[12px] text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]"
           >
-            <Columns3 size={13} /> Ustunlar
+            <Columns3 size={13} /> {t('common.columns')}
           </button>
           {columnsMenuOpen && (
             <div
@@ -160,7 +164,7 @@ export function DataTable<T>({
         </div>
       </div>
 
-      <div ref={parentRef} className="overflow-auto rounded-xl border border-[var(--color-border)]" style={{ maxHeight }}>
+      <div ref={parentRef} className="overflow-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]" style={{ maxHeight }}>
         <table className="w-full border-collapse">
           <thead className="sticky top-0 z-[2] bg-[var(--color-surface-alt)]">
             {table.getHeaderGroups().map((hg) => (

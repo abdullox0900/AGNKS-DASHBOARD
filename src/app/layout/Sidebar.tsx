@@ -4,6 +4,8 @@ import {
   ClipboardList,
   Fuel,
   Gauge,
+  PanelLeftClose,
+  PanelLeftOpen,
   Megaphone,
   MessageSquareWarning,
   Percent,
@@ -18,53 +20,60 @@ import { cn } from '@/shared/lib/cn'
 import { roleHasPermission, type Permission } from '@/shared/lib/permissions'
 import { useAuthStore } from '@/shared/config/authStore'
 import { useReviewQueue, useDisputes } from '@/shared/api/hooks'
+import { useI18n } from '@/app/providers/I18nProvider'
+import { useUiStore } from '@/shared/config/uiStore'
+import { Hint } from '@/shared/ui/Menu'
+import type { DictKey } from '@/shared/config/dictionaries'
 
 interface NavItem {
   to: string
-  label: string
+  label: DictKey
   icon: React.ComponentType<{ size?: number }>
   permission?: Permission
   badgeKey?: 'review' | 'disputes'
   comingSoon?: boolean
 }
 
-const GROUPS: { title: string; items: NavItem[] }[] = [
+const GROUPS: { title: DictKey; items: NavItem[] }[] = [
   {
-    title: "Ko'rish",
+    title: 'nav.group.view',
     items: [
-      { to: '/', label: 'Bosh sahifa', icon: Gauge, permission: 'overview.view' },
-      { to: '/analytics', label: 'Analitika', icon: BarChart3, permission: 'analytics.view' },
+      { to: '/', label: 'nav.overview', icon: Gauge, permission: 'overview.view' },
+      { to: '/analytics', label: 'nav.analytics', icon: BarChart3, permission: 'analytics.view' },
     ],
   },
   {
-    title: 'Nazorat',
+    title: 'nav.group.control',
     items: [
-      { to: '/review', label: 'Tekshiruv', icon: ClipboardList, permission: 'review.decide', badgeKey: 'review' },
-      { to: '/disputes', label: 'Taklif va shikoyat', icon: MessageSquareWarning, permission: 'disputes.decide', badgeKey: 'disputes' },
+      { to: '/review', label: 'nav.review', icon: ClipboardList, permission: 'review.decide', badgeKey: 'review' },
+      { to: '/disputes', label: 'nav.feedback', icon: MessageSquareWarning, permission: 'disputes.decide', badgeKey: 'disputes' },
     ],
   },
   {
-    title: 'Boshqaruv',
+    title: 'nav.group.manage',
     items: [
-      { to: '/cashiers', label: 'Kassirlar', icon: Users2, permission: 'cashiers.manage' },
-      { to: '/stations', label: 'Filiallar', icon: Store, permission: 'stations.manage' },
-      { to: '/bonus', label: 'Bonus', icon: Percent, permission: 'bonus.view' },
-      { to: '/broadcasts', label: 'Xabarnomalar', icon: Megaphone, permission: 'broadcasts.manage' },
-      { to: '/admins', label: 'Adminlar', icon: ShieldCheck, permission: 'admins.manage' },
-      { to: '/clients', label: 'Mijozlar', icon: Users, permission: 'clients.view' },
+      { to: '/cashiers', label: 'nav.cashiers', icon: Users2, permission: 'cashiers.manage' },
+      { to: '/stations', label: 'nav.stations', icon: Store, permission: 'stations.manage' },
+      { to: '/bonus', label: 'nav.bonus', icon: Percent, permission: 'bonus.view' },
+      { to: '/broadcasts', label: 'nav.broadcasts', icon: Megaphone, permission: 'broadcasts.manage' },
+      { to: '/admins', label: 'nav.admins', icon: ShieldCheck, permission: 'admins.manage' },
+      { to: '/clients', label: 'nav.clients', icon: Users, permission: 'clients.view' },
     ],
   },
   {
-    title: 'Tizim',
+    title: 'nav.group.system',
     items: [
-      { to: '/audit', label: 'Audit', icon: ScrollText, comingSoon: true },
-      { to: '/settings', label: 'Sozlamalar', icon: Settings, comingSoon: true },
+      { to: '/audit', label: 'nav.audit', icon: ScrollText, comingSoon: true },
+      { to: '/settings', label: 'nav.settings', icon: Settings, comingSoon: true },
     ],
   },
 ]
 
 export function Sidebar() {
+  const { t } = useI18n()
   const role = useAuthStore((s) => s.role)
+  const collapsed = useUiStore((s) => s.sidebarCollapsed)
+  const toggle = useUiStore((s) => s.toggleSidebar)
   const { data: reviewQueue } = useReviewQueue()
   const { data: disputes } = useDisputes('open')
 
@@ -72,60 +81,104 @@ export function Sidebar() {
     review: reviewQueue?.length ?? 0,
     disputes: disputes?.length ?? 0,
   }
+  const ToggleIcon = collapsed ? PanelLeftOpen : PanelLeftClose
 
   return (
-    <aside className="flex h-screen w-60 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]">
-      <div className="flex h-16 items-center gap-2 px-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary-soft)]">
-          <Fuel size={18} className="text-[var(--color-primary)]" />
-        </div>
-        <span className="text-[15px] font-bold text-[var(--color-ink)]">AGNKS</span>
+    <aside
+      className={cn(
+        'flex h-screen shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] transition-[width] duration-200',
+        collapsed ? 'w-[68px]' : 'w-[230px]',
+      )}
+    >
+      <div className={cn('flex h-[76px] shrink-0 items-center', collapsed ? 'justify-center' : 'px-5')}>
+        {collapsed ? (
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
+            <Fuel size={19} />
+          </span>
+        ) : (
+          <div className="min-w-0 whitespace-nowrap">
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--color-lime)]">AGNKS · CNG</p>
+            <p className="text-[17px] font-bold text-[var(--color-ink)]">{t('nav.brand')}</p>
+          </div>
+        )}
       </div>
 
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
-        {GROUPS.map((group) => {
+      <nav className={cn('flex-1 overflow-y-auto overflow-x-hidden pb-4', collapsed ? 'space-y-1 px-2' : 'space-y-4 px-3')}>
+        {GROUPS.map((group, gi) => {
           const visibleItems = group.items.filter((item) => !item.permission || roleHasPermission(role, item.permission))
           if (visibleItems.length === 0) return null
           return (
             <div key={group.title}>
-              <p className="px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-ink-tertiary)]">
-                {group.title}
-              </p>
+              {collapsed ? (
+                gi > 0 && <div className="mx-2 my-2 h-px bg-[var(--color-border)]" />
+              ) : (
+                <p className="mb-1 px-2 text-[10.5px] font-bold uppercase tracking-[0.18em] text-[var(--color-ink-tertiary)]">
+                  {t(group.title)}
+                </p>
+              )}
               <div className="space-y-0.5">
-                {visibleItems.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    className={({ isActive }) =>
-                      cn(
-                        'flex items-center justify-between rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors',
-                        isActive
-                          ? 'bg-[var(--color-primary-soft)] text-[var(--color-primary)]'
-                          : 'text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]',
-                      )
-                    }
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <item.icon size={16} />
-                      {item.label}
-                    </span>
-                    {item.comingSoon && (
-                      <span className="rounded-full bg-[var(--color-surface-alt)] px-1.5 py-0.5 text-[10px] text-[var(--color-ink-tertiary)]">
-                        Tez orada
+                {visibleItems.map((item) => {
+                  const badge = item.badgeKey ? badgeCounts[item.badgeKey] : 0
+                  return (
+                    <Hint key={item.to} label={collapsed ? t(item.label) : undefined} side="right">
+                      <span className="block">
+                      <NavLink
+                        to={item.to}
+                        end={item.to === '/'}
+                        aria-label={t(item.label)}
+                        className={({ isActive }) =>
+                          cn(
+                            'relative flex items-center rounded-lg border-l-2 py-2 text-[13px] font-medium transition-colors',
+                            collapsed ? 'h-10 justify-center px-0' : 'justify-between px-2.5',
+                            isActive
+                              ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]'
+                              : 'border-transparent text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]',
+                          )
+                        }
+                      >
+                        <span className="flex items-center gap-2.5 whitespace-nowrap">
+                          <item.icon size={collapsed ? 19 : 17} />
+                          {!collapsed && t(item.label)}
+                        </span>
+                        {!collapsed && item.comingSoon && (
+                          <span className="rounded-full bg-[var(--color-surface-alt)] px-1.5 py-0.5 text-[10px] text-[var(--color-ink-tertiary)]">
+                            {t('nav.soon')}
+                          </span>
+                        )}
+                        {badge > 0 &&
+                          (collapsed ? (
+                            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-amber)] px-1 font-mono text-[9px] font-bold text-[var(--color-bg)]">
+                              {badge}
+                            </span>
+                          ) : (
+                            <span className="font-mono text-[11px] font-semibold text-[var(--color-amber)]">{badge}</span>
+                          ))}
+                      </NavLink>
                       </span>
-                    )}
-                    {item.badgeKey && badgeCounts[item.badgeKey] > 0 && (
-                      <span className="rounded-full bg-[var(--color-danger)] px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                        {badgeCounts[item.badgeKey]}
-                      </span>
-                    )}
-                  </NavLink>
-                ))}
+                    </Hint>
+                  )
+                })}
               </div>
             </div>
           )
         })}
       </nav>
+
+      <div className={cn('shrink-0 border-t border-[var(--color-border)] p-2')}>
+        <Hint label={collapsed ? t('nav.expand') : undefined} side="right">
+          <button
+            onClick={toggle}
+            aria-label={collapsed ? t('nav.expand') : t('nav.collapse')}
+            className={cn(
+              'flex h-10 w-full items-center rounded-lg text-[13px] font-medium text-[var(--color-ink-tertiary)] transition-colors hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-ink)]',
+              collapsed ? 'justify-center' : 'gap-2.5 px-2.5',
+            )}
+          >
+            <ToggleIcon size={18} />
+            {!collapsed && <span className="whitespace-nowrap">{t('nav.collapse')}</span>}
+          </button>
+        </Hint>
+      </div>
     </aside>
   )
 }

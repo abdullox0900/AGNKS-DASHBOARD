@@ -1,4 +1,3 @@
-import { formatMoneyFull } from '@/shared/lib/format'
 import type { Broadcast, Cashier, ClientRecord, DisputeRecord, Promotion, ReceiptRecord, Shift, Station, Terminal } from '@/entities/models'
 import type { DashboardRole, DashboardUser } from '@/entities/auth'
 import { http } from './http'
@@ -10,16 +9,9 @@ async function unwrap<T>(promise: Promise<{ data: { data: T } }>): Promise<T> {
 
 // ---------- Auth ----------
 
-/** No 2FA — phone+password logs in directly. A lost password falls back to
- * `apiRecoveryLogin` with the per-account recovery code (see staff creation). */
+/** No 2FA — phone+password logs in directly. */
 export async function apiLogin(phone: string, password: string): Promise<{ accessToken: string; user: DashboardUser }> {
   const { accessToken } = await unwrap<{ accessToken: string }>(http.post('/admin/auth/login', { phone, password }))
-  const user = await apiMeWithToken(accessToken)
-  return { accessToken, user }
-}
-
-export async function apiRecoveryLogin(phone: string, recoveryCode: string): Promise<{ accessToken: string; user: DashboardUser }> {
-  const { accessToken } = await unwrap<{ accessToken: string }>(http.post('/admin/auth/recovery-login', { phone, recoveryCode }))
   const user = await apiMeWithToken(accessToken)
   return { accessToken, user }
 }
@@ -73,7 +65,9 @@ export async function apiGetOverview(filter: Filter): Promise<OverviewData> {
 export interface AlertItem {
   type: 'review' | 'dispute' | 'large'
   icon: string
-  text: string
+  count: number
+  /** large-receipt threshold, so'm (type === 'large') */
+  threshold?: number
   href: string
 }
 
@@ -83,10 +77,10 @@ export async function apiGetAlerts(filter: Filter): Promise<{ items: AlertItem[]
   )
   const items: AlertItem[] = []
   if (raw.pendingReview.length > 0) {
-    items.push({ type: 'review', icon: 'clock', text: `${raw.pendingReview.length} ta chek tekshiruvni kutmoqda`, href: '/review' })
+    items.push({ type: 'review', icon: 'clock', count: raw.pendingReview.length, href: '/review' })
   }
   if (raw.openDisputes.length > 0) {
-    items.push({ type: 'dispute', icon: 'x', text: `${raw.openDisputes.length} ta ochiq shikoyat`, href: '/disputes' })
+    items.push({ type: 'dispute', icon: 'x', count: raw.openDisputes.length, href: '/disputes' })
   }
   // root_admin/seo only — other roles get 403 here, which just means no such alert.
   const large = await apiGetLargeReceipts().catch(() => null)
@@ -94,7 +88,8 @@ export async function apiGetAlerts(filter: Filter): Promise<{ items: AlertItem[]
     items.unshift({
       type: 'large',
       icon: 'alert',
-      text: `${large.items.length} ta katta chek (${formatMoneyFull(large.threshold)} va undan ko'p)`,
+      count: large.items.length,
+      threshold: large.threshold,
       href: '/large-receipts',
     })
   }
@@ -170,6 +165,11 @@ export async function apiCreateTerminal(stationId: string, input: { code: string
   return unwrap(http.post(`/admin/stations/${stationId}/terminals`, input))
 }
 
+/** Real deletion — backend refuses (terminal_has_receipts) once receipts went through it; deactivate instead. */
+export async function apiDeleteTerminal(id: string) {
+  return unwrap(http.delete(`/admin/terminals/${id}`))
+}
+
 export async function apiUpdateTerminal(id: string, patch: Partial<Pick<Terminal, 'code' | 'label' | 'active'>>): Promise<Terminal> {
   return unwrap(http.patch(`/admin/terminals/${id}`, patch))
 }
@@ -178,29 +178,37 @@ export async function apiUpdateTerminal(id: string, patch: Partial<Pick<Terminal
 
 export interface AdminAccount {
   id: string
+  /** the person behind the role row (one user can hold several roles) */
+  userId: string
   firstName: string
   phone: string
   role: DashboardRole
   stationId: string | null
   stationName: string | null
+  /** current password — only sent to SEO, and only for accounts that have a stored copy */
+  password: string | null
 }
 
 interface StaffRow {
   id: string
+  userId: string
   role: string
   stationId: string | null
   user: { firstName: string; phone: string | null }
   station: { name: string } | null
+  password?: string | null
 }
 
 function toAdminAccount(row: StaffRow): AdminAccount {
   return {
     id: row.id,
+    userId: row.userId,
     firstName: row.user.firstName,
     phone: row.user.phone ?? '',
     role: row.role as DashboardRole,
     stationId: row.stationId,
     stationName: row.station?.name ?? null,
+    password: row.password ?? null,
   }
 }
 
@@ -214,10 +222,9 @@ export async function apiCreateAdmin(input: {
   phone: string
   role: DashboardRole
   stationId: string | null
-  stationName: string | null
   password: string
-}): Promise<{ admin: AdminAccount; recoveryCode: string }> {
-  const { role, recoveryCode } = await unwrap<{ role: StaffRow; recoveryCode: string }>(
+}): Promise<void> {
+  await unwrap(
     http.post('/admin/staff', {
       firstName: input.firstName,
       phone: input.phone,
@@ -226,18 +233,10 @@ export async function apiCreateAdmin(input: {
       password: input.password,
     }),
   )
-  return {
-    admin: { id: role.id, firstName: input.firstName, phone: input.phone, role: input.role, stationId: input.stationId, stationName: input.stationName },
-    recoveryCode,
-  }
 }
 
 /** `id` is the staff record's own id (returned by `apiGetAdmins`/`apiGetCashiers`), not the phone. */
-export async function apiRegenerateRecoveryCode(id: string): Promise<{ recoveryCode: string }> {
-  return unwrap(http.post(`/admin/staff/${id}/regenerate-recovery-code`))
-}
-
-export async function apiUpdateAdmin(id: string, patch: { firstName?: string; stationId?: string | null }) {
+export async function apiUpdateAdmin(id: string, patch: { firstName?: string; phone?: string; password?: string; stationId?: string | null }) {
   return unwrap(http.patch(`/admin/staff/${id}`, patch))
 }
 
@@ -248,15 +247,16 @@ export async function apiRemoveAdmin(id: string, password: string) {
 
 // ---------- Cashiers ----------
 
-function toCashier(row: StaffRow & { user: { firstName: string; phone: string | null; status: string } }): Cashier {
+function toCashier(row: StaffRow & { terminalIds?: string[]; user: { firstName: string; phone: string | null; status: string } }): Cashier {
   return {
     id: row.id,
     firstName: row.user.firstName,
     phone: row.user.phone ?? '',
     stationId: row.stationId,
     stationName: row.station?.name ?? null,
-    terminalIds: [],
+    terminalIds: row.terminalIds ?? [],
     status: row.user.status === 'blocked' ? 'blocked' : 'active',
+    password: row.password ?? null,
   }
 }
 
@@ -267,20 +267,15 @@ export async function apiGetCashiers(stationId?: string): Promise<Cashier[]> {
   return rows.map(toCashier)
 }
 
+/** `pin` is the cashier's password (any 4+ characters); left empty, the backend generates a 6-digit one. */
 export async function apiCreateCashier(input: { firstName: string; phone: string; stationId: string; terminalIds: string[]; pin?: string }) {
-  const { role, generatedPin } = await unwrap<{ role: StaffRow; generatedPin: string }>(
-    http.post('/admin/staff', { firstName: input.firstName, phone: input.phone, role: 'cashier', stationId: input.stationId, terminalIds: input.terminalIds, pin: input.pin }),
+  await unwrap(
+    http.post('/admin/staff', { firstName: input.firstName, phone: input.phone, role: 'cashier', stationId: input.stationId, terminalIds: input.terminalIds, pin: input.pin || undefined }),
   )
-  const cashier: Cashier = { id: role.id, firstName: input.firstName, phone: input.phone, stationId: input.stationId, stationName: null, terminalIds: input.terminalIds, status: 'active' }
-  return { cashier, pin: generatedPin }
 }
 
-export async function apiUpdateCashier(id: string, patch: { firstName?: string; stationId?: string; terminalIds?: string[] }) {
+export async function apiUpdateCashier(id: string, patch: { firstName?: string; phone?: string; stationId?: string; terminalIds?: string[]; password?: string }) {
   return unwrap(http.patch(`/admin/staff/${id}`, patch))
-}
-
-export async function apiResetPin(id: string, customPin?: string): Promise<{ pin: string }> {
-  return unwrap(http.post(`/admin/staff/${id}/reset-pin`, { pin: customPin }))
 }
 
 export async function apiRemoveCashier(id: string) {
@@ -357,12 +352,16 @@ export async function apiResolveFeedback(id: string, note?: string) {
 
 // ---------- Bonus & promotions ----------
 
-export async function apiGetBonusSettings(): Promise<{ baseRateBps: number }> {
+export async function apiGetBonusSettings(): Promise<{ baseRateBps: number; methanePrice: number }> {
   return unwrap(http.get('/admin/bonus/settings'))
 }
 
 export async function apiSetBaseRate(rateBps: number, note: string) {
   return unwrap<{ baseRateBps: number }>(http.put('/admin/bonus/base-rate', { rateBps, note }))
+}
+
+export async function apiSetMethanePrice(price: number) {
+  return unwrap<{ methanePrice: number }>(http.put('/admin/bonus/methane-price', { price }))
 }
 
 export async function apiGetPromotions(status?: string): Promise<Promotion[]> {
@@ -394,6 +393,10 @@ export async function apiCreateBroadcast(input: { textUz: string; textRu: string
 
 export async function apiCancelBroadcast(id: string) {
   return unwrap<Broadcast>(http.post(`/admin/broadcasts/${id}/cancel`))
+}
+
+export async function apiRemoveBroadcast(id: string) {
+  return unwrap<{ id: string }>(http.delete(`/admin/broadcasts/${id}`))
 }
 
 export async function apiCancelPromotion(id: string) {
@@ -476,6 +479,7 @@ interface RawClientUser {
   firstName: string
   phone: string | null
   createdAt: string
+  registeredAt?: string | null
   card: { number: string; cachedBalance: string | number; pendingAmount: string | number; blocked: boolean } | null
 }
 
@@ -488,7 +492,7 @@ function toClient(raw: RawClientUser): ClientRecord {
     balance: toNum(raw.card?.cachedBalance),
     pendingAmount: toNum(raw.card?.pendingAmount),
     blocked: raw.card?.blocked ?? false,
-    createdAt: raw.createdAt,
+    createdAt: raw.registeredAt ?? raw.createdAt,
   }
 }
 
@@ -497,6 +501,95 @@ export async function apiSearchClients(q?: string): Promise<ClientRecord[]> {
     http.get('/admin/clients', { params: { q } }),
   )
   return items.filter((u) => u.card).map(toClient)
+}
+
+export interface ClientProfile {
+  user: {
+    id: string
+    firstName: string
+    phone: string | null
+    lang: 'uz' | 'ru'
+    status: string
+    registeredAt: string | null
+    createdAt: string
+    telegramLinked: boolean
+    marketingOptIn: boolean
+  }
+  card: { number: string; balance: number; pending: number; blocked: boolean; lastActivityAt: string | null; createdAt: string }
+  stats: {
+    receiptsTotal: number
+    receiptsApplied: number
+    receiptsPending: number
+    receiptsRejected: number
+    receiptsSum: number
+    bonusEarned: number
+    spendCount: number
+    spendSum: number
+    feedbackCount: number
+    disputeCount: number
+    firstReceiptAt: string | null
+    lastReceiptAt: string | null
+  }
+}
+
+export type ClientHistoryKind = 'receipt' | 'spend' | 'adjust'
+
+export interface ClientHistoryItem {
+  kind: ClientHistoryKind
+  id: string
+  createdAt: string
+  stationName: string | null
+  /** receipt total, so'm (0 for spends/adjustments) */
+  amount: number
+  /** signed bonus movement, so'm */
+  bonus: number
+  ratePercent: number | null
+  status: 'applied' | 'pending_review' | 'rejected' | 'reversed'
+  taxVerified: boolean | null
+  note: string | null
+  actorName: string | null
+}
+
+export async function apiGetClientProfile(id: string): Promise<ClientProfile> {
+  return unwrap(http.get(`/admin/clients/${id}`))
+}
+
+export interface ClientReceiptDetail {
+  id: string
+  status: 'applied' | 'pending_review' | 'rejected'
+  createdAt: string
+  receiptAt: string
+  client: { id: string; name: string; phone: string | null }
+  station: { id: string; name: string; address: string }
+  terminal: { code: string; label: string }
+  amount: number
+  bonus: number
+  ratePercent: number
+  promotionName: string | null
+  taxAmount: number | null
+  taxVerified: boolean
+  taxCheckedAt: string | null
+  taxSource: 'server' | 'client' | null
+  reviewReasons: string[]
+  reviewNote: string | null
+  reviewedAt: string | null
+  distanceM: number | null
+  qr: { t: string; r: string; c: string; s: string }
+  soliqUrl: string
+  /** the complete soliq.uz payment record, exactly as soliq.uz returned it */
+  taxData: Record<string, unknown> | null
+  /** stored = saved when the client scanned; live = fetched from soliq.uz just now */
+  taxDataSource: 'stored' | 'live' | null
+}
+
+export async function apiGetClientReceipt(clientId: string, receiptId: string): Promise<ClientReceiptDetail> {
+  return unwrap(http.get(`/admin/clients/${clientId}/receipts/${receiptId}`))
+}
+
+export async function apiGetClientHistory(id: string, params: { cursor?: string; type?: ClientHistoryKind }) {
+  return unwrap<{ items: ClientHistoryItem[]; nextCursor: string | null }>(
+    http.get(`/admin/clients/${id}/history`, { params: { ...params, limit: 30 } }),
+  )
 }
 
 export async function apiRenameClient(id: string, firstName: string) {

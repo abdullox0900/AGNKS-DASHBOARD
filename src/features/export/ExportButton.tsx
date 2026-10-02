@@ -1,5 +1,6 @@
 import { Download } from 'lucide-react'
 import { Button } from '@/shared/ui/Button'
+import { useI18n } from '@/app/providers/I18nProvider'
 
 function toCsv(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return ''
@@ -17,6 +18,7 @@ function csvEscape(value: unknown): string {
 }
 
 export function ExportButton({ rows, filename }: { rows: Record<string, unknown>[]; filename: string }) {
+  const { t } = useI18n()
   function handleExport() {
     const csv = toCsv(rows)
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
@@ -30,7 +32,7 @@ export function ExportButton({ rows, filename }: { rows: Record<string, unknown>
 
   return (
     <Button variant="ghost" size="sm" onClick={handleExport} disabled={rows.length === 0}>
-      <Download size={14} /> Eksport
+      <Download size={14} /> {t('common.export')}
     </Button>
   )
 }

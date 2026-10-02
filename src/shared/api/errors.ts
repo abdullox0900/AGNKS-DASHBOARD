@@ -1,3 +1,6 @@
+import { dictionaries, translate, type DictKey } from '@/shared/config/dictionaries'
+import { getLocale } from '@/shared/config/uiStore'
+
 export type ErrorCode =
   | 'VALIDATION_ERROR'
   | 'AUTH_FORBIDDEN'
@@ -18,6 +21,15 @@ export class ApiError extends Error {
     this.code = code
     this.details = details
   }
+}
+
+/** Localized message for an API error code (falls back to a generic one). */
+export function apiErrorMessage(err: ApiError): string {
+  // a few backend refusals carry a specific reason in details.message
+  const reasonKey = `stations.${String(err.details?.message ?? '')}` as DictKey
+  if (reasonKey in dictionaries.uz) return translate(getLocale(), reasonKey)
+  const key = `error.${err.code}` as DictKey
+  return translate(getLocale(), key in dictionaries.uz ? key : 'common.error_generic')
 }
 
 export function isClientError(err: unknown): boolean {

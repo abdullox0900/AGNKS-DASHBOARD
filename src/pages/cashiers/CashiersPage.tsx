@@ -1,61 +1,92 @@
 import { useState } from 'react'
-import { Plus, RotateCw, Trash2 } from 'lucide-react'
-import { Card } from '@/shared/ui/Card'
+import { MoreHorizontal, Pencil, Plus, Trash2, TriangleAlert } from 'lucide-react'
 import { Button } from '@/shared/ui/Button'
 import { Badge } from '@/shared/ui/Badge'
 import { DataTable, type DataTableColumn } from '@/shared/ui/DataTable'
 import { Drawer } from '@/shared/ui/Drawer'
+import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '@/shared/ui/Menu'
+import { PasswordCell } from '@/shared/ui/PasswordCell'
+import { PasswordField } from '@/shared/ui/PasswordField'
+import { PhoneInput } from '@/shared/ui/PhoneInput'
+import { Rich } from '@/shared/ui/Rich'
 import { useToast } from '@/shared/ui/Toast'
 import { useCashiers, useStations, useTerminals } from '@/shared/api/hooks'
-import { apiCreateCashier, apiRemoveCashier, apiResetPin } from '@/shared/api/client'
+import { apiCreateCashier, apiRemoveCashier, apiUpdateCashier } from '@/shared/api/client'
+import { ApiError, apiErrorMessage } from '@/shared/api/errors'
 import { useAuthStore } from '@/shared/config/authStore'
 import { useIsNetworkWide } from '@/shared/lib/permissions'
 import type { Cashier } from '@/entities/models'
-import { PhoneInput } from '@/shared/ui/PhoneInput'
-import { formatPhone, isCompletePhone, toE164 } from '@/shared/lib/phone'
+import { formatPhone, isCompletePhone, toE164, toLocalDigits } from '@/shared/lib/phone'
+import { useI18n } from '@/app/providers/I18nProvider'
+
+const inputClass = 'h-10 w-full rounded-lg border border-[var(--color-border)] px-3 text-[13px] outline-none focus:border-[var(--color-primary)]'
+const labelClass = 'mb-1 block text-[13px] font-medium text-[var(--color-ink-secondary)]'
+
+function errorText(err: unknown, t: ReturnType<typeof useI18n>['t']): string {
+  if (err instanceof ApiError) return err.details?.message === 'phone_taken' ? t('admins.phone_taken') : apiErrorMessage(err)
+  return t('common.error_generic')
+}
 
 export function CashiersPage() {
+  const { t } = useI18n()
   const isNetworkWide = useIsNetworkWide()
   const ownStationId = useAuthStore((s) => s.stationId)
   const { data: cashiers, isLoading, error, mutate } = useCashiers(isNetworkWide ? undefined : ownStationId ?? undefined)
   const { data: stations } = useStations()
+  const { show } = useToast()
   const [formOpen, setFormOpen] = useState(false)
-  const [resetting, setResetting] = useState<Cashier | null>(null)
+  const [editing, setEditing] = useState<Cashier | null>(null)
+  const [deleting, setDeleting] = useState<Cashier | null>(null)
 
   const columns: DataTableColumn<Cashier>[] = [
-    { id: 'name', header: 'Ism', accessor: (r) => r.firstName, sticky: true },
-    { id: 'phone', header: 'Telefon', accessor: (r) => formatPhone(r.phone) },
-    { id: 'station', header: 'Filial', accessor: (r) => stations?.find((s) => s.id === r.stationId)?.name ?? '' },
-    { id: 'terminals', header: 'Terminallar', accessor: (r) => r.terminalIds.length },
-    { id: 'status', header: 'Holat', accessor: (r) => r.status, cell: (r) => <Badge tone={r.status === 'active' ? 'success' : 'danger'}>{r.status === 'active' ? 'Faol' : 'Bloklangan'}</Badge> },
+    {
+      id: 'name',
+      header: 'common.name',
+      accessor: (r) => r.firstName,
+      sticky: true,
+      cell: (r) => (
+        <span className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[12.5px] font-bold text-[var(--color-primary)]">
+            {r.firstName.charAt(0).toUpperCase()}
+          </span>
+          <span className="font-medium">{r.firstName}</span>
+        </span>
+      ),
+    },
+    { id: 'phone', header: 'common.phone', accessor: (r) => formatPhone(r.phone) },
+    { id: 'station', header: 'common.station', accessor: (r) => stations?.find((s) => s.id === r.stationId)?.name ?? r.stationName ?? '' },
+    { id: 'terminals', header: 'cashiers.terminals', accessor: (r) => r.terminalIds.length },
+    {
+      id: 'status',
+      header: 'common.status',
+      accessor: (r) => r.status,
+      cell: (r) => <Badge tone={r.status === 'active' ? 'success' : 'danger'}>{r.status === 'active' ? t('common.active') : t('common.blocked')}</Badge>,
+    },
+    { id: 'password', header: 'common.password', sortable: false, accessor: (r) => r.password ?? '', cell: (r) => <PasswordCell password={r.password} /> },
     {
       id: 'actions',
       header: '',
       sortable: false,
       accessor: () => '',
       cell: (r) => (
-        <div className="flex justify-end gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={(e) => {
-              e.stopPropagation()
-              setResetting(r)
-            }}
-          >
-            <RotateCw size={13} />
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={async (e) => {
-              e.stopPropagation()
-              await apiRemoveCashier(r.id)
-              mutate()
-            }}
-          >
-            <Trash2 size={13} className="text-[var(--color-danger)]" />
-          </Button>
+        <div className="flex justify-end">
+          <Menu>
+            <MenuTrigger
+              aria-label={t('common.edit')}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-ink-tertiary)] outline-none transition-colors hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-ink)] data-[state=open]:bg-[var(--color-surface-alt)]"
+            >
+              <MoreHorizontal size={17} />
+            </MenuTrigger>
+            <MenuContent align="end" className="w-44">
+              <MenuItem onSelect={() => setEditing(r)}>
+                <Pencil size={14} /> {t('common.edit')}
+              </MenuItem>
+              <MenuSeparator />
+              <MenuItem danger onSelect={() => setDeleting(r)}>
+                <Trash2 size={14} /> {t('common.delete')}
+              </MenuItem>
+            </MenuContent>
+          </Menu>
         </div>
       ),
     },
@@ -65,30 +96,51 @@ export function CashiersPage() {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Button onClick={() => setFormOpen(true)}>
-          <Plus size={15} /> Kassir qo'shish
+          <Plus size={15} /> {t('cashiers.add')}
         </Button>
       </div>
 
-      <Card>
-        <DataTable columns={columns} data={cashiers ?? []} loading={isLoading} error={error ? "Yuklab bo'lmadi" : undefined} onRetry={() => mutate()} getRowId={(r) => r.id} emptyMessage="Kassir yo'q" />
-      </Card>
+      <DataTable
+        columns={columns}
+        data={cashiers ?? []}
+        loading={isLoading}
+        error={error ? t('common.load_failed') : undefined}
+        onRetry={() => mutate()}
+        getRowId={(r) => r.id}
+        emptyMessage={t('cashiers.empty')}
+      />
 
-      <Drawer open={formOpen} onClose={() => setFormOpen(false)} title="Kassir qo'shish">
+      <Drawer open={formOpen} onClose={() => setFormOpen(false)} title={t('cashiers.add')}>
         <CashierForm
-          defaultStationId={isNetworkWide ? undefined : ownStationId ?? undefined}
-          onCreated={() => {
+          onDone={() => {
             setFormOpen(false)
+            show(t('cashiers.added_toast'))
             mutate()
           }}
         />
       </Drawer>
 
-      <Drawer open={!!resetting} onClose={() => setResetting(null)} title={`${resetting?.firstName ?? ''} — PIN kodni yangilash`}>
-        {resetting && (
-          <ResetPinForm
-            cashierId={resetting.id}
+      <Drawer open={!!editing} onClose={() => setEditing(null)} title={t('admins.edit_title', { name: editing?.firstName ?? '' })}>
+        {editing && (
+          <CashierForm
+            key={editing.id}
+            cashier={editing}
             onDone={() => {
-              setResetting(null)
+              setEditing(null)
+              show(t('common.saved'))
+              mutate()
+            }}
+          />
+        )}
+      </Drawer>
+
+      <Drawer open={!!deleting} onClose={() => setDeleting(null)} title={t('admins.delete_title', { name: deleting?.firstName ?? '' })}>
+        {deleting && (
+          <DeleteCashier
+            cashier={deleting}
+            onDone={() => {
+              setDeleting(null)
+              show(t('cashiers.deleted_toast'))
               mutate()
             }}
           />
@@ -98,120 +150,106 @@ export function CashiersPage() {
   )
 }
 
-function ResetPinForm({ cashierId, onDone }: { cashierId: string; onDone: () => void }) {
-  const { show } = useToast()
-  const [pin, setPin] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [result, setResult] = useState<string | null>(null)
+function DeleteCashier({ cashier, onDone }: { cashier: Cashier; onDone: () => void }) {
+  const { t } = useI18n()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  async function handleSubmit(customPin?: string) {
-    setSubmitting(true)
+  async function remove() {
+    setBusy(true)
+    setError(null)
     try {
-      const { pin: newPin } = await apiResetPin(cashierId, customPin)
-      setResult(newPin)
-    } catch {
-      show('Xatolik yuz berdi')
+      await apiRemoveCashier(cashier.id)
+      onDone()
+    } catch (err) {
+      setError(errorText(err, t))
     } finally {
-      setSubmitting(false)
+      setBusy(false)
     }
-  }
-
-  if (result) {
-    return (
-      <div className="space-y-4 text-center">
-        <p className="text-[13px] text-[var(--color-ink-secondary)]">Yangi PIN kod faqat bir marta ko'rsatiladi:</p>
-        <p className="tnum text-[32px] font-bold tracking-[0.2em] text-[var(--color-primary)]">{result}</p>
-        <Button className="w-full" onClick={onDone}>
-          Tushunarli
-        </Button>
-      </div>
-    )
   }
 
   return (
     <div className="space-y-4">
-      <div>
-        <label className="mb-1 block text-[13px] font-medium text-[var(--color-ink-secondary)]">
-          Yangi PIN (4–6 raqam) — kassir yodda tuta oladigan narsa tanlang
-        </label>
-        <input
-          inputMode="numeric"
-          value={pin}
-          onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-          placeholder="masalan 123456"
-          className="h-10 w-full rounded-lg border border-[var(--color-border)] px-3 text-[13px] tracking-[0.15em] outline-none focus:border-[var(--color-primary)]"
-        />
+      <div className="flex gap-3 rounded-xl bg-[var(--color-danger-soft)] p-3.5 text-[13px] text-[var(--color-ink)]">
+        <TriangleAlert size={18} className="mt-0.5 shrink-0 text-[var(--color-danger)]" />
+        <p>
+          <Rich text={t('cashiers.delete_confirm', { name: cashier.firstName, phone: formatPhone(cashier.phone) })} />
+        </p>
       </div>
-      <Button className="w-full" loading={submitting} disabled={pin.length < 4} onClick={() => handleSubmit(pin)}>
-        Shu PIN'ni o'rnatish
-      </Button>
-      <Button variant="ghost" className="w-full" loading={submitting} onClick={() => handleSubmit(undefined)}>
-        Tasodifiy PIN yaratish
+      {error && <p className="text-[13px] font-medium text-[var(--color-danger)]">{error}</p>}
+      <Button variant="danger" className="w-full" loading={busy} onClick={remove}>
+        <Trash2 size={15} /> {t('common.delete')}
       </Button>
     </div>
   )
 }
 
-function CashierForm({ defaultStationId, onCreated }: { defaultStationId?: string; onCreated: () => void }) {
+/** Create (no `cashier`) or edit a cashier: name, phone (= login), station, terminals, password. */
+function CashierForm({ cashier, onDone }: { cashier?: Cashier; onDone: () => void }) {
+  const { t } = useI18n()
   const { data: stations } = useStations()
   const isNetworkWide = useIsNetworkWide()
-  const [firstName, setFirstName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [stationId, setStationId] = useState(defaultStationId ?? '')
-  const [terminalIds, setTerminalIds] = useState<string[]>([])
-  const [pin, setPin] = useState('')
+  const ownStationId = useAuthStore((s) => s.stationId)
+  const [firstName, setFirstName] = useState(cashier?.firstName ?? '')
+  const [phone, setPhone] = useState(cashier ? toLocalDigits(cashier.phone) : '')
+  const [stationId, setStationId] = useState(cashier?.stationId ?? (isNetworkWide ? '' : ownStationId ?? ''))
+  const [terminalIds, setTerminalIds] = useState<string[]>(cashier?.terminalIds ?? [])
+  const [password, setPassword] = useState(cashier?.password ?? '')
   const { data: terminals } = useTerminals(stationId || null)
+  const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [createdPin, setCreatedPin] = useState<string | null>(null)
+
+  const editing = !!cashier
+  const valid = firstName.trim().length >= 2 && isCompletePhone(phone) && !!stationId && (!password || password.length >= 4)
+  const patch = editing
+    ? {
+        ...(firstName.trim() !== cashier.firstName ? { firstName: firstName.trim() } : {}),
+        ...(toE164(phone) !== cashier.phone ? { phone: toE164(phone) } : {}),
+        ...(stationId !== cashier.stationId ? { stationId } : {}),
+        ...(terminalIds.slice().sort().join() !== cashier.terminalIds.slice().sort().join() ? { terminalIds } : {}),
+        ...(password && password !== (cashier.password ?? '') ? { password } : {}),
+      }
+    : {}
+  const changed = !editing || Object.keys(patch).length > 0
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!firstName || !isCompletePhone(phone) || !stationId) return
+    if (!valid || !changed) return
     setSubmitting(true)
+    setError(null)
     try {
-      const { pin: finalPin } = await apiCreateCashier({
-        firstName,
-        phone: toE164(phone),
-        stationId,
-        terminalIds,
-        pin: pin.length >= 4 ? pin : undefined,
-      })
-      setCreatedPin(finalPin)
+      if (editing) await apiUpdateCashier(cashier.id, patch)
+      else await apiCreateCashier({ firstName: firstName.trim(), phone: toE164(phone), stationId, terminalIds, pin: password || undefined })
+      onDone()
+    } catch (err) {
+      setError(errorText(err, t))
     } finally {
       setSubmitting(false)
     }
   }
 
-  if (createdPin) {
-    return (
-      <div className="space-y-4 text-center">
-        <p className="text-[13px] text-[var(--color-ink-secondary)]">Kassir qo'shildi. PIN kod faqat bir marta ko'rsatiladi:</p>
-        <p className="tnum text-[32px] font-bold tracking-[0.2em] text-[var(--color-primary)]">{createdPin}</p>
-        <p className="text-[12px] text-[var(--color-ink-tertiary)]">
-          Kassir xodimlar botiga <b>/start</b> bosib kirishi va shu PIN bilan (yoki Telegram orqali avtomatik) tizimga kirishi kerak.
-        </p>
-        <Button className="w-full" onClick={onCreated}>
-          Tushunarli
-        </Button>
-      </div>
-    )
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="mb-1 block text-[13px] font-medium text-[var(--color-ink-secondary)]">Ism</label>
-        <input value={firstName} onChange={(e) => setFirstName(e.target.value)} className="h-10 w-full rounded-lg border border-[var(--color-border)] px-3 text-[13px] outline-none focus:border-[var(--color-primary)]" />
+        <label className={labelClass}>{t('common.name')}</label>
+        <input value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClass} />
       </div>
       <div>
-        <label className="mb-1 block text-[13px] font-medium text-[var(--color-ink-secondary)]">Telefon</label>
+        <label className={labelClass}>{t('cashiers.f_phone_login')}</label>
         <PhoneInput value={phone} onChange={setPhone} className="h-10 rounded-lg border border-[var(--color-border)] px-3 text-[13px]" />
       </div>
       {isNetworkWide && (
         <div>
-          <label className="mb-1 block text-[13px] font-medium text-[var(--color-ink-secondary)]">Filial</label>
-          <select value={stationId} onChange={(e) => setStationId(e.target.value)} className="h-10 w-full rounded-lg border border-[var(--color-border)] px-3 text-[13px]">
-            <option value="">Tanlang</option>
+          <label className={labelClass}>{t('common.station')}</label>
+          <select
+            value={stationId}
+            onChange={(e) => {
+              setStationId(e.target.value)
+              setTerminalIds([])
+            }}
+            className={inputClass}
+          >
+            <option value="">{t('common.choose')}</option>
             {stations?.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -220,37 +258,31 @@ function CashierForm({ defaultStationId, onCreated }: { defaultStationId?: strin
           </select>
         </div>
       )}
-      {stationId && (
+      {stationId && terminals && terminals.length > 0 && (
         <div>
-          <label className="mb-1 block text-[13px] font-medium text-[var(--color-ink-secondary)]">Terminallar</label>
-          <div className="space-y-1">
-            {terminals?.map((t) => (
-              <label key={t.id} className="flex items-center gap-2 text-[13px]">
+          <label className={labelClass}>{t('cashiers.terminals')}</label>
+          <div className="space-y-1.5">
+            {terminals.map((tm) => (
+              <label key={tm.id} className="flex items-center gap-2 text-[13px] text-[var(--color-ink)]">
                 <input
                   type="checkbox"
-                  checked={terminalIds.includes(t.id)}
-                  onChange={(e) => setTerminalIds((prev) => (e.target.checked ? [...prev, t.id] : prev.filter((id) => id !== t.id)))}
+                  checked={terminalIds.includes(tm.id)}
+                  onChange={(e) => setTerminalIds((prev) => (e.target.checked ? [...prev, tm.id] : prev.filter((id) => id !== tm.id)))}
                 />
-                {t.label} ({t.code})
+                {tm.label} <span className="font-mono text-[11px] text-[var(--color-ink-tertiary)]">({tm.code})</span>
               </label>
             ))}
           </div>
         </div>
       )}
       <div>
-        <label className="mb-1 block text-[13px] font-medium text-[var(--color-ink-secondary)]">
-          PIN kod (ixtiyoriy, bo'sh qoldirsangiz tasodifiy yaratiladi)
-        </label>
-        <input
-          inputMode="numeric"
-          value={pin}
-          onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-          placeholder="masalan 123456"
-          className="h-10 w-full rounded-lg border border-[var(--color-border)] px-3 text-[13px] tracking-[0.15em] outline-none focus:border-[var(--color-primary)]"
-        />
+        <label className={labelClass}>{t('common.password')}</label>
+        <PasswordField value={password} onChange={setPassword} generate="digits" placeholder={editing && !cashier.password ? t('admins.password_unknown') : undefined} />
+        <p className="mt-1 text-[11px] text-[var(--color-ink-tertiary)]">{editing ? t('cashiers.password_edit_hint') : t('cashiers.password_hint')}</p>
       </div>
-      <Button type="submit" className="w-full" loading={submitting} disabled={!firstName || !isCompletePhone(phone) || !stationId}>
-        Qo'shish
+      {error && <p className="text-[13px] font-medium text-[var(--color-danger)]">{error}</p>}
+      <Button type="submit" className="w-full" loading={submitting} disabled={!valid || !changed}>
+        {editing ? t('common.save') : t('common.add')}
       </Button>
     </form>
   )

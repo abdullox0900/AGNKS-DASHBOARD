@@ -1,16 +1,30 @@
+import { getLocale } from '@/shared/config/uiStore'
+import { translate } from '@/shared/config/dictionaries'
+
+const unit = (key: 'common.sum_unit' | 'common.mln' | 'common.mlrd') => translate(getLocale(), key)
+
 export function formatMoneyFull(sum: number): string {
   const sign = sum < 0 ? '−' : ''
   const grouped = Math.round(Math.abs(sum)).toLocaleString('ru-RU').replace(/,/g, ' ')
-  return `${sign}${grouped} so'm`
+  return `${sign}${grouped} ${unit('common.sum_unit')}`
 }
 
 /** Abbreviated for KPI cards: 12.4 mln so'm, 1.24 mlrd so'm. Full value belongs in a tooltip/title. */
 export function formatMoneyShort(sum: number): string {
   const abs = Math.abs(sum)
   const sign = sum < 0 ? '−' : ''
-  if (abs >= 1_000_000_000) return `${sign}${trimZero((abs / 1_000_000_000).toFixed(2))} mlrd so'm`
-  if (abs >= 1_000_000) return `${sign}${trimZero((abs / 1_000_000).toFixed(1))} mln so'm`
+  if (abs >= 1_000_000_000) return `${sign}${trimZero((abs / 1_000_000_000).toFixed(2))} ${unit('common.mlrd')} ${unit('common.sum_unit')}`
+  if (abs >= 1_000_000) return `${sign}${trimZero((abs / 1_000_000).toFixed(1))} ${unit('common.mln')} ${unit('common.sum_unit')}`
   return formatMoneyFull(sum)
+}
+
+/** Like formatMoneyShort but without the currency suffix — for tight mono labels: "156.2 mln". */
+export function formatMoneyCompact(sum: number): string {
+  const abs = Math.abs(sum)
+  const sign = sum < 0 ? '−' : ''
+  if (abs >= 1_000_000_000) return `${sign}${trimZero((abs / 1_000_000_000).toFixed(2))} ${unit('common.mlrd')}`
+  if (abs >= 1_000_000) return `${sign}${trimZero((abs / 1_000_000).toFixed(1))} ${unit('common.mln')}`
+  return `${sign}${formatNumber(abs)}`
 }
 
 function trimZero(s: string): string {

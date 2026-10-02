@@ -12,6 +12,7 @@ import { StationsPage } from '@/pages/stations/StationsPage'
 import { BonusPage } from '@/pages/bonus/BonusPage'
 import { AdminsPage } from '@/pages/admins/AdminsPage'
 import { ClientsPage } from '@/pages/clients/ClientsPage'
+import { ClientDetailPage } from '@/pages/clients/ClientDetailPage'
 import { BroadcastsPage } from '@/pages/broadcasts/BroadcastsPage'
 import { LargeReceiptsPage } from '@/pages/large-receipts/LargeReceiptsPage'
 import { ComingSoonPage } from '@/pages/coming-soon/ComingSoonPage'
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
         ),
       },
       { path: '/clients', element: <ClientsPage /> },
+      { path: '/clients/:id', element: <ClientDetailPage /> },
       {
         path: '/large-receipts',
         element: (
@@ -64,8 +66,8 @@ export const router = createBrowserRouter([
           </RequirePermission>
         ),
       },
-      { path: '/audit', element: <ComingSoonPage title="Audit jurnali" /> },
-      { path: '/settings', element: <ComingSoonPage title="Sozlamalar" /> },
+      { path: '/audit', element: <ComingSoonPage title="coming_soon.audit" /> },
+      { path: '/settings', element: <ComingSoonPage title="nav.settings" /> },
     ],
   },
 ])

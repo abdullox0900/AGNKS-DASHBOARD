@@ -1,6 +1,8 @@
+import type { DictKey } from '@/shared/config/dictionaries'
+
 export type Granularity = 'day' | 'week' | 'month'
 
-export const GRANULARITY_LABELS: Record<Granularity, string> = { day: 'Kun', week: 'Hafta', month: 'Oy' }
+export const GRANULARITY_KEYS: Record<Granularity, DictKey> = { day: 'gran.day', week: 'gran.week', month: 'gran.month' }
 
 function bucketKey(dateStr: string, granularity: Granularity): string {
   const d = new Date(dateStr)

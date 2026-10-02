@@ -31,8 +31,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           {toasts.map((t) => (
             <div
               key={t.id}
-              className={`pointer-events-auto max-w-[360px] rounded-xl px-4 py-3 text-[13px] font-medium text-white animate-[toast-in_180ms_ease-out] ${
-                t.tone === 'warning' ? 'bg-[var(--color-amber-strong)]' : 'bg-[var(--color-ink)]'
+              className={`pointer-events-auto max-w-[360px] rounded-xl border px-4 py-3 text-[13px] font-medium animate-[toast-in_180ms_ease-out] ${
+                t.tone === 'warning'
+                  ? 'border-[var(--color-amber)]/30 bg-[var(--color-surface-alt)] text-[var(--color-amber-strong)]'
+                  : 'border-[var(--color-border-strong)] bg-[var(--color-surface-alt)] text-[var(--color-ink)]'
               }`}
               style={{ boxShadow: 'var(--shadow-float)' }}
             >

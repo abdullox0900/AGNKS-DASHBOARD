@@ -13,6 +13,7 @@ import {
   apiGetReviewQueue,
   apiGetAdmins,
   apiSearchClients,
+  apiGetClientProfile,
   apiGetFeedback,
   type Filter,
  apiGetBroadcasts } from './client'
@@ -82,6 +83,10 @@ export function useAdmins() {
 
 export function useClients(q?: string) {
   return useSWR(['/admin/clients', q ?? ''], () => apiSearchClients(q))
+}
+
+export function useClientProfile(id: string | undefined) {
+  return useSWR(id ? ['/admin/clients', id, 'profile'] : null, () => apiGetClientProfile(id!))
 }
 
 export function useFeedback(status?: string) {

@@ -1,22 +1,23 @@
 import { useState } from 'react'
-import { Plus, Send, Info } from 'lucide-react'
-import { Card } from '@/shared/ui/Card'
+import { Plus, Send, Info, Trash2, TriangleAlert } from 'lucide-react'
 import { Button } from '@/shared/ui/Button'
 import { Badge } from '@/shared/ui/Badge'
 import { DataTable, type DataTableColumn } from '@/shared/ui/DataTable'
 import { Drawer } from '@/shared/ui/Drawer'
 import { useToast } from '@/shared/ui/Toast'
 import { useBroadcasts } from '@/shared/api/hooks'
-import { apiCancelBroadcast, apiCreateBroadcast } from '@/shared/api/client'
+import { apiCancelBroadcast, apiCreateBroadcast, apiRemoveBroadcast } from '@/shared/api/client'
 import { formatDateTime } from '@/shared/lib/dates'
 import { SendTimePicker, resolveSendAt, type SendTimeMode } from '@/widgets/SendTimePicker'
 import type { Broadcast, BroadcastStatus } from '@/entities/models'
+import { useI18n } from '@/app/providers/I18nProvider'
+import type { DictKey } from '@/shared/config/dictionaries'
 
-const STATUS_LABEL: Record<BroadcastStatus, string> = {
-  scheduled: 'Rejada',
-  sending: 'Yuborilmoqda',
-  sent: 'Yuborildi',
-  cancelled: 'Bekor qilingan',
+const STATUS_LABEL: Record<BroadcastStatus, DictKey> = {
+  scheduled: 'bc.status.scheduled',
+  sending: 'bc.status.sending',
+  sent: 'bc.status.sent',
+  cancelled: 'bc.status.cancelled',
 }
 const STATUS_TONE: Record<BroadcastStatus, 'primary' | 'warning' | 'success' | 'danger'> = {
   scheduled: 'primary',
@@ -27,14 +28,24 @@ const STATUS_TONE: Record<BroadcastStatus, 'primary' | 'warning' | 'success' | '
 const MAX_LEN = 3500
 
 export function BroadcastsPage() {
+  const { t } = useI18n()
   const { data, isLoading, error, mutate } = useBroadcasts()
   const [formOpen, setFormOpen] = useState(false)
   const [viewing, setViewing] = useState<Broadcast | null>(null)
+  const [deleting, setDeleting] = useState<Broadcast | null>(null)
   const { show } = useToast()
 
   async function cancel(b: Broadcast) {
     await apiCancelBroadcast(b.id)
-    show('Xabar bekor qilindi')
+    show(t('bc.cancelled_toast'))
+    setViewing(null)
+    mutate()
+  }
+
+  async function remove(b: Broadcast) {
+    await apiRemoveBroadcast(b.id)
+    show(t('bc.deleted_toast'))
+    setDeleting(null)
     setViewing(null)
     mutate()
   }
@@ -42,23 +53,23 @@ export function BroadcastsPage() {
   const columns: DataTableColumn<Broadcast>[] = [
     {
       id: 'text',
-      header: 'Xabar',
+      header: 'bc.col_message',
       accessor: (r) => r.textUz,
       cell: (r) => <p className="max-w-[360px] truncate text-[13px] text-[var(--color-ink)]">{r.textUz.split('\n')[0]}</p>,
       sticky: true,
     },
     {
       id: 'kind',
-      header: 'Turi',
+      header: 'common.type',
       accessor: (r) => (r.promotionId ? 'promo' : 'manual'),
-      cell: (r) => (r.promotionId ? <Badge tone="warning">Aksiya</Badge> : <Badge>Xabar</Badge>),
+      cell: (r) => (r.promotionId ? <Badge tone="warning">{t('bc.kind_promo')}</Badge> : <Badge>{t('bc.kind_message')}</Badge>),
     },
-    { id: 'sendAt', header: 'Yuborish vaqti', accessor: (r) => r.sendAt, cell: (r) => formatDateTime(r.sendAt) },
+    { id: 'sendAt', header: 'bc.send_at', accessor: (r) => r.sendAt, cell: (r) => formatDateTime(r.sendAt) },
     {
       id: 'status',
-      header: 'Holat',
+      header: 'common.status',
       accessor: (r) => r.status,
-      cell: (r) => <Badge tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</Badge>,
+      cell: (r) => <Badge tone={STATUS_TONE[r.status]}>{t(STATUS_LABEL[r.status])}</Badge>,
     },
     {
       id: 'telegram',
@@ -68,7 +79,7 @@ export function BroadcastsPage() {
         r.status === 'sent' ? (
           <span className="tnum text-[13px] text-[var(--color-ink-secondary)]">
             {r.delivered}/{r.recipientCount}
-            {r.failed > 0 && <span className="text-[var(--color-danger)]"> · {r.failed} xato</span>}
+            {r.failed > 0 && <span className="text-[var(--color-danger)]"> · {t('bc.errors_n', { n: r.failed })}</span>}
           </span>
         ) : (
           <span className="text-[13px] text-[var(--color-ink-tertiary)]">—</span>
@@ -79,9 +90,9 @@ export function BroadcastsPage() {
       header: '',
       sortable: false,
       accessor: () => '',
-      cell: (r) =>
-        r.status === 'scheduled' ? (
-          <div className="flex justify-end">
+      cell: (r) => (
+        <div className="flex justify-end gap-1.5">
+          {r.status === 'scheduled' && (
             <Button
               size="sm"
               variant="ghost"
@@ -90,10 +101,25 @@ export function BroadcastsPage() {
                 void cancel(r)
               }}
             >
-              Bekor qilish
+              {t('common.cancel')}
             </Button>
-          </div>
-        ) : null,
+          )}
+          {r.status !== 'sending' && (
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-label={t('common.delete')}
+              onClick={(e) => {
+                e.stopPropagation()
+                setDeleting(r)
+              }}
+              className="px-2 hover:text-[var(--color-danger)]"
+            >
+              <Trash2 size={14} />
+            </Button>
+          )}
+        </div>
+      ),
     },
   ]
 
@@ -102,58 +128,97 @@ export function BroadcastsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="flex items-center gap-2 text-[12.5px] text-[var(--color-ink-tertiary)]">
           <Info size={14} className="shrink-0" />
-          Telegram bot orqali faqat «Aksiya xabarlari»ni yoqqan mijozlarga boradi. Ilovadagi «Xabarlar» bo'limida esa hamma ko'radi.
+          {t('bc.info')}
         </p>
         <Button onClick={() => setFormOpen(true)}>
-          <Plus size={15} /> Yangi xabar
+          <Plus size={15} /> {t('bc.new')}
         </Button>
       </div>
 
-      <Card>
-        <DataTable
+      <DataTable
           columns={columns}
           data={data ?? []}
           loading={isLoading}
-          error={error ? "Yuklab bo'lmadi" : undefined}
+          error={error ? t('common.load_failed') : undefined}
           onRetry={() => mutate()}
           getRowId={(r) => r.id}
           onRowClick={setViewing}
-          emptyMessage="Hali xabar yuborilmagan"
+          emptyMessage={t('bc.empty')}
         />
-      </Card>
 
-      <Drawer open={formOpen} onClose={() => setFormOpen(false)} title="Mijozlarga xabar">
+      <Drawer open={formOpen} onClose={() => setFormOpen(false)} title={t('bc.form_title')}>
         <BroadcastForm
           onCreated={(scheduled) => {
             setFormOpen(false)
-            show(scheduled ? 'Xabar rejalashtirildi' : "Xabar yuborishga navbatga qo'yildi")
+            show(scheduled ? t('bc.scheduled_toast') : t('bc.queued_toast'))
             mutate()
           }}
         />
       </Drawer>
 
-      <Drawer open={!!viewing} onClose={() => setViewing(null)} title="Xabar">
+      <Drawer open={!!viewing} onClose={() => setViewing(null)} title={t('bc.view_title')}>
         {viewing && (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-[var(--color-ink-secondary)]">
-              <Badge tone={STATUS_TONE[viewing.status]}>{STATUS_LABEL[viewing.status]}</Badge>
+              <Badge tone={STATUS_TONE[viewing.status]}>{t(STATUS_LABEL[viewing.status])}</Badge>
               <span>{formatDateTime(viewing.sendAt)}</span>
               {viewing.status === 'sent' && (
                 <span>
-                  · Telegram: {viewing.delivered}/{viewing.recipientCount}
+                  · {t('bc.telegram')}: {viewing.delivered}/{viewing.recipientCount}
                 </span>
               )}
             </div>
-            <Preview label="O'zbekcha" text={viewing.textUz} />
-            {viewing.textRu && <Preview label="Ruscha" text={viewing.textRu} />}
+            <Preview label={t('bc.uz')} text={viewing.textUz} />
+            {viewing.textRu && <Preview label={t('bc.ru')} text={viewing.textRu} />}
             {viewing.status === 'scheduled' && (
-              <Button variant="danger" className="w-full" onClick={() => cancel(viewing)}>
-                Bekor qilish
+              <Button variant="ghost" className="w-full" onClick={() => cancel(viewing)}>
+                {t('common.cancel')}
+              </Button>
+            )}
+            {viewing.status !== 'sending' && (
+              <Button variant="danger" className="w-full" onClick={() => setDeleting(viewing)}>
+                <Trash2 size={15} /> {t('common.delete')}
               </Button>
             )}
           </div>
         )}
       </Drawer>
+
+      <Drawer open={!!deleting} onClose={() => setDeleting(null)} title={t('bc.delete_title')}>
+        {deleting && <DeleteBroadcast broadcast={deleting} onConfirm={() => remove(deleting)} />}
+      </Drawer>
+    </div>
+  )
+}
+
+function DeleteBroadcast({ broadcast, onConfirm }: { broadcast: Broadcast; onConfirm: () => Promise<void> }) {
+  const { t } = useI18n()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(false)
+
+  async function run() {
+    setBusy(true)
+    setError(false)
+    try {
+      await onConfirm()
+    } catch {
+      setError(true)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-3 rounded-xl bg-[var(--color-danger-soft)] p-3.5 text-[13px] text-[var(--color-ink)]">
+        <TriangleAlert size={18} className="mt-0.5 shrink-0 text-[var(--color-danger)]" />
+        <p>{t('bc.delete_confirm')}</p>
+      </div>
+      <Preview label={t('bc.uz')} text={broadcast.textUz} />
+      {error && <p className="text-[13px] font-medium text-[var(--color-danger)]">{t('common.error_generic')}</p>}
+      <Button variant="danger" className="w-full" loading={busy} onClick={run}>
+        <Trash2 size={15} /> {t('common.delete')}
+      </Button>
     </div>
   )
 }
@@ -170,6 +235,7 @@ function Preview({ label, text }: { label: string; text: string }) {
 }
 
 function BroadcastForm({ onCreated }: { onCreated: (scheduled: boolean) => void }) {
+  const { t } = useI18n()
   const [textUz, setTextUz] = useState('')
   const [textRu, setTextRu] = useState('')
   const [mode, setMode] = useState<SendTimeMode>('now')
@@ -197,35 +263,35 @@ function BroadcastForm({ onCreated }: { onCreated: (scheduled: boolean) => void 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="mb-1 block text-[13px] font-medium text-[var(--color-ink-secondary)]">Matn (o'zbekcha)</label>
+        <label className="mb-1 block text-[13px] font-medium text-[var(--color-ink-secondary)]">{t('bc.f_text_uz')}</label>
         <textarea
           value={textUz}
           onChange={(e) => setTextUz(e.target.value.slice(0, MAX_LEN))}
           rows={5}
-          placeholder="Masalan: Ertaga barcha shoxobchalarda 2x bonus!"
+          placeholder={t('bc.ph_uz')}
           className="w-full resize-y rounded-lg border border-[var(--color-border)] px-3 py-2 text-[13px]"
         />
         <p className="text-right text-[11px] text-[var(--color-ink-tertiary)]">{textUz.length}/{MAX_LEN}</p>
       </div>
       <div>
-        <label className="mb-1 block text-[13px] font-medium text-[var(--color-ink-secondary)]">Matn (ruscha, ixtiyoriy)</label>
+        <label className="mb-1 block text-[13px] font-medium text-[var(--color-ink-secondary)]">{t('bc.f_text_ru')}</label>
         <textarea
           value={textRu}
           onChange={(e) => setTextRu(e.target.value.slice(0, MAX_LEN))}
           rows={4}
-          placeholder="Bo'sh qolsa, rus tilidagi mijozlarga o'zbekcha matn boradi"
+          placeholder={t('bc.ph_ru')}
           className="w-full resize-y rounded-lg border border-[var(--color-border)] px-3 py-2 text-[13px]"
         />
       </div>
       <div>
-        <label className="mb-1.5 block text-[13px] font-medium text-[var(--color-ink-secondary)]">Qachon yuborilsin</label>
+        <label className="mb-1.5 block text-[13px] font-medium text-[var(--color-ink-secondary)]">{t('bc.when')}</label>
         <SendTimePicker modes={['now', 'custom']} mode={mode} onModeChange={setMode} customAt={customAt} onCustomAtChange={setCustomAt} />
       </div>
 
-      {textUz.trim() && <Preview label="Ko'rinishi" text={textUz} />}
+      {textUz.trim() && <Preview label={t('bc.preview')} text={textUz} />}
 
       <Button type="submit" className="w-full" loading={submitting} disabled={!canSubmit}>
-        <Send size={14} /> {mode === 'custom' ? 'Rejalashtirish' : 'Yuborish'}
+        <Send size={14} /> {mode === 'custom' ? t('bc.schedule_btn') : t('bc.send_btn')}
       </Button>
     </form>
   )

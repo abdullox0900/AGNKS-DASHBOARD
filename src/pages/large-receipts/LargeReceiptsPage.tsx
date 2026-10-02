@@ -11,15 +11,17 @@ import { apiAckLargeReceipt, apiGetLargeReceipts, type LargeReceipt } from '@/sh
 import { formatDateTime } from '@/shared/lib/dates'
 import { formatMoneyFull } from '@/shared/lib/format'
 import { formatPhone } from '@/shared/lib/phone'
+import { useI18n } from '@/app/providers/I18nProvider'
 
 /** Receipts at/above the large-amount threshold that nobody has looked at yet. */
 export function LargeReceiptsPage() {
+  const { t } = useI18n()
   const { data, isLoading, error, mutate } = useSWR('/admin/receipts/large', apiGetLargeReceipts)
   const { show } = useToast()
 
   async function ack(r: LargeReceipt) {
     await apiAckLargeReceipt(r.id)
-    show('Ko\'rib chiqildi deb belgilandi')
+    show(t('large.acked'))
     mutate()
   }
 
@@ -31,18 +33,17 @@ export function LargeReceiptsPage() {
       </div>
     )
   }
-  if (error) return <ErrorState message="Yuklab bo'lmadi" onRetry={() => mutate()} />
+  if (error) return <ErrorState message={t('common.load_failed')} onRetry={() => mutate()} />
 
   return (
     <div className="space-y-4">
       <p className="text-[12.5px] text-[var(--color-ink-tertiary)]">
-        Summasi {data ? formatMoneyFull(data.threshold) : '…'} va undan ko'p bo'lgan cheklar (oxirgi 30 kun). «Ko'rib chiqildi»
-        deb belgilangan chek bu ro'yxatdan va bosh sahifadagi ogohlantirishdan chiqadi.
+        {t('large.info', { v: data ? formatMoneyFull(data.threshold) : '…' })}
       </p>
 
       {!data?.items.length ? (
         <Card>
-          <EmptyState title="Ko'rib chiqilmagan katta chek yo'q" />
+          <EmptyState title={t('large.empty')} />
         </Card>
       ) : (
         data.items.map((r) => (
@@ -51,38 +52,38 @@ export function LargeReceiptsPage() {
               <div>
                 <p className="tnum text-[22px] font-bold text-[var(--color-ink)]">{formatMoneyFull(r.amount)}</p>
                 <p className="text-[12.5px] text-[var(--color-ink-secondary)]">
-                  {r.stationName} · {formatDateTime(r.receiptAt)} · bonus {formatMoneyFull(r.bonus)}
+                  {r.stationName} · {formatDateTime(r.receiptAt)} · {t('large.bonus')} {formatMoneyFull(r.bonus)}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 {r.taxSource === 'client' ? (
                   <Badge tone="warning">
-                    <Smartphone size={12} className="mr-1" /> Telefon orqali
+                    <Smartphone size={12} className="mr-1" /> {t('large.via_phone')}
                   </Badge>
                 ) : r.taxSource === 'server' ? (
                   <Badge tone="success">
-                    <Server size={12} className="mr-1" /> Server tekshirgan
+                    <Server size={12} className="mr-1" /> {t('large.server_checked')}
                   </Badge>
                 ) : (
-                  <Badge>Ma'lumot yo'q</Badge>
+                  <Badge>{t('large.no_info')}</Badge>
                 )}
                 <Button size="sm" onClick={() => ack(r)}>
-                  <CheckCheck size={14} /> Ko'rib chiqildi
+                  <CheckCheck size={14} /> {t('large.reviewed_btn')}
                 </Button>
               </div>
             </div>
 
             <div className="mt-3 grid gap-3 text-[13px] sm:grid-cols-2">
               <div>
-                <p className="text-[11.5px] text-[var(--color-ink-tertiary)]">Mijoz</p>
+                <p className="text-[11.5px] text-[var(--color-ink-tertiary)]">{t('common.client')}</p>
                 <p className="text-[var(--color-ink)]">
                   {r.clientName} {r.clientPhone ? `· ${formatPhone(r.clientPhone)}` : ''}
                 </p>
               </div>
               <div>
-                <p className="text-[11.5px] text-[var(--color-ink-tertiary)]">Sotuvchi (soliq.uz)</p>
+                <p className="text-[11.5px] text-[var(--color-ink-tertiary)]">{t('large.seller')}</p>
                 <p className="text-[var(--color-ink)]">
-                  {r.companyName ?? '—'} {r.tin ? `· STIR ${r.tin}` : ''}
+                  {r.companyName ?? '—'} {r.tin ? `· ${t('large.tin')} ${r.tin}` : ''}
                 </p>
               </div>
             </div>
@@ -106,7 +107,7 @@ export function LargeReceiptsPage() {
               rel="noreferrer"
               className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-medium text-[var(--color-primary)]"
             >
-              soliq.uz'da ochish <ExternalLink size={12} />
+              {t('large.open_soliq')} <ExternalLink size={12} />
             </a>
           </Card>
         ))

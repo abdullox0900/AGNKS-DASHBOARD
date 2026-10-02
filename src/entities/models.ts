@@ -26,6 +26,8 @@ export interface Cashier {
   stationName: string | null
   terminalIds: string[]
   status: StaffStatus
+  /** current login password — only for accounts that have a stored copy */
+  password: string | null
 }
 
 /** The backend dropped cash-shift reconciliation entirely (TZ change) — a shift is now

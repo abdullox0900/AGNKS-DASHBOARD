@@ -10,14 +10,17 @@ import { apiApproveReceipt, apiRejectReceipt } from '@/shared/api/client'
 import { useToast } from '@/shared/ui/Toast'
 import { formatDateTime } from '@/shared/lib/dates'
 import { cn } from '@/shared/lib/cn'
+import { useI18n } from '@/app/providers/I18nProvider'
+import type { DictKey } from '@/shared/config/dictionaries'
 
-const REASON_LABELS: Record<string, string> = {
-  tax_unverified: "Soliq.uz summani tasdiqlamadi",
+const REASON_LABELS: Record<string, DictKey> = {
+  tax_unverified: 'review.reason.tax_unverified',
 }
 
-const REJECT_REASONS = ['Summa chekka mos emas', 'Chek soxta', 'Boshqa sabab']
+const REJECT_REASONS: DictKey[] = ['review.reject.wrong_amount', 'review.reject.fake', 'review.reject.other']
 
 export function ReviewPage() {
+  const { t } = useI18n()
   const { data: queue, isLoading, mutate } = useReviewQueue()
   const { mutate: globalMutate } = useSWRConfig()
   const { show } = useToast()
@@ -38,7 +41,7 @@ export function ReviewPage() {
   async function handleApprove() {
     if (!selected) return
     await apiApproveReceipt(selected.id, undefined, manualAmount ? Number(manualAmount) : undefined)
-    show('Chek tasdiqlandi')
+    show(t('review.approved'))
     setManualAmount('')
     mutate()
     globalMutate('/admin/overview')
@@ -47,7 +50,7 @@ export function ReviewPage() {
   async function handleRejectConfirm(note: string) {
     if (!selected || !note) return
     await apiRejectReceipt(selected.id, note)
-    show('Chek rad etildi')
+    show(t('review.rejected'))
     setRejecting(false)
     setRejectNote('')
     mutate()
@@ -81,7 +84,7 @@ export function ReviewPage() {
   if (!queue || queue.length === 0) {
     return (
       <Card>
-        <EmptyState title="Tekshiruvda chek yo'q — hammasi ko'rib chiqilgan" />
+        <EmptyState title={t('review.empty')} />
       </Card>
     )
   }
@@ -90,7 +93,7 @@ export function ReviewPage() {
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[360px_1fr]">
       <Card padded={false} className="max-h-[calc(100vh-140px)] overflow-y-auto">
         <div className="border-b border-[var(--color-border)] px-4 py-3">
-          <h2 className="text-[14px] font-semibold text-[var(--color-ink)]">Tekshiruvdagi cheklar ({queue.length})</h2>
+          <h2 className="text-[14px] font-semibold text-[var(--color-ink)]">{t('review.queue_title', { n: queue.length })}</h2>
         </div>
         <div className="divide-y divide-[var(--color-border)]">
           {queue.map((r) => (
@@ -104,11 +107,11 @@ export function ReviewPage() {
             >
               <span className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--color-ink)]">
                 <span className={cn('h-1.5 w-1.5 rounded-full', r.id === selectedId ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-ink-tertiary)]')} />
-                {r.clientName || 'Mijoz'} · {r.stationName}
+                {r.clientName || t('common.client')} · {r.stationName}
               </span>
               <span className="tnum text-[13px] text-[var(--color-ink-secondary)]">{formatDateTime(r.receiptAt)}</span>
               <span className="text-[12px] text-[var(--color-amber)]">
-                {r.reviewReasons.map((reason) => REASON_LABELS[reason] ?? reason).join(', ')}
+                {r.reviewReasons.map((reason) => (REASON_LABELS[reason] ? t(REASON_LABELS[reason]) : reason)).join(', ')}
               </span>
             </button>
           ))}
@@ -117,7 +120,7 @@ export function ReviewPage() {
 
       {selected && (
         <Card>
-          <p className="mb-1 text-[12px] text-[var(--color-ink-tertiary)]">Soliq.uz tasdiqlamagan chek</p>
+          <p className="mb-1 text-[12px] text-[var(--color-ink-tertiary)]">{t('review.unverified')}</p>
           {selected.soliqLink && (
             <a
               href={selected.soliqLink}
@@ -125,20 +128,20 @@ export function ReviewPage() {
               rel="noreferrer"
               className="mb-4 inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--color-primary)]"
             >
-              Fiskal chekni ko'rish <ExternalLink size={14} />
+              {t('review.view_fiscal')} <ExternalLink size={14} />
             </a>
           )}
 
           <div className="mb-4 grid grid-cols-2 gap-3 text-[13px]">
-            <Row label="Chek" value={`#${selected.id.slice(-4)} · ${formatDateTime(selected.receiptAt)}`} />
-            <Row label="Filial" value={selected.stationName} />
-            <Row label="Mijoz" value={`${selected.clientName || '—'}${selected.clientPhone ? ` · ${selected.clientPhone}` : ''}`} />
-            <Row label="Bonus foizi" value={`${(selected.rateBps / 100).toFixed(1)}%`} />
+            <Row label={t('review.receipt')} value={`#${selected.id.slice(-4)} · ${formatDateTime(selected.receiptAt)}`} />
+            <Row label={t('common.station')} value={selected.stationName} />
+            <Row label={t('common.client')} value={`${selected.clientName || '—'}${selected.clientPhone ? ` · ${selected.clientPhone}` : ''}`} />
+            <Row label={t('review.rate')} value={`${(selected.rateBps / 100).toFixed(1)}%`} />
           </div>
 
           <div className="mb-5">
             <label className="mb-1.5 block text-[13px] font-medium text-[var(--color-ink-secondary)]">
-              Fiskal cheklinkdan o'qib, summani kiriting (so'm)
+              {t('review.enter_amount')}
             </label>
             <input
               inputMode="numeric"
@@ -152,19 +155,21 @@ export function ReviewPage() {
           {!rejecting ? (
             <div className="flex gap-2">
               <Button variant="danger" onClick={() => setRejecting(true)}>
-                <X size={15} /> Rad etish <span className="ml-1 opacity-70">(R)</span>
+                <X size={15} /> {t('review.reject')} <span className="ml-1 opacity-70">(R)</span>
               </Button>
               <Button onClick={handleApprove}>
-                <Check size={15} /> Tasdiqlash <span className="ml-1 opacity-70">(A)</span>
+                <Check size={15} /> {t('review.approve')} <span className="ml-1 opacity-70">(A)</span>
               </Button>
             </div>
           ) : (
             <div className="space-y-2 rounded-xl border border-[var(--color-border)] p-3">
-              <p className="text-[13px] font-medium text-[var(--color-ink)]">Rad etish sababi (majburiy)</p>
+              <p className="text-[13px] font-medium text-[var(--color-ink)]">{t('review.reject_reason')}</p>
               <div className="flex flex-wrap gap-1.5">
-                {REJECT_REASONS.map((reason) => (
+                {REJECT_REASONS.map((key) => {
+                  const reason = t(key)
+                  return (
                   <button
-                    key={reason}
+                    key={key}
                     onClick={() => setRejectNote(reason)}
                     className={cn(
                       'rounded-full border px-2.5 py-1 text-[12px]',
@@ -173,21 +178,22 @@ export function ReviewPage() {
                   >
                     {reason}
                   </button>
-                ))}
+                  )
+                })}
               </div>
               <textarea
                 value={rejectNote}
                 onChange={(e) => setRejectNote(e.target.value)}
-                placeholder="Erkin matn…"
+                placeholder={t('review.free_text')}
                 rows={2}
                 className="w-full resize-none rounded-lg border border-[var(--color-border)] px-2.5 py-2 text-[13px] outline-none focus:border-[var(--color-primary)]"
               />
               <div className="flex gap-2">
                 <Button variant="ghost" size="sm" onClick={() => setRejecting(false)}>
-                  Bekor qilish
+                  {t('common.cancel')}
                 </Button>
                 <Button variant="danger" size="sm" disabled={!rejectNote} onClick={() => handleRejectConfirm(rejectNote)}>
-                  Rad etishni tasdiqlash
+                  {t('review.confirm_reject')}
                 </Button>
               </div>
             </div>

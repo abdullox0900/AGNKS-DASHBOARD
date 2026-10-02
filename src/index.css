@@ -1,67 +1,58 @@
 @import "tailwindcss";
+@import "react-loading-skeleton/dist/skeleton.css" layer(components);
 
+/* "Tank" industrial palette: dark by default, light via <html data-theme="light"> (see uiStore).
+   Token names are shared by both themes so components never branch on the theme. */
 @theme {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: "Plus Jakarta Sans Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
-  --color-bg: #f5f6f8;
-  --color-surface: #ffffff;
-  --color-surface-alt: #fafbfc;
-  --color-border: #e5e7eb;
-  --color-ink: #14161a;
-  --color-ink-secondary: #5b6070;
-  --color-ink-tertiary: #9096a3;
+  --color-bg: #0a0f16;
+  --color-surface: #101823;
+  --color-surface-alt: #152131;
+  --color-border: #1c2a3b;
+  --color-border-strong: #2c3c52;
+  --color-ink: #e6edf5;
+  --color-ink-secondary: #9fb0c3;
+  --color-ink-tertiary: #6b7d93;
 
-  --color-primary: #2563eb;
-  --color-primary-ink: #ffffff;
-  --color-primary-soft: #eaf1ff;
-  --color-primary-strong: #1d4ed8;
+  --color-primary: #22d3ee;
+  --color-primary-ink: #04212a;
+  --color-primary-soft: rgba(34, 211, 238, 0.1);
+  --color-primary-strong: #67e8f9;
 
-  --color-amber: #b45309;
-  --color-amber-strong: #92400e;
-  --color-amber-soft: #fef3e2;
+  --color-lime: #a3e635;
+  --color-lime-soft: rgba(163, 230, 53, 0.12);
 
-  --color-success: #15803d;
-  --color-success-soft: #ecfdf3;
-  --color-danger: #dc2626;
-  --color-danger-soft: #fef2f2;
-  --color-warning-soft: #fffbeb;
-  --color-warning-ink: #92400e;
+  --color-amber: #fbbf24;
+  --color-amber-strong: #fcd34d;
+  --color-amber-soft: rgba(251, 191, 36, 0.12);
 
-  --shadow-card: 0 1px 2px rgba(20, 22, 26, 0.04), 0 8px 24px -12px rgba(20, 22, 26, 0.10);
-  --shadow-float: 0 12px 32px -8px rgba(20, 22, 26, 0.20);
-  --shadow-popover: 0 4px 16px -4px rgba(20, 22, 26, 0.18);
+  --color-success: #a3e635;
+  --color-success-soft: rgba(163, 230, 53, 0.12);
+  --color-danger: #fb7185;
+  --color-danger-ink: #2a0a10;
+  --color-danger-soft: rgba(251, 113, 133, 0.12);
+  --color-warning-soft: rgba(251, 191, 36, 0.12);
+  --color-warning-ink: #fcd34d;
+
+  --color-track: #172233;
+
+  --chart-1: #22d3ee;
+  --chart-2: #a3e635;
+  --chart-3: #fbbf24;
+  --chart-4: #38bdf8;
+  --chart-5: #818cf8;
+  --chart-6: #f472b6;
+  --color-skeleton-base: #152131;
+  --color-skeleton-highlight: #1f3047;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -18px rgba(0, 0, 0, 0.7);
+  --shadow-float: 0 12px 32px -8px rgba(0, 0, 0, 0.7);
+  --shadow-popover: 0 8px 28px -6px rgba(0, 0, 0, 0.7);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --color-bg: #0f1115;
-    --color-surface: #1a1d24;
-    --color-surface-alt: #1f232b;
-    --color-border: #2a2e37;
-    --color-ink: #f2f3f5;
-    --color-ink-secondary: #a4aab8;
-    --color-ink-tertiary: #6d7280;
-
-    --color-primary: #4f8cff;
-    --color-primary-ink: #0b1220;
-    --color-primary-soft: #16233d;
-    --color-primary-strong: #6ea1ff;
-
-    --color-amber: #f0b155;
-    --color-amber-strong: #ffd08a;
-    --color-amber-soft: #2b2211;
-
-    --color-success: #4ade80;
-    --color-success-soft: #0f2a1a;
-    --color-danger: #f87171;
-    --color-danger-soft: #2c1414;
-    --color-warning-soft: #2b2211;
-    --color-warning-ink: #ffd08a;
-
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
-    --shadow-float: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
-    --shadow-popover: 0 4px 16px -4px rgba(0, 0, 0, 0.5);
-  }
+:root {
+  color-scheme: dark;
 }
 
 * {
@@ -83,6 +74,59 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --color-bg: #f3f6f9;
+  --color-surface: #ffffff;
+  --color-surface-alt: #eff3f7;
+  --color-border: #dde5ee;
+  --color-border-strong: #c3cfdc;
+  --color-ink: #0b1722;
+  --color-ink-secondary: #465a6e;
+  --color-ink-tertiary: #6f8296;
+
+  --color-primary: #0891b2;
+  --color-primary-ink: #ffffff;
+  --color-primary-soft: rgba(8, 145, 178, 0.1);
+  --color-primary-strong: #0e7490;
+
+  --color-lime: #4d7c0f;
+  --color-lime-soft: rgba(77, 124, 15, 0.12);
+
+  --color-amber: #b45309;
+  --color-amber-strong: #92400e;
+  --color-amber-soft: rgba(180, 83, 9, 0.1);
+
+  --color-success: #3f6212;
+  --color-success-soft: rgba(63, 98, 18, 0.1);
+  --color-danger: #dc2626;
+  --color-danger-ink: #ffffff;
+  --color-danger-soft: rgba(220, 38, 38, 0.08);
+  --color-warning-soft: rgba(180, 83, 9, 0.1);
+  --color-warning-ink: #92400e;
+
+  --color-track: #e3eaf1;
+
+  --chart-1: #0891b2;
+  --chart-2: #4d7c0f;
+  --chart-3: #b45309;
+  --chart-4: #0284c7;
+  --chart-5: #6366f1;
+  --chart-6: #db2777;
+  --color-skeleton-base: #e6edf4;
+  --color-skeleton-highlight: #f5f8fb;
+
+  --shadow-card: 0 1px 2px rgba(11, 23, 34, 0.05), 0 10px 28px -16px rgba(11, 23, 34, 0.18);
+  --shadow-float: 0 12px 32px -8px rgba(11, 23, 34, 0.25);
+  --shadow-popover: 0 8px 28px -6px rgba(11, 23, 34, 0.25);
+}
+
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
@@ -96,9 +140,101 @@ body {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: var(--color-border-strong);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+@layer base {
+  input, select, textarea {
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+  }
+  ::placeholder {
+    color: var(--color-ink-tertiary);
+  }
+}
+
+/* Login screen art: roads draw themselves, then light pulses travel along them like gas in a pipeline. */
+.login-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: login-draw var(--dur, 2.2s) cubic-bezier(0.4, 0, 0.2, 1) var(--delay, 0s) forwards;
+}
+.login-flow {
+  stroke-dasharray: 0.018 0.982;
+  opacity: 0;
+  animation: login-flow var(--dur, 6s) linear var(--delay, 3s) infinite both;
+}
+.login-ripple {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: login-ripple 3.4s ease-out var(--delay, 0s) infinite both;
+}
+.login-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: login-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) var(--delay, 0s) both;
+}
+.login-rise {
+  animation: login-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) var(--delay, 0s) both;
+}
+@keyframes login-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes login-flow {
+  0% { stroke-dashoffset: 1; opacity: 0; }
+  6% { opacity: 1; }
+  94% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes login-ripple {
+  0% { transform: scale(0.6); opacity: 0.6; }
+  100% { transform: scale(3.6); opacity: 0; }
+}
+@keyframes login-pop {
+  from { transform: scale(0); opacity: 0; }
+}
+@keyframes login-rise {
+  from { opacity: 0; transform: translateY(14px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-draw { animation: none; stroke-dashoffset: 0; }
+  .login-flow, .login-ripple { animation: none; opacity: 0; }
+  .login-pop, .login-rise { animation: none; }
+}
+
+/* After a successful login: a round reveal with a drawn check, then the dashboard fades in. */
+.login-reveal {
+  clip-path: circle(0% at var(--x, 50%) var(--y, 50%));
+  transition: clip-path 0.85s cubic-bezier(0.7, 0, 0.2, 1);
+}
+.login-reveal[data-open="true"] {
+  clip-path: circle(150% at var(--x, 50%) var(--y, 50%));
+}
+.login-bar {
+  transform-origin: left;
+  animation: login-bar var(--dur, 1.6s) cubic-bezier(0.4, 0, 0.2, 1) var(--delay, 0s) both;
+}
+.login-wave {
+  animation: login-wave 2.4s ease-out var(--delay, 0s) infinite both;
+}
+.app-enter {
+  animation: app-enter 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes login-bar {
+  from { transform: scaleX(0); }
+}
+@keyframes login-wave {
+  0% { transform: scale(0.7); opacity: 0.5; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+@keyframes app-enter {
+  from { opacity: 0; transform: scale(0.985); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-reveal { transition: none; }
+  .login-bar, .login-wave, .app-enter { animation: none; }
 }

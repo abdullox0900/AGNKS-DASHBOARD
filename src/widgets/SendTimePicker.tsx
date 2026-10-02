@@ -1,12 +1,14 @@
 import { cn } from '@/shared/lib/cn'
+import { useI18n } from '@/app/providers/I18nProvider'
+import type { DictKey } from '@/shared/config/dictionaries'
 
 export type SendTimeMode = 'none' | 'now' | 'start' | 'custom'
 
-const LABELS: Record<SendTimeMode, string> = {
-  none: 'Yubormaslik',
-  now: 'Hozir',
-  start: 'Aksiya boshlanganda',
-  custom: 'Boshqa vaqt',
+const LABELS: Record<SendTimeMode, DictKey> = {
+  none: 'send.none',
+  now: 'send.now',
+  start: 'send.start',
+  custom: 'send.custom',
 }
 
 /** "When do clients get this message" — shared by the broadcast and promotion forms. */
@@ -24,6 +26,7 @@ export function SendTimePicker({
   customAt: string
   onCustomAtChange: (value: string) => void
 }) {
+  const { t } = useI18n()
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-1.5">
@@ -39,7 +42,7 @@ export function SendTimePicker({
                 : 'border-[var(--color-border)] text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]',
             )}
           >
-            {LABELS[m]}
+            {t(LABELS[m])}
           </button>
         ))}
       </div>

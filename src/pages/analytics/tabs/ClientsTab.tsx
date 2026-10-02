@@ -1,31 +1,25 @@
 import { useState } from 'react'
 import useSWR from 'swr'
-import type { EChartsOption } from 'echarts'
 import { Card } from '@/shared/ui/Card'
-import { Chart } from '@/shared/ui/Chart'
+import { TrendChart } from '@/shared/ui/charts/lazy'
+import { formatNumber } from '@/shared/lib/format'
 import { Skeleton } from '@/shared/ui/Skeleton'
 import { EmptyState } from '@/shared/ui/EmptyState'
 import { ErrorBoundary } from '@/shared/ui/ErrorBoundary'
 import { useGlobalFilters } from '@/features/global-filters/useGlobalFilters'
 import { apiAnalyticsClientsSeries } from '@/shared/api/analytics'
 import { formatDateShort } from '@/shared/lib/dates'
-import { GRANULARITY_LABELS, type Granularity } from '@/shared/lib/granularity'
+import { GRANULARITY_KEYS, type Granularity } from '@/shared/lib/granularity'
 import { cn } from '@/shared/lib/cn'
+import { useI18n } from '@/app/providers/I18nProvider'
 
 export function ClientsTab() {
+  const { t } = useI18n()
   const { filters } = useGlobalFilters()
   const [granularity, setGranularity] = useState<Granularity>('day')
   const key = ['analytics-clients', filters.stationIds?.join(',') ?? 'all', filters.from.toISOString(), filters.to.toISOString(), granularity]
   const { data, isLoading } = useSWR(key, () => apiAnalyticsClientsSeries(filters, granularity), { keepPreviousData: true })
   const series = data ?? []
-
-  const option: EChartsOption = {
-    grid: { left: 50, right: 16, top: 24, bottom: 32 },
-    tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: series.map((s) => formatDateShort(s.bucket)) },
-    yAxis: { type: 'value' },
-    series: [{ name: 'Yangi mijozlar', type: 'bar', data: series.map((s) => s.count), itemStyle: { color: '#2563eb', borderRadius: [4, 4, 0, 0] } }],
-  }
 
   return (
     <div className="space-y-4">
@@ -35,18 +29,23 @@ export function ClientsTab() {
             <button
               key={g}
               onClick={() => setGranularity(g)}
-              className={cn('rounded-md px-2.5 py-1 text-[12px] font-medium', granularity === g ? 'bg-[var(--color-primary)] text-white' : 'text-[var(--color-ink-secondary)]')}
+              className={cn('rounded-md px-2.5 py-1 text-[12px] font-medium', granularity === g ? 'bg-[var(--color-primary)] text-[var(--color-primary-ink)]' : 'text-[var(--color-ink-secondary)]')}
             >
-              {GRANULARITY_LABELS[g]}
+              {t(GRANULARITY_KEYS[g])}
             </button>
           ))}
         </div>
       </div>
 
-      <ErrorBoundary label="Grafikni yuklab bo'lmadi">
+      <ErrorBoundary label={t('common.chart_load_failed')}>
         <Card>
-          <h3 className="mb-2 text-[14px] font-semibold text-[var(--color-ink)]">Yangi mijozlar</h3>
-          {isLoading ? <Skeleton className="h-72 w-full" /> : series.length === 0 ? <EmptyState title="Bu davrda ma'lumot yo'q" /> : <Chart option={option} height={300} />}
+          <h3 className="mb-2 text-[14px] font-semibold text-[var(--color-ink)]">{t('analytics.new_clients')}</h3>
+          {isLoading ? <Skeleton className="h-72 w-full" /> : series.length === 0 ? <EmptyState title={t('common.no_data_period')} /> : <TrendChart
+            data={series.map((s) => ({ label: formatDateShort(s.bucket), value: s.count }))}
+            seriesName={t('analytics.new_clients')}
+            format={formatNumber}
+            bars
+          />}
         </Card>
       </ErrorBoundary>
     </div>
