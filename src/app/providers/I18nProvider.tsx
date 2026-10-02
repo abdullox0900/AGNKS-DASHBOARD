@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react'
 import { translate, type DictKey } from '@/shared/config/dictionaries'
 import { useUiStore, type Locale } from '@/shared/config/uiStore'
 
@@ -15,6 +15,9 @@ const I18nContext = createContext<I18nValue | null>(null)
 export function I18nProvider({ children }: { children: ReactNode }) {
   const locale = useUiStore((s) => s.locale)
   const setLocale = useUiStore((s) => s.setLocale)
+  useEffect(() => {
+    document.documentElement.lang = locale
+  }, [locale])
   const value = useMemo<I18nValue>(() => ({ locale, setLocale, t: (key, vars) => translate(locale, key, vars) }), [locale, setLocale])
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }
