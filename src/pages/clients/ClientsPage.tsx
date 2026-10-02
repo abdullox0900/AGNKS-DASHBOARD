@@ -8,17 +8,19 @@ import { formatDateTime } from '@/shared/lib/dates'
 import { formatMoneyFull } from '@/shared/lib/format'
 import type { ClientRecord } from '@/entities/models'
 import { formatPhone } from '@/shared/lib/phone'
+import { usePermission } from '@/shared/lib/permissions'
 import { useI18n } from '@/app/providers/I18nProvider'
 
 export function ClientsPage() {
   const { t } = useI18n()
   const navigate = useNavigate()
+  const canOpen = usePermission('clients.detail') // root_admin only watches the list
   const [q, setQ] = useState('')
   const { data: clients, isLoading, error, mutate } = useClients(q || undefined)
 
   const sorted = useMemo(() => [...(clients ?? [])].sort((a, b) => b.balance - a.balance), [clients])
 
-  const columns: DataTableColumn<ClientRecord>[] = [
+  const allColumns: DataTableColumn<ClientRecord>[] = [
     { id: 'name', header: 'common.name', accessor: (r) => r.name, sticky: true },
     { id: 'phone', header: 'common.phone', accessor: (r) => formatPhone(r.phone) },
     { id: 'balance', header: 'clients.balance', accessor: (r) => r.balance, numeric: true, cell: (r) => formatMoneyFull(r.balance) },
@@ -37,6 +39,7 @@ export function ClientsPage() {
       cell: () => <ChevronRight size={15} className="ml-auto text-[var(--color-ink-tertiary)]" />,
     },
   ]
+  const columns = canOpen ? allColumns : allColumns.filter((c) => c.id !== 'open')
 
   return (
     <div className="space-y-4">
@@ -54,7 +57,7 @@ export function ClientsPage() {
         error={error ? t('common.load_failed') : undefined}
         onRetry={() => mutate()}
         getRowId={(r) => r.id}
-        onRowClick={(r) => navigate(`/clients/${r.id}`)}
+        onRowClick={canOpen ? (r) => navigate(`/clients/${r.id}`) : undefined}
         emptyMessage={t('clients.empty')}
       />
     </div>

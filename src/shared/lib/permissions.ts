@@ -19,6 +19,7 @@ export type Permission =
   | 'bonus.view'
   | 'bonus.edit'
   | 'clients.view'
+  | 'clients.detail'
   | 'clients.edit'
   | 'settings.edit'
   | 'audit.view'
@@ -39,6 +40,7 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'cashiers.manage',
     'bonus.view',
     'clients.view',
+    'clients.detail',
   ],
   // View-only by product decision: sees everything below, changes nothing, and has no Admins section.
   // (The backend enforces this too: any non-GET request from root_admin is refused.)
@@ -75,6 +77,7 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'bonus.view',
     'bonus.edit',
     'clients.view',
+    'clients.detail',
     'clients.edit',
     'settings.edit',
     'audit.view',

@@ -49,7 +49,14 @@ export const router = createBrowserRouter([
         ),
       },
       { path: '/clients', element: <ClientsPage /> },
-      { path: '/clients/:id', element: <ClientDetailPage /> },
+      {
+        path: '/clients/:id',
+        element: (
+          <RequirePermission permission="clients.detail">
+            <ClientDetailPage />
+          </RequirePermission>
+        ),
+      },
       {
         path: '/large-receipts',
         element: (
