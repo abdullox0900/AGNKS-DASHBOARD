@@ -34,7 +34,7 @@ export const router = createBrowserRouter([
       {
         path: '/stations',
         element: (
-          <RequirePermission permission="stations.manage">
+          <RequirePermission permission="stations.view">
             <StationsPage />
           </RequirePermission>
         ),
@@ -53,7 +53,7 @@ export const router = createBrowserRouter([
       {
         path: '/large-receipts',
         element: (
-          <RequirePermission permission="broadcasts.manage">
+          <RequirePermission permission="largeReceipts.view">
             <LargeReceiptsPage />
           </RequirePermission>
         ),
@@ -61,7 +61,7 @@ export const router = createBrowserRouter([
       {
         path: '/broadcasts',
         element: (
-          <RequirePermission permission="broadcasts.manage">
+          <RequirePermission permission="broadcasts.view">
             <BroadcastsPage />
           </RequirePermission>
         ),

@@ -17,17 +17,20 @@ import { hasCoords, mapUrl, parseCoord, splitPastedPair } from '@/shared/lib/coo
 export function StationsPage() {
   const { t } = useI18n()
   const canEditCoords = usePermission('stations.delete')
+  const canManage = usePermission('stations.manage')
   const { data: stations, isLoading, mutate } = useStations()
   const [selected, setSelected] = useState<string | null>(null)
   const [formOpen, setFormOpen] = useState(false)
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={() => setFormOpen(true)}>
-          <Plus size={15} /> {t('stations.add')}
-        </Button>
-      </div>
+      {canManage && (
+        <div className="flex justify-end">
+          <Button onClick={() => setFormOpen(true)}>
+            <Plus size={15} /> {t('stations.add')}
+          </Button>
+        </div>
+      )}
 
       {isLoading ? (
         <p className="text-[13px] text-[var(--color-ink-tertiary)]">{t('common.loading')}</p>
@@ -139,6 +142,7 @@ function StationDetail({
 }) {
   const { t } = useI18n()
   const canEdit = usePermission('stations.delete')
+  const canManage = usePermission('stations.manage')
   const { data: terminals, mutate } = useTerminals(stationId)
   const { show } = useToast()
   const [code, setCode] = useState('')
@@ -241,7 +245,7 @@ function StationDetail({
         </div>
       </div>
 
-      <form onSubmit={handleAddTerminal} className="space-y-2 border-t border-[var(--color-border)] pt-4">
+      {canManage && <form onSubmit={handleAddTerminal} className="space-y-2 border-t border-[var(--color-border)] pt-4">
         <p className="text-[13px] font-semibold text-[var(--color-ink)]">{t('stations.new_terminal')}</p>
         <div className="flex gap-2">
           <input value={code} onChange={(e) => setCode(e.target.value)} placeholder={t('stations.terminal_code_ph')} className="h-10 flex-1 rounded-lg border border-[var(--color-border)] px-3 text-[13px] font-mono outline-none focus:border-[var(--color-primary)]" />
@@ -254,7 +258,7 @@ function StationDetail({
         <Button type="submit" className="w-full" disabled={!code || !label}>
           {t('common.add')}
         </Button>
-      </form>
+      </form>}
 
       {canEdit && (
         <div className="border-t border-[var(--color-border)] pt-4">

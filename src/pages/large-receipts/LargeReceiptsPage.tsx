@@ -11,6 +11,7 @@ import { apiAckLargeReceipt, apiGetLargeReceipts, type LargeReceipt } from '@/sh
 import { formatDateTime } from '@/shared/lib/dates'
 import { formatMoneyFull } from '@/shared/lib/format'
 import { formatPhone } from '@/shared/lib/phone'
+import { usePermission } from '@/shared/lib/permissions'
 import { useI18n } from '@/app/providers/I18nProvider'
 
 /** Receipts at/above the large-amount threshold that nobody has looked at yet. */
@@ -18,6 +19,7 @@ export function LargeReceiptsPage() {
   const { t } = useI18n()
   const { data, isLoading, error, mutate } = useSWR('/admin/receipts/large', apiGetLargeReceipts)
   const { show } = useToast()
+  const canAck = usePermission('largeReceipts.ack')
 
   async function ack(r: LargeReceipt) {
     await apiAckLargeReceipt(r.id)
@@ -67,9 +69,11 @@ export function LargeReceiptsPage() {
                 ) : (
                   <Badge>{t('large.no_info')}</Badge>
                 )}
-                <Button size="sm" onClick={() => ack(r)}>
-                  <CheckCheck size={14} /> {t('large.reviewed_btn')}
-                </Button>
+                {canAck && (
+                  <Button size="sm" onClick={() => ack(r)}>
+                    <CheckCheck size={14} /> {t('large.reviewed_btn')}
+                  </Button>
+                )}
               </div>
             </div>
 

@@ -10,6 +10,7 @@ import { apiCancelBroadcast, apiCreateBroadcast, apiRemoveBroadcast } from '@/sh
 import { formatDateTime } from '@/shared/lib/dates'
 import { SendTimePicker, resolveSendAt, type SendTimeMode } from '@/widgets/SendTimePicker'
 import type { Broadcast, BroadcastStatus } from '@/entities/models'
+import { usePermission } from '@/shared/lib/permissions'
 import { useI18n } from '@/app/providers/I18nProvider'
 import type { DictKey } from '@/shared/config/dictionaries'
 
@@ -34,6 +35,7 @@ export function BroadcastsPage() {
   const [viewing, setViewing] = useState<Broadcast | null>(null)
   const [deleting, setDeleting] = useState<Broadcast | null>(null)
   const { show } = useToast()
+  const canManage = usePermission('broadcasts.manage') // root_admin may read the list only
 
   async function cancel(b: Broadcast) {
     await apiCancelBroadcast(b.id)
@@ -50,7 +52,7 @@ export function BroadcastsPage() {
     mutate()
   }
 
-  const columns: DataTableColumn<Broadcast>[] = [
+  const allColumns: DataTableColumn<Broadcast>[] = [
     {
       id: 'text',
       header: 'bc.col_message',
@@ -123,6 +125,8 @@ export function BroadcastsPage() {
     },
   ]
 
+  const columns = canManage ? allColumns : allColumns.filter((c) => c.id !== 'actions')
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -130,9 +134,11 @@ export function BroadcastsPage() {
           <Info size={14} className="shrink-0" />
           {t('bc.info')}
         </p>
-        <Button onClick={() => setFormOpen(true)}>
-          <Plus size={15} /> {t('bc.new')}
-        </Button>
+        {canManage && (
+          <Button onClick={() => setFormOpen(true)}>
+            <Plus size={15} /> {t('bc.new')}
+          </Button>
+        )}
       </div>
 
       <DataTable
@@ -170,12 +176,12 @@ export function BroadcastsPage() {
             </div>
             <Preview label={t('bc.uz')} text={viewing.textUz} />
             {viewing.textRu && <Preview label={t('bc.ru')} text={viewing.textRu} />}
-            {viewing.status === 'scheduled' && (
+            {canManage && viewing.status === 'scheduled' && (
               <Button variant="ghost" className="w-full" onClick={() => cancel(viewing)}>
                 {t('common.cancel')}
               </Button>
             )}
-            {viewing.status !== 'sending' && (
+            {canManage && viewing.status !== 'sending' && (
               <Button variant="danger" className="w-full" onClick={() => setDeleting(viewing)}>
                 <Trash2 size={15} /> {t('common.delete')}
               </Button>

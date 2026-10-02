@@ -5,11 +5,17 @@ export type Permission =
   | 'overview.view'
   | 'analytics.view'
   | 'analytics.stations'
+  | 'review.view'
   | 'review.decide'
+  | 'disputes.view'
   | 'disputes.decide'
+  | 'cashiers.view'
   | 'cashiers.manage'
+  | 'stations.view'
   | 'stations.manage'
   | 'stations.delete'
+  | 'largeReceipts.view'
+  | 'largeReceipts.ack'
   | 'bonus.view'
   | 'bonus.edit'
   | 'clients.view'
@@ -18,46 +24,54 @@ export type Permission =
   | 'audit.view'
   | 'admins.manage'
   | 'admins.edit'
+  | 'broadcasts.view'
   | 'broadcasts.manage'
 
 const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
   branch_manager: [
     'overview.view',
     'analytics.view',
+    'review.view',
     'review.decide',
+    'disputes.view',
     'disputes.decide',
+    'cashiers.view',
     'cashiers.manage',
     'bonus.view',
     'clients.view',
   ],
+  // View-only by product decision: sees everything below, changes nothing, and has no Admins section.
+  // (The backend enforces this too: any non-GET request from root_admin is refused.)
   root_admin: [
     'overview.view',
     'analytics.view',
     'analytics.stations',
-    'review.decide',
-    'disputes.decide',
-    'cashiers.manage',
-    'stations.manage',
+    'review.view',
+    'disputes.view',
+    'cashiers.view',
+    'stations.view',
+    'largeReceipts.view',
     'bonus.view',
-    'bonus.edit',
     'clients.view',
-    'settings.edit',
     'audit.view',
-    'admins.manage',
-    'broadcasts.manage',
+    'broadcasts.view',
   ],
-  // Destructive/ownership actions (editing or deleting another admin account, a station,
-  // or a client's profile) are SEO-only by explicit product decision — root_admin can
-  // still see everything but not edit/delete these.
+  // The only role that changes things network-wide (stations, admins, clients, bonus, broadcasts...).
   seo: [
     'overview.view',
     'analytics.view',
     'analytics.stations',
+    'review.view',
     'review.decide',
+    'disputes.view',
     'disputes.decide',
+    'cashiers.view',
     'cashiers.manage',
+    'stations.view',
     'stations.manage',
     'stations.delete',
+    'largeReceipts.view',
+    'largeReceipts.ack',
     'bonus.view',
     'bonus.edit',
     'clients.view',
@@ -66,6 +80,7 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'audit.view',
     'admins.manage',
     'admins.edit',
+    'broadcasts.view',
     'broadcasts.manage',
   ],
 }

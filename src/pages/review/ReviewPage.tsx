@@ -6,6 +6,7 @@ import { Button } from '@/shared/ui/Button'
 import { Skeleton } from '@/shared/ui/Skeleton'
 import { EmptyState } from '@/shared/ui/EmptyState'
 import { useReviewQueue } from '@/shared/api/hooks'
+import { usePermission } from '@/shared/lib/permissions'
 import { apiApproveReceipt, apiRejectReceipt } from '@/shared/api/client'
 import { useToast } from '@/shared/ui/Toast'
 import { formatDateTime } from '@/shared/lib/dates'
@@ -28,6 +29,7 @@ export function ReviewPage() {
   const [rejecting, setRejecting] = useState(false)
   const [rejectNote, setRejectNote] = useState('')
   const [manualAmount, setManualAmount] = useState('')
+  const canDecide = usePermission('review.decide') // root_admin may look, not decide
 
   useEffect(() => {
     if (queue && queue.length > 0 && !selectedId) setSelectedId(queue[0].id)
@@ -62,15 +64,15 @@ export function ReviewPage() {
       if (!queue || queue.length === 0) return
       if (rejecting) return
       const idx = queue.findIndex((r) => r.id === selectedId)
-      if (e.key === 'a' || e.key === 'A') handleApprove()
-      else if (e.key === 'r' || e.key === 'R') setRejecting(true)
+      if (canDecide && (e.key === 'a' || e.key === 'A')) handleApprove()
+      else if (canDecide && (e.key === 'r' || e.key === 'R')) setRejecting(true)
       else if (e.key === 'ArrowDown') setSelectedId(queue[Math.min(queue.length - 1, idx + 1)]?.id)
       else if (e.key === 'ArrowUp') setSelectedId(queue[Math.max(0, idx - 1)]?.id)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queue, selectedId, rejecting])
+  }, [queue, selectedId, rejecting, canDecide])
 
   if (isLoading) {
     return (
@@ -139,6 +141,7 @@ export function ReviewPage() {
             <Row label={t('review.rate')} value={`${(selected.rateBps / 100).toFixed(1)}%`} />
           </div>
 
+          {canDecide && (<>
           <div className="mb-5">
             <label className="mb-1.5 block text-[13px] font-medium text-[var(--color-ink-secondary)]">
               {t('review.enter_amount')}
@@ -198,6 +201,7 @@ export function ReviewPage() {
               </div>
             </div>
           )}
+          </>)}
         </Card>
       )}
     </div>

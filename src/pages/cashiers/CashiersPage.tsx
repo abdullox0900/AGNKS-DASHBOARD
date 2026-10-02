@@ -4,6 +4,7 @@ import { Button } from '@/shared/ui/Button'
 import { Badge } from '@/shared/ui/Badge'
 import { DataTable, type DataTableColumn } from '@/shared/ui/DataTable'
 import { Drawer } from '@/shared/ui/Drawer'
+import { usePermission } from '@/shared/lib/permissions'
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '@/shared/ui/Menu'
 import { PasswordCell } from '@/shared/ui/PasswordCell'
 import { PasswordField } from '@/shared/ui/PasswordField'
@@ -37,8 +38,9 @@ export function CashiersPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Cashier | null>(null)
   const [deleting, setDeleting] = useState<Cashier | null>(null)
+  const canManage = usePermission('cashiers.manage') // root_admin sees the list only
 
-  const columns: DataTableColumn<Cashier>[] = [
+  const allColumns: DataTableColumn<Cashier>[] = [
     {
       id: 'name',
       header: 'common.name',
@@ -92,13 +94,17 @@ export function CashiersPage() {
     },
   ]
 
+  const columns = canManage ? allColumns : allColumns.filter((c) => c.id !== 'actions' && c.id !== 'password')
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={() => setFormOpen(true)}>
-          <Plus size={15} /> {t('cashiers.add')}
-        </Button>
-      </div>
+      {canManage && (
+        <div className="flex justify-end">
+          <Button onClick={() => setFormOpen(true)}>
+            <Plus size={15} /> {t('cashiers.add')}
+          </Button>
+        </div>
+      )}
 
       <DataTable
         columns={columns}

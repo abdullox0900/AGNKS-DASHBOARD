@@ -45,17 +45,17 @@ const GROUPS: { title: DictKey; items: NavItem[] }[] = [
   {
     title: 'nav.group.control',
     items: [
-      { to: '/review', label: 'nav.review', icon: ClipboardList, permission: 'review.decide', badgeKey: 'review' },
-      { to: '/disputes', label: 'nav.feedback', icon: MessageSquareWarning, permission: 'disputes.decide', badgeKey: 'disputes' },
+      { to: '/review', label: 'nav.review', icon: ClipboardList, permission: 'review.view', badgeKey: 'review' },
+      { to: '/disputes', label: 'nav.feedback', icon: MessageSquareWarning, permission: 'disputes.view', badgeKey: 'disputes' },
     ],
   },
   {
     title: 'nav.group.manage',
     items: [
-      { to: '/cashiers', label: 'nav.cashiers', icon: Users2, permission: 'cashiers.manage' },
-      { to: '/stations', label: 'nav.stations', icon: Store, permission: 'stations.manage' },
+      { to: '/cashiers', label: 'nav.cashiers', icon: Users2, permission: 'cashiers.view' },
+      { to: '/stations', label: 'nav.stations', icon: Store, permission: 'stations.view' },
       { to: '/bonus', label: 'nav.bonus', icon: Percent, permission: 'bonus.view' },
-      { to: '/broadcasts', label: 'nav.broadcasts', icon: Megaphone, permission: 'broadcasts.manage' },
+      { to: '/broadcasts', label: 'nav.broadcasts', icon: Megaphone, permission: 'broadcasts.view' },
       { to: '/admins', label: 'nav.admins', icon: ShieldCheck, permission: 'admins.manage' },
       { to: '/clients', label: 'nav.clients', icon: Users, permission: 'clients.view' },
     ],

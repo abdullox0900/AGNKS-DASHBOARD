@@ -12,6 +12,7 @@ import { formatMoneyFull } from '@/shared/lib/format'
 import { cn } from '@/shared/lib/cn'
 import type { DisputeRecord, DisputeStatus } from '@/entities/models'
 import { formatPhone } from '@/shared/lib/phone'
+import { usePermission } from '@/shared/lib/permissions'
 import { useI18n } from '@/app/providers/I18nProvider'
 import type { DictKey } from '@/shared/config/dictionaries'
 
@@ -154,6 +155,7 @@ function FeedbackDetail({ item, onResolved }: { item: FeedbackItem; onResolved: 
   const { show } = useToast()
   const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const canDecide = usePermission('disputes.decide')
 
   async function handleResolve() {
     setSubmitting(true)
@@ -176,7 +178,7 @@ function FeedbackDetail({ item, onResolved }: { item: FeedbackItem; onResolved: 
         <p className="whitespace-pre-wrap text-[13px] text-[var(--color-ink)]">{item.message}</p>
       </div>
 
-      {item.status === 'open' ? (
+      {item.status === 'open' && canDecide ? (
         <div className="space-y-2 border-t border-[var(--color-border)] pt-4">
           <textarea
             value={note}
@@ -208,6 +210,7 @@ function DisputeDetail({ dispute, onResolved }: { dispute: DisputeRecord; onReso
     dispute.claimedAmount !== null ? String(Math.max(0, dispute.actualAmount - dispute.claimedAmount)) : '',
   )
   const [submitting, setSubmitting] = useState(false)
+  const canDecide = usePermission('disputes.decide')
 
   async function resolve(resolution: 'upheld' | 'reversed' | 'adjusted') {
     if (!note) return
@@ -237,7 +240,7 @@ function DisputeDetail({ dispute, onResolved }: { dispute: DisputeRecord; onReso
         <p className="text-[13px] text-[var(--color-ink)]">{dispute.comment}</p>
       </div>
 
-      {dispute.status === 'open' ? (
+      {dispute.status === 'open' && canDecide ? (
         <div className="space-y-3 border-t border-[var(--color-border)] pt-4">
           <p className="text-[13px] font-semibold text-[var(--color-ink)]">{t('disputes.decision')}</p>
           <textarea
