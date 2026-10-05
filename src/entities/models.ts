@@ -67,6 +67,13 @@ export interface ReceiptRecord {
   reviewedBy: string | null
   reviewNote: string | null
   soliqLink?: string
+  /** when the client scanned it */
+  createdAt?: string
+  /** receipt number from the QR (`r`) */
+  checkNumber?: string
+  /** fiscal module id from the QR (`t`) — the terminal code */
+  terminalCode?: string
+  clientBalance?: number
 }
 
 export type SpendStatus = 'applied' | 'reversed'

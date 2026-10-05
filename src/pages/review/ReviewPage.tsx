@@ -10,6 +10,8 @@ import { usePermission } from '@/shared/lib/permissions'
 import { apiApproveReceipt, apiRejectReceipt } from '@/shared/api/client'
 import { useToast } from '@/shared/ui/Toast'
 import { formatDateTime } from '@/shared/lib/dates'
+import { formatMoneyFull, formatNumber } from '@/shared/lib/format'
+import { formatPhone } from '@/shared/lib/phone'
 import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
 import type { DictKey } from '@/shared/config/dictionaries'
@@ -39,9 +41,11 @@ export function ReviewPage() {
   }, [queue, selectedId])
 
   const selected = queue?.find((r) => r.id === selectedId) ?? null
+  const amountNum = manualAmount ? Number(manualAmount) : 0
+  const bonus = selected && amountNum > 0 ? Math.floor((amountNum * selected.rateBps) / 10_000) : 0
 
   async function handleApprove() {
-    if (!selected) return
+    if (!selected || !manualAmount || Number(manualAmount) <= 0) return
     await apiApproveReceipt(selected.id, undefined, manualAmount ? Number(manualAmount) : undefined)
     show(t('review.approved'))
     setManualAmount('')
@@ -62,9 +66,11 @@ export function ReviewPage() {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (!queue || queue.length === 0) return
+      const tag = (e.target as HTMLElement | null)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
       if (rejecting) return
       const idx = queue.findIndex((r) => r.id === selectedId)
-      if (canDecide && (e.key === 'a' || e.key === 'A')) handleApprove()
+      if (canDecide && (e.key === 'a' || e.key === 'A')) void handleApprove()
       else if (canDecide && (e.key === 'r' || e.key === 'R')) setRejecting(true)
       else if (e.key === 'ArrowDown') setSelectedId(queue[Math.min(queue.length - 1, idx + 1)]?.id)
       else if (e.key === 'ArrowUp') setSelectedId(queue[Math.max(0, idx - 1)]?.id)
@@ -111,7 +117,10 @@ export function ReviewPage() {
                 <span className={cn('h-1.5 w-1.5 rounded-full', r.id === selectedId ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-ink-tertiary)]')} />
                 {r.clientName || t('common.client')} · {r.stationName}
               </span>
-              <span className="tnum text-[13px] text-[var(--color-ink-secondary)]">{formatDateTime(r.receiptAt)}</span>
+              <span className="tnum text-[13px] text-[var(--color-ink-secondary)]">
+                {r.checkNumber ? `№ ${r.checkNumber} · ` : ''}
+                {formatDateTime(r.receiptAt)}
+              </span>
               <span className="text-[12px] text-[var(--color-amber)]">
                 {r.reviewReasons.map((reason) => (REASON_LABELS[reason] ? t(REASON_LABELS[reason]) : reason)).join(', ')}
               </span>
@@ -122,37 +131,60 @@ export function ReviewPage() {
 
       {selected && (
         <Card>
-          <p className="mb-1 text-[12px] text-[var(--color-ink-tertiary)]">{t('review.unverified')}</p>
+          <p className="mb-4 rounded-xl bg-[var(--color-warning-soft)] px-3.5 py-2.5 text-[12.5px] leading-relaxed text-[var(--color-ink)]">{t('review.explain')}</p>
+
+          <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-[var(--color-ink-tertiary)]">{t('review.sec_scanned')}</p>
+          <div className="mb-5 grid grid-cols-1 gap-x-6 gap-y-3 rounded-xl border border-[var(--color-border)] p-4 text-[13px] sm:grid-cols-2">
+            <Row label={t('review.f_client')} value={`${selected.clientName || '—'}${selected.clientPhone ? ` · ${formatPhone(selected.clientPhone)}` : ''}`} />
+            <Row label={t('review.f_balance')} value={selected.clientBalance === undefined ? '—' : formatMoneyFull(selected.clientBalance)} />
+            <Row label={t('common.station')} value={selected.stationName} />
+            <Row label={t('review.f_terminal')} value={selected.terminalCode ?? '—'} mono />
+            <Row label={t('review.f_check_no')} value={selected.checkNumber ? `№ ${selected.checkNumber}` : '—'} mono />
+            <Row label={t('review.f_check_time')} value={formatDateTime(selected.receiptAt)} />
+            <Row label={t('review.f_scanned_at')} value={selected.createdAt ? formatDateTime(selected.createdAt) : '—'} />
+            <Row label={t('review.rate')} value={`${(selected.rateBps / 100).toFixed(1)}%`} />
+          </div>
+
+          <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-[var(--color-ink-tertiary)]">{t('review.sec_amount')}</p>
           {selected.soliqLink && (
             <a
               href={selected.soliqLink}
               target="_blank"
               rel="noreferrer"
-              className="mb-4 inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--color-primary)]"
+              className="mb-1.5 inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--color-primary)] px-4 text-[13.5px] font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary-soft)]"
             >
-              {t('review.view_fiscal')} <ExternalLink size={14} />
+              {t('review.open_soliq')} <ExternalLink size={15} />
             </a>
           )}
-
-          <div className="mb-4 grid grid-cols-2 gap-3 text-[13px]">
-            <Row label={t('review.receipt')} value={`#${selected.id.slice(-4)} · ${formatDateTime(selected.receiptAt)}`} />
-            <Row label={t('common.station')} value={selected.stationName} />
-            <Row label={t('common.client')} value={`${selected.clientName || '—'}${selected.clientPhone ? ` · ${selected.clientPhone}` : ''}`} />
-            <Row label={t('review.rate')} value={`${(selected.rateBps / 100).toFixed(1)}%`} />
-          </div>
+          <p className="mb-4 text-[12px] text-[var(--color-ink-tertiary)]">{t('review.open_hint')}</p>
 
           {canDecide && (<>
-          <div className="mb-5">
-            <label className="mb-1.5 block text-[13px] font-medium text-[var(--color-ink-secondary)]">
-              {t('review.enter_amount')}
-            </label>
+          <div className="mb-3">
+            <label className="mb-1.5 block text-[13px] font-medium text-[var(--color-ink-secondary)]">{t('review.amount_label')}</label>
             <input
               inputMode="numeric"
-              value={manualAmount}
-              onChange={(e) => setManualAmount(e.target.value.replace(/\D/g, ''))}
+              value={manualAmount ? formatNumber(Number(manualAmount)) : ''}
+              onChange={(e) => setManualAmount(e.target.value.replace(/\D/g, '').slice(0, 9))}
               placeholder="0"
-              className="h-11 w-full max-w-[220px] rounded-lg border border-[var(--color-border)] px-3 text-[14px] outline-none focus:border-[var(--color-primary)]"
+              className="tnum h-12 w-full max-w-[260px] rounded-lg border border-[var(--color-border)] bg-transparent px-3 text-[18px] font-semibold text-[var(--color-ink)] outline-none focus:border-[var(--color-primary)]"
             />
+          </div>
+
+          <div className={cn('mb-5 rounded-xl border px-4 py-3', bonus > 0 ? 'border-[var(--color-success)]/40 bg-[var(--color-success-soft)]' : 'border-dashed border-[var(--color-border-strong)]')}>
+            {bonus > 0 ? (
+              <>
+                <p className="tnum text-[12.5px] text-[var(--color-ink-secondary)]">{t('review.calc', { amount: formatMoneyFull(amountNum), rate: (selected.rateBps / 100).toFixed(1) })}</p>
+                <p className="mt-0.5 text-[12.5px] text-[var(--color-ink-secondary)]">{t('review.you_give')}</p>
+                <p className="tnum text-[24px] font-bold text-[var(--color-success)]">+{formatMoneyFull(bonus)}</p>
+                {selected.clientBalance !== undefined && (
+                  <p className="tnum mt-0.5 text-[12.5px] text-[var(--color-ink-secondary)]">
+                    {t('review.balance_after', { before: formatMoneyFull(selected.clientBalance), after: formatMoneyFull(selected.clientBalance + bonus) })}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-[12.5px] text-[var(--color-ink-tertiary)]">{t('review.calc_empty')}</p>
+            )}
           </div>
 
           {!rejecting ? (
@@ -160,8 +192,8 @@ export function ReviewPage() {
               <Button variant="danger" onClick={() => setRejecting(true)}>
                 <X size={15} /> {t('review.reject')} <span className="ml-1 opacity-70">(R)</span>
               </Button>
-              <Button onClick={handleApprove}>
-                <Check size={15} /> {t('review.approve')} <span className="ml-1 opacity-70">(A)</span>
+              <Button onClick={handleApprove} disabled={bonus <= 0} title={bonus <= 0 ? t('review.need_amount') : undefined}>
+                <Check size={15} /> {bonus > 0 ? t('review.approve_give', { bonus: formatMoneyFull(bonus) }) : t('review.approve')}
               </Button>
             </div>
           ) : (
@@ -208,11 +240,11 @@ export function ReviewPage() {
   )
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className="text-[11px] text-[var(--color-ink-tertiary)]">{label}</p>
-      <p className="text-[13px] text-[var(--color-ink)]">{value}</p>
+      <p className={cn('break-words text-[13px] text-[var(--color-ink)]', mono && 'font-mono')}>{value}</p>
     </div>
   )
 }

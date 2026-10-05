@@ -427,8 +427,12 @@ interface RawReceipt {
   reviewedBy: string | null
   reviewNote: string | null
   station: { name: string }
-  card?: { user: { firstName: string; phone: string | null } }
+  card?: { cachedBalance?: string | number; user: { firstName: string; phone: string | null } }
   soliqLink?: string
+  createdAt?: string
+  qrR?: string
+  qrT?: string
+  terminal?: { code: string }
 }
 
 function toReceipt(raw: RawReceipt): ReceiptRecord {
@@ -451,6 +455,10 @@ function toReceipt(raw: RawReceipt): ReceiptRecord {
     reviewedBy: raw.reviewedBy,
     reviewNote: raw.reviewNote,
     soliqLink: raw.soliqLink,
+    createdAt: raw.createdAt,
+    checkNumber: raw.qrR,
+    terminalCode: raw.terminal?.code ?? raw.qrT,
+    clientBalance: raw.card?.cachedBalance === undefined ? undefined : toNum(raw.card.cachedBalance),
   }
 }
 
