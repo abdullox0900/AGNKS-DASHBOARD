@@ -135,6 +135,7 @@ export function BonusReportPage() {
             <Kpi label={t('bonusrep.kpi_redeemed')} value={money(totals?.redeemed ?? 0)} tone="spend" hint={formatNumber(totals?.redeemCount ?? 0)} />
             <Kpi label={t('bonusrep.kpi_diff')} value={money((totals?.earned ?? 0) - (totals?.redeemed ?? 0))} />
             <Kpi label={t('bonusrep.kpi_pending')} value={money(totals?.pending ?? 0)} tone="warn" />
+            {!!totals?.adjusted && <Kpi label={t('bonusrep.kpi_adjusted')} value={`${totals.adjusted > 0 ? '+' : '−'}${money(Math.abs(totals.adjusted))}`} />}
           </>
         )}
       </div>

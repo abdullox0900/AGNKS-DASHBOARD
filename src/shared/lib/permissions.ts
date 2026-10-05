@@ -26,6 +26,7 @@ export type Permission =
   | 'audit.view'
   | 'admins.manage'
   | 'admins.edit'
+  | 'dataFix.manage'
   | 'broadcasts.view'
   | 'broadcasts.manage'
 
@@ -89,6 +90,7 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'admins.edit',
     'broadcasts.view',
     'broadcasts.manage',
+    'dataFix.manage',
   ],
 }
 

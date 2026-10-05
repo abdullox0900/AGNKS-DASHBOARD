@@ -26,6 +26,8 @@ export interface BonusTotals {
   pending: number
   redeemed: number
   redeemCount: number
+  /** manual SEO balance adjustments in the period (only for "all stations") */
+  adjusted?: number
 }
 export interface ClientBonus {
   userId: string
