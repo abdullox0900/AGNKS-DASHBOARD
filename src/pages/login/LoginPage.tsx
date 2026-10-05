@@ -145,7 +145,7 @@ export function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center font-mono text-[11px] tracking-wide text-[var(--color-ink-tertiary)]">AGNKS · CNG</p>
+        <p className="text-center font-mono text-[11px] tracking-wide text-[var(--color-ink-tertiary)]">AGNKS · CMG</p>
       </main>
 
       <LoginArt />

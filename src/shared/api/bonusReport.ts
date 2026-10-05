@@ -77,3 +77,15 @@ export async function apiDownloadBonusReport(f: Filter): Promise<void> {
   a.click()
   URL.revokeObjectURL(url)
 }
+
+export interface TopClient {
+  userId: string
+  name: string
+  phone: string | null
+  receiptsCount: number
+  receiptsSum: number
+  balance: number
+}
+
+export const apiTopClients = (f: Filter) =>
+  unwrap<{ byReceipts: TopClient[]; byBalance: TopClient[] }>(http.get('/admin/bonus-report/top-clients', { params: params(f) }))

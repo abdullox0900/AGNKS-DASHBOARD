@@ -185,18 +185,29 @@ function StationsTab({ rows, totals, loading, error, onRetry, onOpen }: { rows: 
   return (
     <div>
       <p className="mb-2 text-[12px] text-[var(--color-ink-tertiary)]">{t('bonusrep.hint_station_row')}</p>
-      <DataTable columns={columns} data={rows} loading={loading} error={error ? t('common.load_failed') : undefined} onRetry={onRetry} onRowClick={onOpen} getRowId={(r) => r.stationId} emptyMessage={t('bonusrep.empty')} />
-      {totals && rows.length > 0 && (
-        <div className="mt-2 grid grid-cols-2 items-center gap-x-4 gap-y-1 rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-surface-alt)] px-4 py-3 text-[13px] font-semibold text-[var(--color-ink)] sm:grid-cols-[minmax(0,1.6fr)_repeat(6,minmax(0,1fr))]">
-          <span className="col-span-2 sm:col-span-1">{t('bonusrep.total')}</span>
-          <span className="tnum sm:text-right">{formatNumber(totals.receiptsCount)}</span>
-          <span className="tnum sm:text-right">{money(totals.receiptsSum)}</span>
-          <span className="tnum text-[var(--color-success)] sm:text-right">{money(totals.earned)}</span>
-          <span className="tnum text-[var(--color-primary)] sm:text-right">{money(totals.redeemed)}</span>
-          <span className="tnum sm:text-right">{formatNumber(totals.redeemCount)}</span>
-          <span className="tnum sm:text-right">{money(totals.earned - totals.redeemed)}</span>
-        </div>
-      )}
+      <DataTable
+        columns={columns}
+        data={rows}
+        loading={loading}
+        error={error ? t('common.load_failed') : undefined}
+        onRetry={onRetry}
+        onRowClick={onOpen}
+        getRowId={(r) => r.stationId}
+        emptyMessage={t('bonusrep.empty')}
+        footer={
+          totals && rows.length > 0
+            ? {
+                name: t('bonusrep.total'),
+                receipts: formatNumber(totals.receiptsCount),
+                base: money(totals.receiptsSum),
+                earned: <span className="text-[var(--color-success)]">{money(totals.earned)}</span>,
+                redeemed: <span className="text-[var(--color-primary)]">{money(totals.redeemed)}</span>,
+                redeems: formatNumber(totals.redeemCount),
+                diff: money(totals.earned - totals.redeemed),
+              }
+            : undefined
+        }
+      />
     </div>
   )
 }

@@ -152,7 +152,7 @@ export function LoginArt() {
       {/* copy */}
       <div className="absolute inset-x-10 bottom-12">
         <p className="login-rise font-mono text-[11px] uppercase tracking-[0.22em] text-[#67e8f9]" style={{ '--delay': '0.6s' } as React.CSSProperties}>
-          AGNKS · CNG
+          AGNKS · CMG
         </p>
         <h2 className="login-rise mt-3 max-w-[460px] text-[34px] font-bold leading-[1.12] tracking-tight" style={{ '--delay': '0.75s' } as React.CSSProperties}>
           {t('login.art_title')}

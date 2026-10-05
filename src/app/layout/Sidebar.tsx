@@ -101,7 +101,7 @@ export function Sidebar() {
           </span>
         ) : (
           <div className="min-w-0 whitespace-nowrap">
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--color-lime)]">AGNKS · CNG</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--color-lime)]">AGNKS · CMG</p>
             <p className="text-[17px] font-bold text-[var(--color-ink)]">{t('nav.brand')}</p>
           </div>
         )}

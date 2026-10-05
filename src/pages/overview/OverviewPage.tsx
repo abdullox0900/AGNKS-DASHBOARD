@@ -9,6 +9,7 @@ import { SystemStatus } from '@/widgets/SystemStatus'
 import { ActivePromotions } from '@/widgets/ActivePromotions'
 import { DailyReceiptsChart } from '@/widgets/charts/DailyReceiptsChart'
 import { HourlyLoadChart } from '@/widgets/charts/HourlyLoadChart'
+import { TopClients } from '@/widgets/TopClients'
 import { ErrorBoundary } from '@/shared/ui/ErrorBoundary'
 import { useIsNetworkWide } from '@/shared/lib/permissions'
 import { useI18n } from '@/app/providers/I18nProvider'
@@ -68,6 +69,10 @@ export function OverviewPage() {
           <CashierShareDonut filters={filters} />
         </ErrorBoundary>
       </div>
+
+      <ErrorBoundary label={t('common.chart_load_failed')}>
+        <TopClients filters={filters} />
+      </ErrorBoundary>
 
       {isNetworkWide && (
         <ErrorBoundary label={t('common.chart_load_failed')}>

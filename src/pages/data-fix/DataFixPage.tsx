@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
-import { Search, Trash2, TriangleAlert } from 'lucide-react'
+import { KeyRound, Lock, Search, Trash2, TriangleAlert } from 'lucide-react'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Chip } from '@/shared/ui/Chip'
@@ -9,20 +9,21 @@ import { Drawer } from '@/shared/ui/Drawer'
 import { Skeleton } from '@/shared/ui/Skeleton'
 import { useToast } from '@/shared/ui/Toast'
 import { useGlobalFilters } from '@/features/global-filters/useGlobalFilters'
-import { apiDataDelete, apiDataPreview, apiDataRecords, type DataRecord, type RecordKind, type RecordRef } from '@/shared/api/dataFix'
+import { apiDataDelete, apiDataPreview, apiDataRecords, lockDataFix, getUnlock, apiGateChange, type DataRecord, type RecordKind, type RecordRef } from '@/shared/api/dataFix'
 import { ApiError } from '@/shared/api/errors'
 import { formatDateTime } from '@/shared/lib/dates'
 import { formatMoneyFull } from '@/shared/lib/format'
 import { formatPhone } from '@/shared/lib/phone'
 import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
+import { DataFixGate } from './DataFixGate'
 
 const PAGE = 50
 const keyOf = (r: RecordRef) => `${r.kind}:${r.id}`
 const KIND_TONE = { receipt: 'success', spend: 'primary', adjust: 'warning' } as const
 
 /** SEO-only: find test / mistaken receipts, redemptions and manual adjustments and delete them (password-confirmed). */
-export function DataFixPage() {
+function DataFixTool({ onLock }: { onLock: () => void }) {
   const { t } = useI18n()
   const { filters } = useGlobalFilters()
   const { mutate: globalMutate } = useSWRConfig()
@@ -31,10 +32,14 @@ export function DataFixPage() {
   const [offset, setOffset] = useState(0)
   const [selected, setSelected] = useState<Map<string, RecordRef>>(new Map())
   const [drawer, setDrawer] = useState(false)
+  const [changeOpen, setChangeOpen] = useState(false)
 
   const key = ['data-fix', filters.stationIds?.join(',') ?? 'all', filters.from.toISOString(), filters.to.toISOString(), kind, q, offset]
   const { data, isLoading, error, mutate } = useSWR(key, () => apiDataRecords({ stationIds: filters.stationIds, from: filters.from, to: filters.to }, { kind, q: q || undefined, limit: PAGE, offset }), { keepPreviousData: true })
   const items = data?.items ?? []
+  useEffect(() => {
+    if (error instanceof ApiError && error.details?.reason === 'datafix_locked') onLock()
+  }, [error, onLock])
 
   const toggle = (r: DataRecord) =>
     setSelected((prev) => {
@@ -90,9 +95,19 @@ export function DataFixPage() {
 
   return (
     <div className="space-y-4 pb-20">
-      <header>
-        <h1 className="text-[24px] font-bold text-[var(--color-ink)]">{t('fix.title')}</h1>
-        <p className="mt-1 max-w-[720px] text-[13px] text-[var(--color-ink-tertiary)]">{t('fix.subtitle')}</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[24px] font-bold text-[var(--color-ink)]">{t('fix.title')}</h1>
+          <p className="mt-1 max-w-[720px] text-[13px] text-[var(--color-ink-tertiary)]">{t('fix.subtitle')}</p>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="ghost" onClick={() => setChangeOpen(true)}>
+            <KeyRound size={14} /> {t('fix.gate_change')}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={onLock}>
+            <Lock size={14} /> {t('fix.gate_lock')}
+          </Button>
+        </div>
       </header>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -149,10 +164,15 @@ export function DataFixPage() {
         </div>
       )}
 
+      <Drawer open={changeOpen} onClose={() => setChangeOpen(false)} title={t('fix.gate_change')}>
+        {changeOpen && <ChangePassword onDone={() => setChangeOpen(false)} />}
+      </Drawer>
+
       <Drawer open={drawer} onClose={() => setDrawer(false)} title={t('fix.drawer_title')} width={520}>
         {drawer && (
           <DeletePanel
             refs={refs}
+            onLock={onLock}
             onDone={() => {
               setDrawer(false)
               setSelected(new Map())
@@ -167,7 +187,7 @@ export function DataFixPage() {
   )
 }
 
-function DeletePanel({ refs, onDone }: { refs: RecordRef[]; onDone: () => void }) {
+function DeletePanel({ refs, onDone, onLock }: { refs: RecordRef[]; onDone: () => void; onLock: () => void }) {
   const { t } = useI18n()
   const { show } = useToast()
   const { data: preview, error: previewError } = useSWR(['data-fix-preview', refs.map(keyOf).join('|')], () => apiDataPreview(refs), { revalidateOnFocus: false })
@@ -187,6 +207,10 @@ function DeletePanel({ refs, onDone }: { refs: RecordRef[]; onDone: () => void }
       show(t('fix.done', { n: res.deleted }))
       onDone()
     } catch (err) {
+      if (err instanceof ApiError && err.details?.reason === 'datafix_locked') {
+        onLock()
+        return
+      }
       if (err instanceof ApiError) {
         setError(err.code === 'AUTH_INVALID_CREDENTIALS' ? t('fix.wrong_password') : err.code === 'NOT_FOUND' ? t('fix.not_found') : t('common.error_generic'))
       } else setError(t('common.error_generic'))
@@ -240,4 +264,73 @@ function DeletePanel({ refs, onDone }: { refs: RecordRef[]; onDone: () => void }
       </Button>
     </div>
   )
+}
+
+function ChangePassword({ onDone }: { onDone: () => void }) {
+  const { t } = useI18n()
+  const { show } = useToast()
+  const [current, setCurrent] = useState('')
+  const [next, setNext] = useState('')
+  const [repeat, setRepeat] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const input = 'h-10 w-full rounded-lg border border-[var(--color-border)] bg-transparent px-3 text-[13px] outline-none focus:border-[var(--color-primary)]'
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    if (next.length < 8) return setError(t('fix.gate_short'))
+    if (next !== repeat) return setError(t('fix.gate_mismatch'))
+    setBusy(true)
+    try {
+      await apiGateChange(current, next)
+      show(t('fix.gate_changed'))
+      onDone()
+    } catch (err) {
+      setError(err instanceof ApiError && err.code === 'AUTH_INVALID_CREDENTIALS' ? t('fix.gate_wrong') : err instanceof ApiError && err.code === 'RATE_LIMITED' ? t('fix.gate_locked_out') : t('common.error_generic'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-3">
+      <div>
+        <label className="mb-1 block text-[13px] font-medium text-[var(--color-ink-secondary)]">{t('fix.gate_current')}</label>
+        <input type="password" autoComplete="off" value={current} onChange={(e) => setCurrent(e.target.value)} className={input} />
+      </div>
+      <div>
+        <label className="mb-1 block text-[13px] font-medium text-[var(--color-ink-secondary)]">{t('fix.gate_new')}</label>
+        <input type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} className={input} />
+      </div>
+      <div>
+        <label className="mb-1 block text-[13px] font-medium text-[var(--color-ink-secondary)]">{t('fix.gate_repeat')}</label>
+        <input type="password" autoComplete="new-password" value={repeat} onChange={(e) => setRepeat(e.target.value)} className={input} />
+      </div>
+      {error && <p className="text-[13px] font-medium text-[var(--color-danger)]">{error}</p>}
+      <Button type="submit" className="w-full" loading={busy} disabled={!current || !next || !repeat}>
+        {t('common.save')}
+      </Button>
+    </form>
+  )
+}
+
+/** The page: first the lock (own password), then the tool. The unlock lasts 15 minutes and then closes by itself. */
+export function DataFixPage() {
+  const [unlock, setUnlock] = useState(getUnlock)
+  const lock = () => {
+    lockDataFix()
+    setUnlock(null)
+  }
+
+  useEffect(() => {
+    if (!unlock) return
+    const ms = new Date(unlock.expiresAt).getTime() - Date.now()
+    const id = window.setTimeout(lock, Math.max(ms, 0))
+    return () => window.clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unlock])
+
+  if (!unlock) return <DataFixGate onUnlocked={() => setUnlock(getUnlock())} />
+  return <DataFixTool onLock={lock} />
 }

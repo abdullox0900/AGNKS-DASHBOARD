@@ -50,7 +50,11 @@ http.interceptors.response.use(
     const original = error.config as (AxiosRequestConfig & { _retried?: boolean }) | undefined
     const status = error.response?.status
 
-    if (status === 401 && original && !original._retried && !original.url?.includes('/admin/auth/')) {
+    // a wrong password typed into a confirmation field (delete, data-fix lock) is a 401 too — that is not an
+    // expired session, so it must not trigger a refresh + a second attempt (which would count twice)
+    const wrongPassword = error.response?.data?.error?.code === 'AUTH_INVALID_CREDENTIALS'
+
+    if (status === 401 && original && !original._retried && !wrongPassword && !original.url?.includes('/admin/auth/')) {
       original._retried = true
       const newToken = await (refreshing ??= refreshAccessToken().finally(() => {
         refreshing = null

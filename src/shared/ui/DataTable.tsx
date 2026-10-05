@@ -39,6 +39,8 @@ interface DataTableProps<T> {
   onRowClick?: (row: T) => void
   getRowId?: (row: T) => string
   maxHeight?: number
+  /** a totals row rendered in the same columns (so it always lines up), keyed by column id */
+  footer?: Record<string, React.ReactNode>
 }
 
 const VIRTUALIZE_THRESHOLD = 200
@@ -53,6 +55,7 @@ export function DataTable<T>({
   onRowClick,
   getRowId,
   maxHeight = 560,
+  footer,
 }: DataTableProps<T>) {
   const { t, locale } = useI18n()
   const [sorting, setSorting] = useState<SortingState>([])
@@ -215,6 +218,27 @@ export function DataTable<T>({
               rows.map((_, i) => renderRow(i))
             )}
           </tbody>
+          {footer && (
+            <tfoot className="sticky bottom-0 z-[2] bg-[var(--color-surface-alt)]">
+              <tr>
+                {table.getVisibleLeafColumns().map((col) => {
+                  const meta = colMeta.get(col.id)
+                  return (
+                    <td
+                      key={col.id}
+                      className={cn(
+                        'whitespace-nowrap border-t border-[var(--color-border-strong)] px-3 py-3 text-[13px] font-semibold text-[var(--color-ink)]',
+                        meta?.numeric ? 'text-right tnum' : 'text-left',
+                        meta?.sticky && 'sticky left-0 z-[3] bg-[var(--color-surface-alt)]',
+                      )}
+                    >
+                      {footer[col.id] ?? ''}
+                    </td>
+                  )
+                })}
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
     </div>
