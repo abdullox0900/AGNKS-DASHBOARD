@@ -62,12 +62,12 @@ const GROUPS: { title: DictKey; items: NavItem[] }[] = [
       { to: '/admins', label: 'nav.admins', icon: ShieldCheck, permission: 'admins.manage' },
       { to: '/data-fix', label: 'nav.data_fix', icon: Eraser, permission: 'dataFix.manage' },
       { to: '/clients', label: 'nav.clients', icon: Users, permission: 'clients.view' },
+      { to: '/audit', label: 'nav.audit', icon: ScrollText, permission: 'audit.view' },
     ],
   },
   {
     title: 'nav.group.system',
     items: [
-      { to: '/audit', label: 'nav.audit', icon: ScrollText, comingSoon: true },
       { to: '/settings', label: 'nav.settings', icon: Settings, comingSoon: true },
     ],
   },

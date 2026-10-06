@@ -17,6 +17,7 @@ import { ClientsPage } from '@/pages/clients/ClientsPage'
 import { ClientDetailPage } from '@/pages/clients/ClientDetailPage'
 import { BroadcastsPage } from '@/pages/broadcasts/BroadcastsPage'
 import { LargeReceiptsPage } from '@/pages/large-receipts/LargeReceiptsPage'
+import { AuditPage } from '@/pages/audit/AuditPage'
 import { ComingSoonPage } from '@/pages/coming-soon/ComingSoonPage'
 
 export const router = createBrowserRouter([
@@ -84,7 +85,14 @@ export const router = createBrowserRouter([
           </RequirePermission>
         ),
       },
-      { path: '/audit', element: <ComingSoonPage title="coming_soon.audit" /> },
+      {
+        path: '/audit',
+        element: (
+          <RequirePermission permission="audit.view">
+            <AuditPage />
+          </RequirePermission>
+        ),
+      },
       { path: '/settings', element: <ComingSoonPage title="nav.settings" /> },
     ],
   },

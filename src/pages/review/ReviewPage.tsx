@@ -14,6 +14,7 @@ import { formatMoneyFull, formatNumber } from '@/shared/lib/format'
 import { formatPhone } from '@/shared/lib/phone'
 import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
+import { ReviewHistory } from './ReviewHistory'
 import type { DictKey } from '@/shared/config/dictionaries'
 
 const REASON_LABELS: Record<string, DictKey> = {
@@ -22,7 +23,7 @@ const REASON_LABELS: Record<string, DictKey> = {
 
 const REJECT_REASONS: DictKey[] = ['review.reject.wrong_amount', 'review.reject.fake', 'review.reject.other']
 
-export function ReviewPage() {
+function ReviewQueue() {
   const { t } = useI18n()
   const { data: queue, isLoading, mutate } = useReviewQueue()
   const { mutate: globalMutate } = useSWRConfig()
@@ -245,6 +246,28 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
     <div className="min-w-0">
       <p className="text-[11px] text-[var(--color-ink-tertiary)]">{label}</p>
       <p className={cn('break-words text-[13px] text-[var(--color-ink)]', mono && 'font-mono')}>{value}</p>
+    </div>
+  )
+}
+
+/** Tekshiruv: the open queue plus the history of everything a reviewer already decided. */
+export function ReviewPage() {
+  const { t } = useI18n()
+  const [tab, setTab] = useState<'queue' | 'history'>('queue')
+  return (
+    <div className="space-y-4">
+      <div className="inline-flex gap-1 rounded-lg border border-[var(--color-border)] p-0.5">
+        {(['queue', 'history'] as const).map((key) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={cn('rounded-md px-3.5 py-1.5 text-[13px] font-medium', tab === key ? 'bg-[var(--color-primary)] text-[var(--color-primary-ink)]' : 'text-[var(--color-ink-secondary)]')}
+          >
+            {t(key === 'queue' ? 'review.tab_queue' : 'review.tab_history')}
+          </button>
+        ))}
+      </div>
+      {tab === 'queue' ? <ReviewQueue /> : <ReviewHistory />}
     </div>
   )
 }
