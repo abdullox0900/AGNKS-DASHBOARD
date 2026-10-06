@@ -59,7 +59,6 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'bonus.view',
     'bonusReport.view',
     'clients.view',
-    'audit.view',
     'broadcasts.view',
   ],
   // The only role that changes things network-wide (stations, admins, clients, bonus, broadcasts...).
