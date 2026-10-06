@@ -504,11 +504,19 @@ function toClient(raw: RawClientUser): ClientRecord {
   }
 }
 
+/** Every client, not just the first page: follows `nextCursor` until the list ends (200 per request). */
 export async function apiSearchClients(q?: string): Promise<ClientRecord[]> {
-  const { items } = await unwrap<{ items: RawClientUser[]; nextCursor: string | null }>(
-    http.get('/admin/clients', { params: { q } }),
-  )
-  return items.filter((u) => u.card).map(toClient)
+  const all: RawClientUser[] = []
+  let cursor: string | undefined
+  for (let i = 0; i < 100; i++) {
+    const page = await unwrap<{ items: RawClientUser[]; nextCursor: string | null }>(
+      http.get('/admin/clients', { params: { q, cursor, limit: 200 } }),
+    )
+    all.push(...page.items)
+    if (!page.nextCursor) break
+    cursor = page.nextCursor
+  }
+  return all.filter((u) => u.card).map(toClient)
 }
 
 export interface ClientProfile {

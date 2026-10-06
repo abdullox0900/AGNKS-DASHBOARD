@@ -3,12 +3,12 @@ import useSWR, { mutate as globalMutate } from 'swr'
 import { KeyRound, Lock } from 'lucide-react'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
+import { PasswordField } from '@/shared/ui/PasswordField'
 import { Skeleton } from '@/shared/ui/Skeleton'
 import { apiGateSetup, apiGateStatus, apiGateUnlock } from '@/shared/api/dataFix'
 import { ApiError } from '@/shared/api/errors'
 import { useI18n } from '@/app/providers/I18nProvider'
 
-const inputClass = 'h-11 w-full rounded-lg border border-[var(--color-border)] bg-transparent px-3 text-[14px] text-[var(--color-ink)] outline-none focus:border-[var(--color-primary)]'
 const labelClass = 'mb-1 block text-[13px] font-medium text-[var(--color-ink-secondary)]'
 
 /** The lock in front of "Ma'lumotlarni tuzatish": its own password, asked every time the page is opened. */
@@ -39,7 +39,7 @@ export function DataFixGate({ onUnlocked }: { onUnlocked: () => void }) {
       onUnlocked()
     } catch (err) {
       if (err instanceof ApiError && err.code === 'RATE_LIMITED') setMessage(t('fix.gate_locked_out'))
-      else if (err instanceof ApiError && err.code === 'AUTH_INVALID_CREDENTIALS') setMessage(t('fix.gate_wrong'))
+      else if (err instanceof ApiError && err.code === 'AUTH_INVALID_CREDENTIALS') setMessage(err.details?.reason === 'login_password' ? t('fix.gate_login_wrong') : t('fix.gate_wrong'))
       else if (err instanceof ApiError && err.details?.message === 'gate_already_set') void mutate()
       else setMessage(t('common.error_generic'))
     } finally {
@@ -65,17 +65,17 @@ export function DataFixGate({ onUnlocked }: { onUnlocked: () => void }) {
             </div>
             <div>
               <label className={labelClass}>{setup ? t('fix.gate_new') : t('fix.gate_password')}</label>
-              <input type="password" autoFocus autoComplete={setup ? 'new-password' : 'off'} value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} />
+              <PasswordField value={password} onChange={setPassword} autoComplete={setup ? 'new-password' : 'off'} />
             </div>
             {setup && (
               <>
                 <div>
                   <label className={labelClass}>{t('fix.gate_repeat')}</label>
-                  <input type="password" autoComplete="new-password" value={repeat} onChange={(e) => setRepeat(e.target.value)} className={inputClass} />
+                  <PasswordField value={repeat} onChange={setRepeat} autoComplete="new-password" />
                 </div>
                 <div>
                   <label className={labelClass}>{t('fix.gate_login_pw')}</label>
-                  <input type="password" autoComplete="current-password" value={loginPw} onChange={(e) => setLoginPw(e.target.value)} className={inputClass} />
+                  <PasswordField value={loginPw} onChange={setLoginPw} autoComplete="current-password" />
                 </div>
               </>
             )}
