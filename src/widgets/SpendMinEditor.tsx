@@ -8,6 +8,7 @@ import { apiSetSpendMin } from '@/shared/api/client'
 import { ApiError } from '@/shared/api/errors'
 import { usePermission } from '@/shared/lib/permissions'
 import { formatNumber } from '@/shared/lib/format'
+import { NewBadge } from '@/shared/ui/NewBadge'
 import { useI18n } from '@/app/providers/I18nProvider'
 
 /**
@@ -52,7 +53,10 @@ export function SpendMinEditor() {
           <Wallet size={18} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-medium text-[var(--color-ink-secondary)]">{t('bonus.spendmin_title')}</p>
+          <p className="flex items-center gap-2 text-[13px] font-medium text-[var(--color-ink-secondary)]">
+            {t('bonus.spendmin_title')}
+            <NewBadge since="2026-10-12" />
+          </p>
           {canEdit ? (
             <form
               onSubmit={(e) => {

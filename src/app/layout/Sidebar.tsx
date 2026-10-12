@@ -25,6 +25,7 @@ import { useReviewQueue, useDisputes } from '@/shared/api/hooks'
 import { useI18n } from '@/app/providers/I18nProvider'
 import { useUiStore } from '@/shared/config/uiStore'
 import { Hint } from '@/shared/ui/Menu'
+import { NewBadge } from '@/shared/ui/NewBadge'
 import type { DictKey } from '@/shared/config/dictionaries'
 
 interface NavItem {
@@ -34,6 +35,8 @@ interface NavItem {
   permission?: Permission
   badgeKey?: 'review' | 'disputes'
   comingSoon?: boolean
+  /** release date (YYYY-MM-DD) of something new inside this section — shows a "Yangi" badge for 3 days */
+  newSince?: string
 }
 
 const GROUPS: { title: DictKey; items: NavItem[] }[] = [
@@ -56,7 +59,7 @@ const GROUPS: { title: DictKey; items: NavItem[] }[] = [
     items: [
       { to: '/cashiers', label: 'nav.cashiers', icon: Users2, permission: 'cashiers.view' },
       { to: '/stations', label: 'nav.stations', icon: Store, permission: 'stations.view' },
-      { to: '/bonus', label: 'nav.bonus', icon: Percent, permission: 'bonus.view' },
+      { to: '/bonus', label: 'nav.bonus', icon: Percent, permission: 'bonus.view', newSince: '2026-10-12' },
       { to: '/bonus-report', label: 'nav.bonus_report', icon: Coins, permission: 'bonusReport.view' },
       { to: '/broadcasts', label: 'nav.broadcasts', icon: Megaphone, permission: 'broadcasts.view' },
       { to: '/admins', label: 'nav.admins', icon: ShieldCheck, permission: 'admins.manage' },
@@ -144,6 +147,7 @@ export function Sidebar() {
                           <item.icon size={collapsed ? 19 : 17} />
                           {!collapsed && t(item.label)}
                         </span>
+                        {item.newSince && <NewBadge since={item.newSince} dot={collapsed} />}
                         {!collapsed && item.comingSoon && (
                           <span className="rounded-full bg-[var(--color-surface-alt)] px-1.5 py-0.5 text-[10px] text-[var(--color-ink-tertiary)]">
                             {t('nav.soon')}
