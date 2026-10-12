@@ -26,6 +26,7 @@ import {
   type SendTimeMode,
 } from "@/widgets/SendTimePicker";
 import { MethanePriceEditor } from "@/widgets/MethanePriceEditor";
+import { SpendMinEditor } from "@/widgets/SpendMinEditor";
 import { useI18n } from "@/app/providers/I18nProvider";
 import type { DictKey } from "@/shared/config/dictionaries";
 
@@ -107,7 +108,7 @@ export function BonusPage() {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <Card>
           <div className="flex items-center justify-between">
             <div>
@@ -131,6 +132,7 @@ export function BonusPage() {
             )}
           </div>
         </Card>
+        <SpendMinEditor />
         <MethanePriceEditor />
       </div>
 

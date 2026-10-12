@@ -352,7 +352,7 @@ export async function apiResolveFeedback(id: string, note?: string) {
 
 // ---------- Bonus & promotions ----------
 
-export async function apiGetBonusSettings(): Promise<{ baseRateBps: number; methanePrice: number }> {
+export async function apiGetBonusSettings(): Promise<{ baseRateBps: number; methanePrice: number; spendMinAmount: number; spendMaxAmount: number }> {
   return unwrap(http.get('/admin/bonus/settings'))
 }
 
@@ -362,6 +362,10 @@ export async function apiSetBaseRate(rateBps: number, note: string) {
 
 export async function apiSetMethanePrice(price: number) {
   return unwrap<{ methanePrice: number }>(http.put('/admin/bonus/methane-price', { price }))
+}
+
+export async function apiSetSpendMin(amount: number) {
+  return unwrap<{ spendMinAmount: number; spendMaxAmount: number }>(http.put('/admin/bonus/spend-min', { amount }))
 }
 
 export async function apiGetPromotions(status?: string): Promise<Promotion[]> {
