@@ -113,10 +113,46 @@ const GROUPS: NavGroup[] = [
 
 type Counts = Record<NonNullable<NavItem['badgeKey']>, number>
 
+/** The window's inner height, kept current while it is resized. */
+function useWindowHeight(): number {
+  const [h, setH] = useState(() => window.innerHeight)
+  useEffect(() => {
+    let raf = 0
+    const onResize = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => setH(window.innerHeight))
+    }
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      cancelAnimationFrame(raf)
+    }
+  }, [])
+  return h
+}
+
+/**
+ * Sizes of the icon-only rail so every page fits the window height without a scrollbar: the rows shrink
+ * (40 → 22 px) together with their icons, the dividers and the logo block as the window gets shorter.
+ */
+function railMetrics(windowHeight: number, items: number, groups: number) {
+  const brand = windowHeight >= 720 ? 76 : windowHeight >= 560 ? 56 : 44
+  const footer = 57
+  const padBottom = windowHeight >= 560 ? 16 : 8
+  const divider = (size: number) => (size >= 34 ? 8 : size >= 28 ? 5 : 3) // margin above and below the line
+  for (let size = 40; size >= 22; size--) {
+    const total = brand + footer + padBottom + items * (size + 2) + groups * (divider(size) * 2 + 1 + 4)
+    if (total <= windowHeight || size === 22) {
+      return { brand, padBottom, item: size, icon: size >= 34 ? 19 : size >= 28 ? 17 : 15, divider: divider(size) }
+    }
+  }
+  return { brand, padBottom, item: 22, icon: 15, divider: 3 }
+}
+
 /** Does this nav item own the page at `path`? ('/' only matches exactly.) */
 const owns = (item: NavItem, path: string) => (item.to === '/' ? path === '/' : path === item.to || path.startsWith(`${item.to}/`))
 
-function ItemLink({ item, collapsed, counts, indent }: { item: NavItem; collapsed: boolean; counts: Counts; indent?: boolean }) {
+function ItemLink({ item, collapsed, counts, indent, railIcon }: { item: NavItem; collapsed: boolean; counts: Counts; indent?: boolean; railIcon?: number }) {
   const { t } = useI18n()
   const badge = item.badgeKey ? counts[item.badgeKey] : 0
   return (
@@ -129,7 +165,7 @@ function ItemLink({ item, collapsed, counts, indent }: { item: NavItem; collapse
           className={({ isActive }) =>
             cn(
               'relative flex items-center rounded-lg border-l-2 py-2 text-[13px] font-medium transition-colors',
-              collapsed ? 'h-10 justify-center px-0' : 'justify-between px-2.5',
+              collapsed ? 'h-[var(--rail-item,40px)] justify-center px-0' : 'justify-between px-2.5',
               indent && !collapsed && 'py-1.5',
               isActive
                 ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]'
@@ -138,7 +174,7 @@ function ItemLink({ item, collapsed, counts, indent }: { item: NavItem; collapse
           }
         >
           <span className="flex items-center gap-2.5 whitespace-nowrap">
-            <item.icon size={collapsed ? 19 : indent ? 16 : 17} />
+            <item.icon size={collapsed ? (railIcon ?? 19) : indent ? 16 : 17} />
             {!collapsed && t(item.label)}
           </span>
           {item.newSince && <NewBadge since={item.newSince} dot={collapsed} />}
@@ -156,6 +192,26 @@ function ItemLink({ item, collapsed, counts, indent }: { item: NavItem; collapse
         </NavLink>
       </span>
     </Hint>
+  )
+}
+
+/**
+ * One branch of a group's tree: the trunk runs down the left edge and a short branch reaches into every item;
+ * the last item gets a rounded elbow instead, so the line visibly ends there.
+ */
+function TreeRow({ last, children }: { last: boolean; children: React.ReactNode }) {
+  return (
+    <div className="relative pl-4">
+      {last ? (
+        <span aria-hidden className="absolute left-0 top-0 h-1/2 w-3 rounded-bl-[9px] border-b border-l border-[var(--color-border-strong)]" />
+      ) : (
+        <>
+          <span aria-hidden className="absolute bottom-0 left-0 top-0 w-px bg-[var(--color-border-strong)]" />
+          <span aria-hidden className="absolute left-0 top-1/2 h-px w-3 bg-[var(--color-border-strong)]" />
+        </>
+      )}
+      {children}
+    </div>
   )
 }
 
@@ -195,9 +251,11 @@ function Group({ group, items, counts, now }: { group: NavGroup; items: NavItem[
       </button>
       <div className={cn('grid transition-[grid-template-rows] duration-200 ease-out', open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]')}>
         <div className="overflow-hidden">
-          <div className="ml-[19px] space-y-0.5 border-l border-[var(--color-border)] py-0.5 pl-2" inert={!open}>
-            {items.map((item) => (
-              <ItemLink key={item.to} item={item} collapsed={false} counts={counts} indent />
+          <div className="ml-[18px] space-y-0.5 py-0.5" inert={!open}>
+            {items.map((item, i) => (
+              <TreeRow key={item.to} last={i === items.length - 1}>
+                <ItemLink item={item} collapsed={false} counts={counts} indent />
+              </TreeRow>
             ))}
           </div>
         </div>
@@ -227,14 +285,18 @@ export function Sidebar() {
   const pinned = allowed(PINNED)
   const groups = GROUPS.map((g) => ({ group: g, items: allowed(g.items) })).filter((g) => g.items.length > 0)
 
+  const windowHeight = useWindowHeight()
+  const rail = railMetrics(windowHeight, pinned.length + groups.reduce((n, g) => n + g.items.length, 0), groups.length)
+  const railStyle = { '--rail-item': `${rail.item}px`, paddingBottom: rail.padBottom } as React.CSSProperties
+
   return (
     <aside
       className={cn(
         'flex h-screen shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] transition-[width] duration-200',
-        collapsed ? 'w-[68px]' : 'w-[230px]',
+        collapsed ? 'w-[68px]' : 'w-[256px]',
       )}
     >
-      <div className={cn('flex h-[76px] shrink-0 items-center', collapsed ? 'justify-center' : 'px-5')}>
+      <div style={collapsed ? { height: rail.brand } : undefined} className={cn('flex shrink-0 items-center', collapsed ? 'justify-center' : 'h-[76px] px-5')}>
         {collapsed ? (
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
             <Fuel size={19} />
@@ -247,21 +309,21 @@ export function Sidebar() {
         )}
       </div>
 
-      <nav className={cn('flex-1 overflow-y-auto overflow-x-hidden pb-4', collapsed ? 'space-y-1 px-2' : 'space-y-1.5 px-3')}>
+      <nav style={collapsed ? railStyle : undefined} className={cn('flex-1 overflow-y-auto overflow-x-hidden', collapsed ? 'space-y-1 px-2' : 'space-y-1.5 px-3 pb-4')}>
         {collapsed ? (
           // icon-only rail: every page stays one click away, groups are just separated by a line
           <>
             <div className="space-y-0.5">
               {pinned.map((item) => (
-                <ItemLink key={item.to} item={item} collapsed counts={counts} />
+                <ItemLink key={item.to} item={item} collapsed counts={counts} railIcon={rail.icon} />
               ))}
             </div>
             {groups.map(({ group, items }) => (
               <div key={group.id}>
-                <div className="mx-2 my-2 h-px bg-[var(--color-border)]" />
+                <div style={{ margin: `${rail.divider}px 8px` }} className="h-px bg-[var(--color-border)]" />
                 <div className="space-y-0.5">
                   {items.map((item) => (
-                    <ItemLink key={item.to} item={item} collapsed counts={counts} />
+                    <ItemLink key={item.to} item={item} collapsed counts={counts} railIcon={rail.icon} />
                   ))}
                 </div>
               </div>
