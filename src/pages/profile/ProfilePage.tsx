@@ -59,6 +59,7 @@ export function ProfilePage() {
     await mutate(updated, false)
     setFirstName(updated.firstName)
     void globalMutate('/admin/auth/me/activity')
+    void globalMutate('/admin/auth/avatars')
     return updated
   }
 

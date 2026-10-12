@@ -4,6 +4,8 @@ import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { DataTable, type DataTableColumn } from '@/shared/ui/DataTable'
 import { apiReviewHistory, type ReviewedReceipt } from '@/shared/api/audit'
+import { useAvatars } from '@/shared/api/hooks'
+import { Avatar } from '@/shared/ui/Avatar'
 import { formatDateTime } from '@/shared/lib/dates'
 import { formatMoneyFull } from '@/shared/lib/format'
 import { formatPhone } from '@/shared/lib/phone'
@@ -12,6 +14,7 @@ import { useI18n } from '@/app/providers/I18nProvider'
 /** Receipts a reviewer already decided on — who approved / rejected what, and why. */
 export function ReviewHistory() {
   const { t } = useI18n()
+  const { data: avatars } = useAvatars()
   const { data, error, isLoading, isValidating, size, setSize, mutate } = useSWRInfinite(
     (index, prev: { nextCursor: string | null } | null) => (prev && !prev.nextCursor ? null : ['review-history', index === 0 ? '' : prev?.nextCursor]),
     ([, cursor]) => apiReviewHistory((cursor as string) || undefined),
@@ -33,9 +36,12 @@ export function ReviewHistory() {
       header: 'review.hist_by',
       accessor: (r) => r.reviewerName ?? '',
       cell: (r) => (
-        <span>
-          {r.reviewerName ?? '—'}
-          {r.reviewerPhone ? <span className="ml-1.5 text-[var(--color-ink-tertiary)]">{formatPhone(r.reviewerPhone)}</span> : null}
+        <span className="flex items-center gap-2">
+          <Avatar src={avatars?.[r.reviewerId]} name={r.reviewerName} size={26} />
+          <span>
+            {r.reviewerName ?? '—'}
+            {r.reviewerPhone ? <span className="ml-1.5 text-[var(--color-ink-tertiary)]">{formatPhone(r.reviewerPhone)}</span> : null}
+          </span>
         </span>
       ),
     },

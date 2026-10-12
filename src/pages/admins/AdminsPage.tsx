@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { MoreHorizontal, Pencil, Plus, Trash2, TriangleAlert } from 'lucide-react'
 import { Button } from '@/shared/ui/Button'
 import { Badge } from '@/shared/ui/Badge'
+import { Avatar } from '@/shared/ui/Avatar'
 import { DataTable, type DataTableColumn } from '@/shared/ui/DataTable'
 import { Drawer } from '@/shared/ui/Drawer'
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '@/shared/ui/Menu'
@@ -10,7 +11,7 @@ import { PasswordCell } from '@/shared/ui/PasswordCell'
 import { PhoneInput } from '@/shared/ui/PhoneInput'
 import { Rich } from '@/shared/ui/Rich'
 import { useToast } from '@/shared/ui/Toast'
-import { useAdmins, useStations } from '@/shared/api/hooks'
+import { useAdmins, useAvatars, useStations } from '@/shared/api/hooks'
 import { apiCreateAdmin, apiRemoveAdmin, apiUpdateAdmin, type AdminAccount } from '@/shared/api/client'
 import { ApiError, apiErrorMessage } from '@/shared/api/errors'
 import { usePermission } from '@/shared/lib/permissions'
@@ -53,6 +54,7 @@ export function AdminsPage() {
   const [editing, setEditing] = useState<AdminAccount | null>(null)
   const [deleting, setDeleting] = useState<AdminAccount | null>(null)
   const { show } = useToast()
+  const { data: avatars } = useAvatars()
 
   const columns: DataTableColumn<AdminAccount>[] = [
     {
@@ -62,9 +64,7 @@ export function AdminsPage() {
       sticky: true,
       cell: (r) => (
         <span className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[12.5px] font-bold text-[var(--color-primary)]">
-            {r.firstName.charAt(0).toUpperCase()}
-          </span>
+          <Avatar src={avatars?.[r.userId]} name={r.firstName} size={32} />
           <span className="font-medium">{r.firstName}</span>
           {r.userId === myId && <Badge>{t('admins.you')}</Badge>}
         </span>

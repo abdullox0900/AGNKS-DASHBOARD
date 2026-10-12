@@ -12,6 +12,7 @@ import {
   Coins,
   Eraser,
   ScrollText,
+  Sparkles,
   Settings,
   ShieldCheck,
   Store,
@@ -22,6 +23,7 @@ import { cn } from '@/shared/lib/cn'
 import { roleHasPermission, type Permission } from '@/shared/lib/permissions'
 import { useAuthStore } from '@/shared/config/authStore'
 import { useReviewQueue, useDisputes } from '@/shared/api/hooks'
+import { useChangelogUnread } from '@/features/changelog/useChangelogUnread'
 import { useI18n } from '@/app/providers/I18nProvider'
 import { useUiStore } from '@/shared/config/uiStore'
 import { Hint } from '@/shared/ui/Menu'
@@ -33,7 +35,7 @@ interface NavItem {
   label: DictKey
   icon: React.ComponentType<{ size?: number }>
   permission?: Permission
-  badgeKey?: 'review' | 'disputes'
+  badgeKey?: 'review' | 'disputes' | 'changelog'
   comingSoon?: boolean
   /** release date (YYYY-MM-DD) of something new inside this section — shows a "Yangi" badge for 3 days */
   newSince?: string
@@ -71,6 +73,7 @@ const GROUPS: { title: DictKey; items: NavItem[] }[] = [
   {
     title: 'nav.group.system',
     items: [
+      { to: '/changelog', label: 'nav.changelog', icon: Sparkles, permission: 'changelog.view', badgeKey: 'changelog', newSince: '2026-10-12' },
       { to: '/settings', label: 'nav.settings', icon: Settings, comingSoon: true },
     ],
   },
@@ -83,10 +86,12 @@ export function Sidebar() {
   const toggle = useUiStore((s) => s.toggleSidebar)
   const { data: reviewQueue } = useReviewQueue()
   const { data: disputes } = useDisputes('open')
+  const changelogUnread = useChangelogUnread()
 
   const badgeCounts = {
     review: reviewQueue?.length ?? 0,
     disputes: disputes?.length ?? 0,
+    changelog: changelogUnread,
   }
   const ToggleIcon = collapsed ? PanelLeftOpen : PanelLeftClose
 

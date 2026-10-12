@@ -45,6 +45,11 @@ export async function apiUpdateProfile(patch: { firstName?: string; bio?: string
   return unwrap(http.patch('/admin/auth/me', patch))
 }
 
+/** userId → avatar data URL for everyone who has uploaded one. */
+export async function apiGetAvatars(): Promise<Record<string, string>> {
+  return unwrap(http.get('/admin/auth/avatars'))
+}
+
 export interface MyActivityEntry {
   id: string
   at: string

@@ -18,7 +18,8 @@ import {
   type Filter,
  apiGetBroadcasts,
   apiGetProfile,
-  apiMyActivity } from './client'
+  apiMyActivity,
+  apiGetAvatars } from './client'
 
 function filterKey(prefix: string, filters: Filter) {
   return [prefix, filters.stationIds?.join(',') ?? 'all', filters.from.toISOString(), filters.to.toISOString()]
@@ -102,4 +103,9 @@ export function useProfile() {
 
 export function useMyActivity() {
   return useSWR('/admin/auth/me/activity', apiMyActivity)
+}
+
+/** Faces of dashboard users by user id — look one up with `avatars?.[userId]`. Cached; refreshed when someone changes their photo. */
+export function useAvatars() {
+  return useSWR('/admin/auth/avatars', apiGetAvatars, { revalidateOnFocus: false, dedupingInterval: 60_000 })
 }

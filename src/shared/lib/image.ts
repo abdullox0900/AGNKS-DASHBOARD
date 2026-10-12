@@ -29,3 +29,38 @@ export async function fileToAvatarDataUrl(file: File, size = 192): Promise<strin
   }
   throw new Error('too_big')
 }
+
+/** The server stores at most 200 000 characters of data URL for a post picture. Stay below it. */
+const MAX_POST_DATA_URL_CHARS = 170_000
+
+/**
+ * Shrinks a picked picture for a release-note post: keeps the aspect ratio, longest side ≤ `maxSide`,
+ * JPEG. Quality (and, if needed, size) is lowered until it fits the server limit.
+ */
+export async function fileToPostImageDataUrl(file: File, maxSide = 1100): Promise<string> {
+  if (!file.type.startsWith('image/')) throw new Error('not_image')
+  if (file.size > MAX_PICKED_BYTES) throw new Error('too_big')
+  const bitmap = await createImageBitmap(file).catch(() => null)
+  if (!bitmap) throw new Error('unreadable')
+
+  try {
+    for (const side of [maxSide, Math.round(maxSide * 0.8), Math.round(maxSide * 0.62)]) {
+      const scale = Math.min(1, side / Math.max(bitmap.width, bitmap.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error('unreadable')
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+      for (const quality of [0.8, 0.68, 0.55]) {
+        const url = canvas.toDataURL('image/jpeg', quality)
+        if (url.length <= MAX_POST_DATA_URL_CHARS) return url
+      }
+    }
+  } finally {
+    bitmap.close()
+  }
+  throw new Error('too_big')
+}

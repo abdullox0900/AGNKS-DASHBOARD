@@ -19,6 +19,7 @@ import { BroadcastsPage } from '@/pages/broadcasts/BroadcastsPage'
 import { LargeReceiptsPage } from '@/pages/large-receipts/LargeReceiptsPage'
 import { AuditPage } from '@/pages/audit/AuditPage'
 import { ProfilePage } from '@/pages/profile/ProfilePage'
+import { ChangelogPage } from '@/pages/changelog/ChangelogPage'
 import { ComingSoonPage } from '@/pages/coming-soon/ComingSoonPage'
 
 export const router = createBrowserRouter([
@@ -62,6 +63,14 @@ export const router = createBrowserRouter([
         ),
       },
       { path: '/profile', element: <ProfilePage /> },
+      {
+        path: '/changelog',
+        element: (
+          <RequirePermission permission="changelog.view">
+            <ChangelogPage />
+          </RequirePermission>
+        ),
+      },
       { path: '/clients', element: <ClientsPage /> },
       {
         path: '/clients/:id',

@@ -9,6 +9,8 @@ import { Chip } from '@/shared/ui/Chip'
 import { Skeleton } from '@/shared/ui/Skeleton'
 import { EmptyState } from '@/shared/ui/EmptyState'
 import { ErrorState } from '@/shared/ui/ErrorState'
+import { useAvatars } from '@/shared/api/hooks'
+import { Avatar } from '@/shared/ui/Avatar'
 import { apiAuditActors, apiAuditList, type AuditEntry, type AuditGroup } from '@/shared/api/audit'
 import { formatDateTime } from '@/shared/lib/dates'
 import { formatPhone } from '@/shared/lib/phone'
@@ -32,6 +34,9 @@ export const ACTIONS: Record<string, { label: DictKey; tone: Tone }> = {
   'staff.reset_pin': { label: 'audit.a.staff_reset', tone: 'warning' },
   'staff.remove': { label: 'audit.a.staff_remove', tone: 'danger' },
   'staff.profile': { label: 'audit.a.profile', tone: 'neutral' },
+  'news.create': { label: 'audit.a.news_create', tone: 'success' },
+  'news.update': { label: 'audit.a.news_update', tone: 'primary' },
+  'news.delete': { label: 'audit.a.news_delete', tone: 'danger' },
   'station.create': { label: 'audit.a.station_create', tone: 'success' },
   'station.update': { label: 'audit.a.station_update', tone: 'primary' },
   'station.delete': { label: 'audit.a.station_delete', tone: 'danger' },
@@ -134,6 +139,7 @@ export function AuditPage() {
 function Row({ entry }: { entry: AuditEntry }) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
+  const { data: avatars } = useAvatars()
   const meta = ACTIONS[entry.action]
   const role = entry.actorRole ? ROLE_LABEL[entry.actorRole] : undefined
   const canOpen = entry.changes.length > 0
@@ -150,10 +156,13 @@ function Row({ entry }: { entry: AuditEntry }) {
           <Badge tone={meta?.tone ?? 'neutral'}>{meta ? t(meta.label) : entry.action}</Badge>
         </span>
         <span className="min-w-0 flex-1 truncate text-[13.5px] text-[var(--color-ink)]">{entry.target ?? '—'}</span>
-        <span className="min-w-[150px] text-[13px] text-[var(--color-ink-secondary)]">
-          <span className="font-medium text-[var(--color-ink)]">{entry.actorName ?? t('audit.system')}</span>
-          {role && <span className="ml-1.5 text-[var(--color-ink-tertiary)]">{t(role)}</span>}
-          {entry.actorPhone && <span className="block text-[12px] text-[var(--color-ink-tertiary)]">{formatPhone(entry.actorPhone)}</span>}
+        <span className="flex min-w-[150px] items-center gap-2.5 text-[13px] text-[var(--color-ink-secondary)]">
+          <Avatar src={entry.actorId ? avatars?.[entry.actorId] : null} name={entry.actorName} size={30} />
+          <span>
+            <span className="font-medium text-[var(--color-ink)]">{entry.actorName ?? t('audit.system')}</span>
+            {role && <span className="ml-1.5 text-[var(--color-ink-tertiary)]">{t(role)}</span>}
+            {entry.actorPhone && <span className="block text-[12px] text-[var(--color-ink-tertiary)]">{formatPhone(entry.actorPhone)}</span>}
+          </span>
         </span>
         <ChevronDown size={15} className={cn('shrink-0 text-[var(--color-ink-tertiary)] transition-transform', !canOpen && 'invisible', open && 'rotate-180')} />
       </button>

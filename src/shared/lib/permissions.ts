@@ -29,6 +29,8 @@ export type Permission =
   | 'dataFix.manage'
   | 'broadcasts.view'
   | 'broadcasts.manage'
+  | 'changelog.view'
+  | 'changelog.manage'
 
 const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
   branch_manager: [
@@ -44,6 +46,7 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'bonusReport.view',
     'clients.view',
     'clients.detail',
+    'changelog.view',
   ],
   // View-only by product decision: sees everything below, changes nothing, and has no Admins section.
   // (The backend enforces this too: any non-GET request from root_admin is refused.)
@@ -60,6 +63,7 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'bonusReport.view',
     'clients.view',
     'broadcasts.view',
+    'changelog.view',
   ],
   // The only role that changes things network-wide (stations, admins, clients, bonus, broadcasts...).
   seo: [
@@ -90,6 +94,8 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'broadcasts.view',
     'broadcasts.manage',
     'dataFix.manage',
+    'changelog.view',
+    'changelog.manage',
   ],
 }
 
