@@ -1,6 +1,9 @@
-import { NavLink } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 import {
   BarChart3,
+  ChevronRight,
+  ClipboardCheck,
   ClipboardList,
   Fuel,
   Gauge,
@@ -28,6 +31,7 @@ import { useI18n } from '@/app/providers/I18nProvider'
 import { useUiStore } from '@/shared/config/uiStore'
 import { Hint } from '@/shared/ui/Menu'
 import { NewBadge } from '@/shared/ui/NewBadge'
+import { isFresh } from '@/shared/lib/fresh'
 import type { DictKey } from '@/shared/config/dictionaries'
 
 interface NavItem {
@@ -41,43 +45,166 @@ interface NavItem {
   newSince?: string
 }
 
-const GROUPS: { title: DictKey; items: NavItem[] }[] = [
+interface NavGroup {
+  /** stable id (remembers open/closed) */
+  id: string
+  title: DictKey
+  icon: React.ComponentType<{ size?: number }>
+  items: NavItem[]
+}
+
+/** Always visible, no header: the two screens people open most. */
+const PINNED: NavItem[] = [
+  { to: '/', label: 'nav.overview', icon: Gauge, permission: 'overview.view' },
+  { to: '/analytics', label: 'nav.analytics', icon: BarChart3, permission: 'analytics.view' },
+]
+
+/** Everything else, grouped by what it is for. Each group folds away. */
+const GROUPS: NavGroup[] = [
   {
-    title: 'nav.group.view',
-    items: [
-      { to: '/', label: 'nav.overview', icon: Gauge, permission: 'overview.view' },
-      { to: '/analytics', label: 'nav.analytics', icon: BarChart3, permission: 'analytics.view' },
-    ],
-  },
-  {
+    id: 'control',
     title: 'nav.group.control',
+    icon: ClipboardCheck,
     items: [
       { to: '/review', label: 'nav.review', icon: ClipboardList, permission: 'review.view', badgeKey: 'review' },
       { to: '/disputes', label: 'nav.feedback', icon: MessageSquareWarning, permission: 'disputes.view', badgeKey: 'disputes' },
     ],
   },
   {
-    title: 'nav.group.manage',
+    id: 'network',
+    title: 'nav.group.network',
+    icon: Store,
     items: [
-      { to: '/cashiers', label: 'nav.cashiers', icon: Users2, permission: 'cashiers.view' },
       { to: '/stations', label: 'nav.stations', icon: Store, permission: 'stations.view' },
-      { to: '/bonus', label: 'nav.bonus', icon: Percent, permission: 'bonus.view', newSince: '2026-10-12' },
-      { to: '/bonus-report', label: 'nav.bonus_report', icon: Coins, permission: 'bonusReport.view' },
-      { to: '/broadcasts', label: 'nav.broadcasts', icon: Megaphone, permission: 'broadcasts.view' },
-      { to: '/admins', label: 'nav.admins', icon: ShieldCheck, permission: 'admins.manage' },
-      { to: '/data-fix', label: 'nav.data_fix', icon: Eraser, permission: 'dataFix.manage' },
+      { to: '/cashiers', label: 'nav.cashiers', icon: Users2, permission: 'cashiers.view' },
       { to: '/clients', label: 'nav.clients', icon: Users, permission: 'clients.view' },
-      { to: '/audit', label: 'nav.audit', icon: ScrollText, permission: 'audit.view' },
     ],
   },
   {
+    id: 'bonus',
+    title: 'nav.group.bonus',
+    icon: Percent,
+    items: [
+      { to: '/bonus', label: 'nav.bonus', icon: Percent, permission: 'bonus.view', newSince: '2026-10-12' },
+      { to: '/bonus-report', label: 'nav.bonus_report', icon: Coins, permission: 'bonusReport.view' },
+      { to: '/broadcasts', label: 'nav.broadcasts', icon: Megaphone, permission: 'broadcasts.view' },
+    ],
+  },
+  {
+    id: 'admin',
+    title: 'nav.group.admin',
+    icon: ShieldCheck,
+    items: [
+      { to: '/admins', label: 'nav.admins', icon: ShieldCheck, permission: 'admins.manage' },
+      { to: '/audit', label: 'nav.audit', icon: ScrollText, permission: 'audit.view' },
+      { to: '/data-fix', label: 'nav.data_fix', icon: Eraser, permission: 'dataFix.manage' },
+    ],
+  },
+  {
+    id: 'system',
     title: 'nav.group.system',
+    icon: Settings,
     items: [
       { to: '/changelog', label: 'nav.changelog', icon: Sparkles, permission: 'changelog.view', badgeKey: 'changelog', newSince: '2026-10-12' },
       { to: '/settings', label: 'nav.settings', icon: Settings, comingSoon: true },
     ],
   },
 ]
+
+type Counts = Record<NonNullable<NavItem['badgeKey']>, number>
+
+/** Does this nav item own the page at `path`? ('/' only matches exactly.) */
+const owns = (item: NavItem, path: string) => (item.to === '/' ? path === '/' : path === item.to || path.startsWith(`${item.to}/`))
+
+function ItemLink({ item, collapsed, counts, indent }: { item: NavItem; collapsed: boolean; counts: Counts; indent?: boolean }) {
+  const { t } = useI18n()
+  const badge = item.badgeKey ? counts[item.badgeKey] : 0
+  return (
+    <Hint label={collapsed ? t(item.label) : undefined} side="right">
+      <span className="block">
+        <NavLink
+          to={item.to}
+          end={item.to === '/'}
+          aria-label={t(item.label)}
+          className={({ isActive }) =>
+            cn(
+              'relative flex items-center rounded-lg border-l-2 py-2 text-[13px] font-medium transition-colors',
+              collapsed ? 'h-10 justify-center px-0' : 'justify-between px-2.5',
+              indent && !collapsed && 'py-1.5',
+              isActive
+                ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]'
+                : 'border-transparent text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]',
+            )
+          }
+        >
+          <span className="flex items-center gap-2.5 whitespace-nowrap">
+            <item.icon size={collapsed ? 19 : indent ? 16 : 17} />
+            {!collapsed && t(item.label)}
+          </span>
+          {item.newSince && <NewBadge since={item.newSince} dot={collapsed} />}
+          {!collapsed && item.comingSoon && (
+            <span className="rounded-full bg-[var(--color-surface-alt)] px-1.5 py-0.5 text-[10px] text-[var(--color-ink-tertiary)]">{t('nav.soon')}</span>
+          )}
+          {badge > 0 &&
+            (collapsed ? (
+              <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-amber)] px-1 font-mono text-[9px] font-bold text-[var(--color-bg)]">
+                {badge}
+              </span>
+            ) : (
+              <span className="font-mono text-[11px] font-semibold text-[var(--color-amber)]">{badge}</span>
+            ))}
+        </NavLink>
+      </span>
+    </Hint>
+  )
+}
+
+/** A folding group: icon + title + chevron. Folded, it still tells you if something inside needs attention. */
+function Group({ group, items, counts, now }: { group: NavGroup; items: NavItem[]; counts: Counts; now: number }) {
+  const { t } = useI18n()
+  const { pathname } = useLocation()
+  const stored = useUiStore((s) => s.navOpen[group.id])
+  const setNavOpen = useUiStore((s) => s.setNavOpen)
+  const holdsPage = items.some((i) => owns(i, pathname))
+  const open = stored ?? holdsPage
+
+  // landing on a page inside a folded group (a link, the back button…) unfolds it
+  useEffect(() => {
+    if (holdsPage && stored === false) setNavOpen(group.id, true)
+  }, [holdsPage, pathname]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const pending = items.reduce((sum, i) => sum + (i.badgeKey ? counts[i.badgeKey] : 0), 0)
+  const fresh = items.some((i) => i.newSince && isFresh(i.newSince, now))
+
+  return (
+    <div>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setNavOpen(group.id, !open)}
+        className={cn(
+          'group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left outline-none transition-colors hover:bg-[var(--color-surface-alt)] focus-visible:bg-[var(--color-surface-alt)]',
+          holdsPage && !open ? 'text-[var(--color-primary)]' : 'text-[var(--color-ink)]',
+        )}
+      >
+        <group.icon size={17} />
+        <span className="flex-1 truncate text-[13px] font-semibold">{t(group.title)}</span>
+        {!open && fresh && <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--color-lime)]" />}
+        {!open && pending > 0 && <span className="font-mono text-[11px] font-semibold text-[var(--color-amber)]">{pending}</span>}
+        <ChevronRight size={14} className={cn('shrink-0 text-[var(--color-ink-tertiary)] transition-transform duration-200', open && 'rotate-90')} />
+      </button>
+      <div className={cn('grid transition-[grid-template-rows] duration-200 ease-out', open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]')}>
+        <div className="overflow-hidden">
+          <div className="ml-[19px] space-y-0.5 border-l border-[var(--color-border)] py-0.5 pl-2" inert={!open}>
+            {items.map((item) => (
+              <ItemLink key={item.to} item={item} collapsed={false} counts={counts} indent />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function Sidebar() {
   const { t } = useI18n()
@@ -87,13 +214,18 @@ export function Sidebar() {
   const { data: reviewQueue } = useReviewQueue()
   const { data: disputes } = useDisputes('open')
   const changelogUnread = useChangelogUnread()
+  const [now] = useState(() => Date.now())
 
-  const badgeCounts = {
+  const counts: Counts = {
     review: reviewQueue?.length ?? 0,
     disputes: disputes?.length ?? 0,
     changelog: changelogUnread,
   }
   const ToggleIcon = collapsed ? PanelLeftOpen : PanelLeftClose
+
+  const allowed = (items: NavItem[]) => items.filter((item) => !item.permission || roleHasPermission(role, item.permission))
+  const pinned = allowed(PINNED)
+  const groups = GROUPS.map((g) => ({ group: g, items: allowed(g.items) })).filter((g) => g.items.length > 0)
 
   return (
     <aside
@@ -115,66 +247,38 @@ export function Sidebar() {
         )}
       </div>
 
-      <nav className={cn('flex-1 overflow-y-auto overflow-x-hidden pb-4', collapsed ? 'space-y-1 px-2' : 'space-y-4 px-3')}>
-        {GROUPS.map((group, gi) => {
-          const visibleItems = group.items.filter((item) => !item.permission || roleHasPermission(role, item.permission))
-          if (visibleItems.length === 0) return null
-          return (
-            <div key={group.title}>
-              {collapsed ? (
-                gi > 0 && <div className="mx-2 my-2 h-px bg-[var(--color-border)]" />
-              ) : (
-                <p className="mb-1 px-2 text-[10.5px] font-bold uppercase tracking-[0.18em] text-[var(--color-ink-tertiary)]">
-                  {t(group.title)}
-                </p>
-              )}
-              <div className="space-y-0.5">
-                {visibleItems.map((item) => {
-                  const badge = item.badgeKey ? badgeCounts[item.badgeKey] : 0
-                  return (
-                    <Hint key={item.to} label={collapsed ? t(item.label) : undefined} side="right">
-                      <span className="block">
-                      <NavLink
-                        to={item.to}
-                        end={item.to === '/'}
-                        aria-label={t(item.label)}
-                        className={({ isActive }) =>
-                          cn(
-                            'relative flex items-center rounded-lg border-l-2 py-2 text-[13px] font-medium transition-colors',
-                            collapsed ? 'h-10 justify-center px-0' : 'justify-between px-2.5',
-                            isActive
-                              ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]'
-                              : 'border-transparent text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]',
-                          )
-                        }
-                      >
-                        <span className="flex items-center gap-2.5 whitespace-nowrap">
-                          <item.icon size={collapsed ? 19 : 17} />
-                          {!collapsed && t(item.label)}
-                        </span>
-                        {item.newSince && <NewBadge since={item.newSince} dot={collapsed} />}
-                        {!collapsed && item.comingSoon && (
-                          <span className="rounded-full bg-[var(--color-surface-alt)] px-1.5 py-0.5 text-[10px] text-[var(--color-ink-tertiary)]">
-                            {t('nav.soon')}
-                          </span>
-                        )}
-                        {badge > 0 &&
-                          (collapsed ? (
-                            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-amber)] px-1 font-mono text-[9px] font-bold text-[var(--color-bg)]">
-                              {badge}
-                            </span>
-                          ) : (
-                            <span className="font-mono text-[11px] font-semibold text-[var(--color-amber)]">{badge}</span>
-                          ))}
-                      </NavLink>
-                      </span>
-                    </Hint>
-                  )
-                })}
-              </div>
+      <nav className={cn('flex-1 overflow-y-auto overflow-x-hidden pb-4', collapsed ? 'space-y-1 px-2' : 'space-y-1.5 px-3')}>
+        {collapsed ? (
+          // icon-only rail: every page stays one click away, groups are just separated by a line
+          <>
+            <div className="space-y-0.5">
+              {pinned.map((item) => (
+                <ItemLink key={item.to} item={item} collapsed counts={counts} />
+              ))}
             </div>
-          )
-        })}
+            {groups.map(({ group, items }) => (
+              <div key={group.id}>
+                <div className="mx-2 my-2 h-px bg-[var(--color-border)]" />
+                <div className="space-y-0.5">
+                  {items.map((item) => (
+                    <ItemLink key={item.to} item={item} collapsed counts={counts} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </>
+        ) : (
+          <>
+            <div className="space-y-0.5 pb-1">
+              {pinned.map((item) => (
+                <ItemLink key={item.to} item={item} collapsed={false} counts={counts} />
+              ))}
+            </div>
+            {groups.map(({ group, items }) => (
+              <Group key={group.id} group={group} items={items} counts={counts} now={now} />
+            ))}
+          </>
+        )}
       </nav>
 
       <div className={cn('shrink-0 border-t border-[var(--color-border)] p-2')}>

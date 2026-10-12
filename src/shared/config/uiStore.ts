@@ -11,6 +11,9 @@ interface UiState {
   theme: ThemePref
   sidebarCollapsed: boolean
   toggleSidebar: () => void
+  /** menu groups the person opened/closed by hand (group id → open); a group not listed opens by itself when it holds the current page */
+  navOpen: Record<string, boolean>
+  setNavOpen: (id: string, open: boolean) => void
   setLocale: (locale: Locale) => void
   setTheme: (theme: ThemePref) => void
 }
@@ -22,6 +25,8 @@ export const useUiStore = create<UiState>()(
       theme: 'dark',
       sidebarCollapsed: false,
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+      navOpen: {},
+      setNavOpen: (id, open) => set((s) => ({ navOpen: { ...s.navOpen, [id]: open } })),
       setLocale: (locale) => set({ locale }),
       setTheme: (theme) => set({ theme }),
     }),
