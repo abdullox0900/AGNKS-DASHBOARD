@@ -16,7 +16,9 @@ import {
   apiGetClientProfile,
   apiGetFeedback,
   type Filter,
- apiGetBroadcasts } from './client'
+ apiGetBroadcasts,
+  apiGetProfile,
+  apiMyActivity } from './client'
 
 function filterKey(prefix: string, filters: Filter) {
   return [prefix, filters.stationIds?.join(',') ?? 'all', filters.from.toISOString(), filters.to.toISOString()]
@@ -91,4 +93,13 @@ export function useClientProfile(id: string | undefined) {
 
 export function useFeedback(status?: string) {
   return useSWR(['/admin/feedback', status ?? 'all'], () => apiGetFeedback(status), { refreshInterval: 30_000 })
+}
+
+/** The signed-in person's own profile (name, about me, avatar). */
+export function useProfile() {
+  return useSWR('/admin/auth/me', apiGetProfile, { revalidateOnFocus: false })
+}
+
+export function useMyActivity() {
+  return useSWR('/admin/auth/me/activity', apiMyActivity)
 }

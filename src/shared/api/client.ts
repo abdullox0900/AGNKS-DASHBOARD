@@ -30,6 +30,32 @@ export async function apiChangePassword(_phone: string, currentPassword: string,
   await http.post('/admin/auth/change-password', { currentPassword, newPassword })
 }
 
+export interface Profile extends DashboardUser {
+  bio: string | null
+  /** small data URL (resized in the browser) */
+  avatar: string | null
+  createdAt: string
+}
+
+export async function apiGetProfile(): Promise<Profile> {
+  return unwrap(http.get('/admin/auth/me'))
+}
+
+export async function apiUpdateProfile(patch: { firstName?: string; bio?: string | null; avatar?: string | null }): Promise<Profile> {
+  return unwrap(http.patch('/admin/auth/me', patch))
+}
+
+export interface MyActivityEntry {
+  id: string
+  at: string
+  action: string
+  target: string | null
+}
+
+export async function apiMyActivity(): Promise<{ items: MyActivityEntry[] }> {
+  return unwrap(http.get('/admin/auth/me/activity'))
+}
+
 export async function apiLogout(): Promise<void> {
   await http.post('/admin/auth/logout')
 }

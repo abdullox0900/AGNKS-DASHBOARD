@@ -19,7 +19,7 @@ import type { DictKey } from '@/shared/config/dictionaries'
 const GROUPS: AuditGroup[] = ['review', 'clients', 'staff', 'stations', 'rules', 'messages', 'security']
 
 type Tone = 'success' | 'danger' | 'primary' | 'warning' | 'neutral'
-const ACTIONS: Record<string, { label: DictKey; tone: Tone }> = {
+export const ACTIONS: Record<string, { label: DictKey; tone: Tone }> = {
   'review.approve': { label: 'audit.a.review_approve', tone: 'success' },
   'review.reject': { label: 'audit.a.review_reject', tone: 'danger' },
   'receipt.ack_large': { label: 'audit.a.ack_large', tone: 'neutral' },
@@ -31,6 +31,7 @@ const ACTIONS: Record<string, { label: DictKey; tone: Tone }> = {
   'staff.update': { label: 'audit.a.staff_update', tone: 'primary' },
   'staff.reset_pin': { label: 'audit.a.staff_reset', tone: 'warning' },
   'staff.remove': { label: 'audit.a.staff_remove', tone: 'danger' },
+  'staff.profile': { label: 'audit.a.profile', tone: 'neutral' },
   'station.create': { label: 'audit.a.station_create', tone: 'success' },
   'station.update': { label: 'audit.a.station_update', tone: 'primary' },
   'station.delete': { label: 'audit.a.station_delete', tone: 'danger' },

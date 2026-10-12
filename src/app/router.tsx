@@ -18,6 +18,7 @@ import { ClientDetailPage } from '@/pages/clients/ClientDetailPage'
 import { BroadcastsPage } from '@/pages/broadcasts/BroadcastsPage'
 import { LargeReceiptsPage } from '@/pages/large-receipts/LargeReceiptsPage'
 import { AuditPage } from '@/pages/audit/AuditPage'
+import { ProfilePage } from '@/pages/profile/ProfilePage'
 import { ComingSoonPage } from '@/pages/coming-soon/ComingSoonPage'
 
 export const router = createBrowserRouter([
@@ -60,6 +61,7 @@ export const router = createBrowserRouter([
           </RequirePermission>
         ),
       },
+      { path: '/profile', element: <ProfilePage /> },
       { path: '/clients', element: <ClientsPage /> },
       {
         path: '/clients/:id',

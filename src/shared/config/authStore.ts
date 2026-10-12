@@ -21,6 +21,7 @@ interface AuthState {
     accessToken: string
   }) => void
   setAccessToken: (accessToken: string) => void
+  setFirstName: (firstName: string) => void
   touch: () => void
   logout: () => void
 }
@@ -38,6 +39,7 @@ export const useAuthStore = create<AuthState>()(
       lastActiveAt: Date.now(),
       setSession: (session) => set({ ...session, lastActiveAt: Date.now() }),
       setAccessToken: (accessToken) => set({ accessToken }),
+      setFirstName: (firstName) => set({ firstName }),
       touch: () => set({ lastActiveAt: Date.now() }),
       logout: () =>
         set({
