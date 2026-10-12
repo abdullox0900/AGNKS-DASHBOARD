@@ -20,6 +20,7 @@ import { LargeReceiptsPage } from '@/pages/large-receipts/LargeReceiptsPage'
 import { AuditPage } from '@/pages/audit/AuditPage'
 import { ProfilePage } from '@/pages/profile/ProfilePage'
 import { ChangelogPage } from '@/pages/changelog/ChangelogPage'
+import { ChangelogPostPage } from '@/pages/changelog/ChangelogPostPage'
 import { ComingSoonPage } from '@/pages/coming-soon/ComingSoonPage'
 
 export const router = createBrowserRouter([
@@ -68,6 +69,14 @@ export const router = createBrowserRouter([
         element: (
           <RequirePermission permission="changelog.view">
             <ChangelogPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: '/changelog/:id',
+        element: (
+          <RequirePermission permission="changelog.view">
+            <ChangelogPostPage />
           </RequirePermission>
         ),
       },

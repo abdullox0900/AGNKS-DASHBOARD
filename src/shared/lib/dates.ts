@@ -57,6 +57,25 @@ export function formatDateShort(iso: string | Date): string {
   return formatTz(d, 'd MMM', { timeZone: TASHKENT_TZ, locale: dfLocale() })
 }
 
+/** "yyyy-MM" in Tashkent time — groups items by month. */
+export function monthKey(iso: string | Date): string {
+  const d = typeof iso === 'string' ? new Date(iso) : iso
+  return formatTz(d, 'yyyy-MM', { timeZone: TASHKENT_TZ })
+}
+
+/** "Oktyabr 2026" / "Октябрь 2026" — a month heading. */
+export function formatMonthYear(iso: string | Date): string {
+  const d = typeof iso === 'string' ? new Date(iso) : iso
+  const text = formatTz(d, 'LLLL yyyy', { timeZone: TASHKENT_TZ, locale: dfLocale() })
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+/** "12 oktyabr 2026, 16:12" */
+export function formatDateLong(iso: string | Date): string {
+  const d = typeof iso === 'string' ? new Date(iso) : iso
+  return formatTz(d, 'd MMMM yyyy, HH:mm', { timeZone: TASHKENT_TZ, locale: dfLocale() })
+}
+
 export function formatDateTime(iso: string | Date): string {
   const d = typeof iso === 'string' ? new Date(iso) : iso
   return formatTz(d, 'd MMM, HH:mm', { timeZone: TASHKENT_TZ, locale: dfLocale() })
