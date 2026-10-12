@@ -20,6 +20,7 @@ import { LargeReceiptsPage } from '@/pages/large-receipts/LargeReceiptsPage'
 import { AuditPage } from '@/pages/audit/AuditPage'
 import { ProfilePage } from '@/pages/profile/ProfilePage'
 import { ChangelogPage } from '@/pages/changelog/ChangelogPage'
+import { AttendantsPage } from '@/pages/attendants/AttendantsPage'
 import { ChangelogPostPage } from '@/pages/changelog/ChangelogPostPage'
 import { ComingSoonPage } from '@/pages/coming-soon/ComingSoonPage'
 
@@ -64,6 +65,14 @@ export const router = createBrowserRouter([
         ),
       },
       { path: '/profile', element: <ProfilePage /> },
+      {
+        path: '/attendants',
+        element: (
+          <RequirePermission permission="attendants.view">
+            <AttendantsPage />
+          </RequirePermission>
+        ),
+      },
       {
         path: '/changelog',
         element: (

@@ -14,17 +14,22 @@ export function DonutChart({
   format,
   center,
   size = 190,
+  active,
+  onActive,
 }: {
   data: DonutSlice[]
   format: (v: number) => string
   center?: ReactNode
   size?: number
+  /** Controlled hover: the highlighted slice. With `onActive` the floating tooltip is dropped — the owner shows the detail next to the chart instead. */
+  active?: number | null
+  onActive?: (index: number | null) => void
 }) {
   return (
     <div className="relative mx-auto shrink-0" style={{ width: size, height: size }}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
-          <Tooltip content={(p) => <ChartTooltip {...(p as TipProps)} format={(v) => format(v)} />} />
+          {!onActive && <Tooltip content={(p) => <ChartTooltip {...(p as TipProps)} format={(v) => format(v)} />} />}
           <Pie
             data={data}
             dataKey="value"
@@ -36,9 +41,12 @@ export function DonutChart({
             stroke="none"
             startAngle={90}
             endAngle={-270}
+            onMouseEnter={onActive ? (_, i) => onActive(i) : undefined}
+            onMouseLeave={onActive ? () => onActive(null) : undefined}
+            isAnimationActive={!onActive}
           >
             {data.map((d, i) => (
-              <Cell key={i} fill={d.color} />
+              <Cell key={i} fill={d.color} fillOpacity={active == null || active === i ? 1 : 0.28} style={{ transition: 'fill-opacity 150ms' }} />
             ))}
           </Pie>
         </PieChart>

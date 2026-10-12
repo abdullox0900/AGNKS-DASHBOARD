@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import useSWR from 'swr'
 import { Card } from '@/shared/ui/Card'
 import { Skeleton } from '@/shared/ui/Skeleton'
@@ -6,6 +7,7 @@ import { CHART_PALETTE } from '@/shared/ui/charts/shared'
 import { apiAnalyticsCashiers, apiAnalyticsStations } from '@/shared/api/analytics'
 import type { Filter } from '@/shared/api/client'
 import { formatMoneyFull, formatMoneyShort } from '@/shared/lib/format'
+import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
 
 interface Item {
@@ -30,6 +32,8 @@ function ShareCard({ title, subtitle, items, loading }: { title: string; subtitl
   const { t } = useI18n()
   const slices = toSlices(items, t('donut.other'))
   const total = slices.reduce((n, s) => n + s.value, 0)
+  // hovering a slice (or its row) lights up both; the exact amount appears in the row on the right, never over the ring
+  const [active, setActive] = useState<number | null>(null)
 
   // nothing to share in this period — the neighbouring card simply takes the whole row
   if (!loading && total === 0) return null
@@ -47,6 +51,8 @@ function ShareCard({ title, subtitle, items, loading }: { title: string; subtitl
           <DonutChart
             data={slices}
             format={formatMoneyFull}
+            active={active}
+            onActive={setActive}
             center={
               <>
                 <span className="tnum text-[19px] font-bold leading-tight text-[var(--color-ink)]">{formatMoneyShort(total)}</span>
@@ -55,14 +61,19 @@ function ShareCard({ title, subtitle, items, loading }: { title: string; subtitl
             }
           />
           <ul className="w-full min-w-0 flex-1 space-y-2.5">
-            {slices.map((s) => (
-              <li key={s.name} className="flex items-center gap-3">
+            {slices.map((s, i) => (
+              <li
+                key={s.name}
+                onMouseEnter={() => setActive(i)}
+                onMouseLeave={() => setActive(null)}
+                className={cn('-mx-2 flex items-center gap-3 rounded-lg px-2 py-1 transition-opacity duration-150', active === i && 'bg-[var(--color-surface-alt)]', active !== null && active !== i && 'opacity-45')}
+              >
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.color }} />
                 <span className="min-w-0 flex-1 truncate text-[13px] text-[var(--color-ink)]" title={s.name}>
                   {s.name}
                 </span>
                 <span className="tnum shrink-0 font-mono text-[12px] text-[var(--color-ink-secondary)]" title={formatMoneyFull(s.value)}>
-                  {formatMoneyShort(s.value)}
+                  {active === i ? formatMoneyFull(s.value) : formatMoneyShort(s.value)}
                 </span>
                 <span className="tnum w-10 shrink-0 text-right font-mono text-[12px] font-semibold text-[var(--color-ink)]">{Math.round((s.value / total) * 100)}%</span>
               </li>

@@ -21,6 +21,7 @@ import {
   Store,
   Users,
   Users2,
+  UserCheck,
 } from 'lucide-react'
 import { cn } from '@/shared/lib/cn'
 import { roleHasPermission, type Permission } from '@/shared/lib/permissions'
@@ -78,6 +79,7 @@ const GROUPS: NavGroup[] = [
       { to: '/stations', label: 'nav.stations', icon: Store, permission: 'stations.view' },
       { to: '/cashiers', label: 'nav.cashiers', icon: Users2, permission: 'cashiers.view' },
       { to: '/clients', label: 'nav.clients', icon: Users, permission: 'clients.view' },
+      { to: '/attendants', label: 'nav.attendants', icon: UserCheck, permission: 'attendants.view', newSince: '2026-10-12' },
     ],
   },
   {
