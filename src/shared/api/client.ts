@@ -410,8 +410,8 @@ export async function apiFeedbackThread(id: string): Promise<FeedbackThread> {
   return unwrap(http.get(`/admin/feedback/${id}`))
 }
 
-export async function apiDeleteFeedback(id: string) {
-  return unwrap<{ id: string }>(http.delete(`/admin/feedback/${id}`))
+export async function apiDeleteFeedback(id: string, password: string) {
+  return unwrap<{ id: string }>(http.delete(`/admin/feedback/${id}`, { data: { password } }))
 }
 
 export async function apiFeedbackReply(id: string, text: string) {

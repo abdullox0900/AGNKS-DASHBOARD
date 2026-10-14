@@ -12,6 +12,7 @@ import { usePermission } from '@/shared/lib/permissions'
 import { formatDateTime } from '@/shared/lib/dates'
 import { formatPhone } from '@/shared/lib/phone'
 import { cn } from '@/shared/lib/cn'
+import { ApiError } from '@/shared/api/errors'
 import { useI18n } from '@/app/providers/I18nProvider'
 import { KIND_LABEL, KIND_TONE } from './kinds'
 
@@ -28,6 +29,8 @@ export function FeedbackChat({ id, onChanged, onDeleted }: { id: string; onChang
   const canUnblock = usePermission('clients.edit')
   const canDelete = usePermission('feedback.delete')
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [password, setPassword] = useState('')
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const { data: templates } = useFeedbackTemplates()
   const { data: thread, mutate } = useSWR(['feedback-thread', id], () => apiFeedbackThread(id), { refreshInterval: 8_000, revalidateOnFocus: true })
   const [text, setText] = useState('')
@@ -63,14 +66,16 @@ export function FeedbackChat({ id, onChanged, onDeleted }: { id: string; onChang
   }
 
   async function remove() {
+    if (!password) return
     setBusy('delete')
+    setDeleteError(null)
     try {
-      await apiDeleteFeedback(id)
+      await apiDeleteFeedback(id, password)
       show(t('fbchat.deleted'))
       void globalMutate('/admin/feedback/unread-count')
       onDeleted()
-    } catch {
-      show(t('common.error_generic'))
+    } catch (err) {
+      setDeleteError(err instanceof ApiError && err.code === 'AUTH_INVALID_CREDENTIALS' ? t('admins.wrong_password') : t('common.error_generic'))
       setBusy(null)
     }
   }
@@ -118,28 +123,51 @@ export function FeedbackChat({ id, onChanged, onDeleted }: { id: string; onChang
           <Badge tone={open ? 'warning' : 'success'}>{open ? t('feedback.status.open') : t('feedback.status.closed')}</Badge>
           {c.blocked && <Badge tone="danger">{t('common.blocked')}</Badge>}
           {canDelete && (
-            <span className="ml-auto flex items-center gap-1">
-              {confirmDelete ? (
-                <>
-                  <span className="text-[12px] text-[var(--color-ink-secondary)]">{t('fbchat.delete_ask')}</span>
-                  <Button size="sm" variant="danger" loading={busy === 'delete'} onClick={() => void remove()}>
-                    {t('changelog.confirm_delete')}
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(false)} aria-label={t('common.cancel')}>
-                    <X size={14} />
-                  </Button>
-                </>
-              ) : (
-                <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(true)} aria-label={t('fbchat.delete')} title={t('fbchat.delete')}>
-                  <Trash2 size={14} />
-                </Button>
-              )}
-            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-auto"
+              onClick={() => {
+                setConfirmDelete((v) => !v)
+                setPassword('')
+                setDeleteError(null)
+              }}
+              aria-label={t('fbchat.delete')}
+              title={t('fbchat.delete')}
+            >
+              {confirmDelete ? <X size={14} /> : <Trash2 size={14} />}
+            </Button>
           )}
         </div>
         <p className="mt-0.5 text-[12.5px] text-[var(--color-ink-tertiary)]">
           {c.phone ? formatPhone(c.phone) : '—'} · {ru ? 'Русский' : "O'zbekcha"}
         </p>
+        {canDelete && confirmDelete && (
+          <form
+            className="mt-2 space-y-2 rounded-lg bg-[var(--color-danger-soft)] p-2.5"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void remove()
+            }}
+          >
+            <p className="text-[12.5px] text-[var(--color-ink)]">{t('fbchat.delete_ask')}</p>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                autoFocus
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                placeholder={t('admins.your_password')}
+                className="h-9 min-w-0 flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] text-[var(--color-ink)] outline-none focus:border-[var(--color-primary)]"
+              />
+              <Button type="submit" size="sm" variant="danger" loading={busy === 'delete'} disabled={!password}>
+                <Trash2 size={14} /> {t('changelog.confirm_delete')}
+              </Button>
+            </div>
+            {deleteError && <p className="text-[12.5px] font-medium text-[var(--color-danger)]">{deleteError}</p>}
+          </form>
+        )}
         {c.blocked && (
           <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-[var(--color-danger-soft)] px-2.5 py-1.5 text-[12.5px] text-[var(--color-ink)]">
             <Ban size={14} className="mt-0.5 shrink-0 text-[var(--color-danger)]" />
