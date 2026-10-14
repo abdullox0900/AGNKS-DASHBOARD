@@ -19,7 +19,9 @@ import {
  apiGetBroadcasts,
   apiGetProfile,
   apiMyActivity,
-  apiGetAvatars } from './client'
+  apiGetAvatars,
+  apiFeedbackUnread,
+  apiFeedbackTemplates } from './client'
 
 function filterKey(prefix: string, filters: Filter) {
   return [prefix, filters.stationIds?.join(',') ?? 'all', filters.from.toISOString(), filters.to.toISOString()]
@@ -108,4 +110,13 @@ export function useMyActivity() {
 /** Faces of dashboard users by user id — look one up with `avatars?.[userId]`. Cached; refreshed when someone changes their photo. */
 export function useAvatars() {
   return useSWR('/admin/auth/avatars', apiGetAvatars, { revalidateOnFocus: false, dedupingInterval: 60_000 })
+}
+
+/** Threads with a client message nobody has opened yet — drives the red number in the menu. */
+export function useFeedbackUnread() {
+  return useSWR('/admin/feedback/unread-count', apiFeedbackUnread, { refreshInterval: 30_000, revalidateOnFocus: true })
+}
+
+export function useFeedbackTemplates() {
+  return useSWR('/admin/feedback-templates', apiFeedbackTemplates)
 }

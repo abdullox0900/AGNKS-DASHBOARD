@@ -26,7 +26,7 @@ import {
 import { cn } from '@/shared/lib/cn'
 import { roleHasPermission, type Permission } from '@/shared/lib/permissions'
 import { useAuthStore } from '@/shared/config/authStore'
-import { useReviewQueue, useDisputes } from '@/shared/api/hooks'
+import { useReviewQueue, useDisputes, useFeedbackUnread } from '@/shared/api/hooks'
 import { useChangelogUnread } from '@/features/changelog/useChangelogUnread'
 import { useI18n } from '@/app/providers/I18nProvider'
 import { useUiStore } from '@/shared/config/uiStore'
@@ -273,12 +273,14 @@ export function Sidebar() {
   const toggle = useUiStore((s) => s.toggleSidebar)
   const { data: reviewQueue } = useReviewQueue()
   const { data: disputes } = useDisputes('open')
+  const { data: feedbackUnread } = useFeedbackUnread()
   const changelogUnread = useChangelogUnread()
   const [now] = useState(() => Date.now())
 
   const counts: Counts = {
     review: reviewQueue?.length ?? 0,
-    disputes: disputes?.length ?? 0,
+    // open disputes plus conversations where the client wrote and nobody has opened it yet
+    disputes: (disputes?.length ?? 0) + (feedbackUnread ?? 0),
     changelog: changelogUnread,
   }
   const ToggleIcon = collapsed ? PanelLeftOpen : PanelLeftClose

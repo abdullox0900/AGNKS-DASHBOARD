@@ -358,16 +358,25 @@ export async function apiResolveDispute(id: string, resolution: 'upheld' | 'reve
 
 // ---------- Feedback (taklif va shikoyat, umumiy) ----------
 
+export type FeedbackKind = 'suggestion' | 'complaint' | 'appeal'
+
 export interface FeedbackItem {
   id: string
-  cardId: string
+  kind: FeedbackKind
+  status: 'open' | 'resolved'
+  message: string
+  /** last message of the thread, shortened */
+  preview: string
+  lastSender: 'client' | 'staff'
+  createdAt: string
+  lastActivityAt: string
+  /** the client wrote and nobody on the dashboard has opened it yet */
+  unread: boolean
+  resolutionNote: string | null
+  clientId: string
   clientName: string
   clientPhone: string | null
-  kind: 'suggestion' | 'complaint'
-  message: string
-  status: 'open' | 'resolved'
-  resolutionNote: string | null
-  createdAt: string
+  blocked: boolean
 }
 
 export async function apiGetFeedback(status?: string): Promise<FeedbackItem[]> {
@@ -375,6 +384,53 @@ export async function apiGetFeedback(status?: string): Promise<FeedbackItem[]> {
     http.get('/admin/feedback', { params: { status } }),
   )
   return items
+}
+
+export async function apiFeedbackUnread(): Promise<number> {
+  return (await unwrap<{ count: number }>(http.get('/admin/feedback/unread-count'))).count
+}
+
+export interface FeedbackBubble {
+  id: string
+  sender: 'client' | 'staff'
+  text: string
+  at: string
+}
+
+export interface FeedbackThread {
+  id: string
+  kind: FeedbackKind
+  status: 'open' | 'resolved'
+  messages: FeedbackBubble[]
+  client: { id: string; name: string; phone: string | null; lang: 'uz' | 'ru'; blocked: boolean; blockedReason: string | null }
+}
+
+/** Opening a thread marks the client's messages as seen. */
+export async function apiFeedbackThread(id: string): Promise<FeedbackThread> {
+  return unwrap(http.get(`/admin/feedback/${id}`))
+}
+
+export async function apiFeedbackReply(id: string, text: string) {
+  return unwrap<{ id: string }>(http.post(`/admin/feedback/${id}/messages`, { text }))
+}
+
+export interface FeedbackTemplate {
+  id: string
+  title: string
+  textUz: string
+  textRu: string | null
+  sortOrder: number
+}
+
+export async function apiFeedbackTemplates(): Promise<FeedbackTemplate[]> {
+  return unwrap(http.get('/admin/feedback-templates'))
+}
+export async function apiSaveFeedbackTemplate(input: { id?: string; title: string; textUz: string; textRu: string | null }) {
+  const { id, ...body } = input
+  return unwrap(id ? http.put(`/admin/feedback-templates/${id}`, body) : http.post('/admin/feedback-templates', body))
+}
+export async function apiDeleteFeedbackTemplate(id: string) {
+  return unwrap(http.delete(`/admin/feedback-templates/${id}`))
 }
 
 export async function apiResolveFeedback(id: string, note?: string) {
@@ -566,7 +622,7 @@ export interface ClientProfile {
     telegramLinked: boolean
     marketingOptIn: boolean
   }
-  card: { number: string; balance: number; pending: number; blocked: boolean; lastActivityAt: string | null; createdAt: string }
+  card: { number: string; balance: number; pending: number; blocked: boolean; blockedReason: string | null; blockedAt: string | null; lastActivityAt: string | null; createdAt: string }
   stats: {
     receiptsTotal: number
     receiptsApplied: number
@@ -651,8 +707,9 @@ export async function apiAdjustClient(id: string, delta: number, note: string) {
   return unwrap<{ balanceAfter: number }>(http.post(`/admin/clients/${id}/adjust`, { delta, note }))
 }
 
-export async function apiBlockClient(id: string) {
-  return unwrap(http.post(`/admin/clients/${id}/block`))
+/** The reason is required: the client sees it in the app and in Telegram. */
+export async function apiBlockClient(id: string, reason: string) {
+  return unwrap(http.post(`/admin/clients/${id}/block`, { reason }))
 }
 
 export async function apiUnblockClient(id: string) {

@@ -6,12 +6,13 @@ import { apiAdjustClient, apiBlockClient, apiRenameClient, apiUnblockClient } fr
 import { useI18n } from '@/app/providers/I18nProvider'
 
 /** SEO-only management of a client: rename, balance correction, block / unblock. */
-export function ClientActions({ id, name: initialName, blocked, onChanged }: { id: string; name: string; blocked: boolean; onChanged: () => void }) {
+export function ClientActions({ id, name: initialName, blocked, blockedReason, onChanged }: { id: string; name: string; blocked: boolean; blockedReason?: string | null; onChanged: () => void }) {
   const { t } = useI18n()
   const { show } = useToast()
   const [name, setName] = useState(initialName)
   const [delta, setDelta] = useState('')
   const [note, setNote] = useState('')
+  const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   async function run(action: () => Promise<unknown>, message: string, after?: () => void) {
@@ -75,24 +76,29 @@ export function ClientActions({ id, name: initialName, blocked, onChanged }: { i
         </Button>
       </div>
 
-      <Button
-        variant={blocked ? 'secondary' : 'danger'}
-        className="w-full"
-        loading={submitting}
-        onClick={() =>
-          run(() => (blocked ? apiUnblockClient(id) : apiBlockClient(id)), blocked ? t('clients.unblocked') : t('clients.blocked_toast'))
-        }
-      >
-        {blocked ? (
-          <>
+      {blocked ? (
+        <div className="space-y-2">
+          {blockedReason && <p className="rounded-lg bg-[var(--color-danger-soft)] px-3 py-2 text-[13px] text-[var(--color-ink)]">{t('clients.blocked_reason_line', { reason: blockedReason })}</p>}
+          <Button variant="secondary" className="w-full" loading={submitting} onClick={() => run(() => apiUnblockClient(id), t('clients.unblocked'))}>
             <CheckCircle2 size={15} /> {t('clients.unblock_btn')}
-          </>
-        ) : (
-          <>
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <label className="block text-[13px] font-medium text-[var(--color-ink-secondary)]">{t('clients.block_reason')}</label>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value.slice(0, 300))}
+            rows={2}
+            placeholder={t('clients.block_reason_ph')}
+            className="w-full resize-none rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 text-[13px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink-tertiary)] focus:border-[var(--color-danger)]"
+          />
+          <p className="text-[11.5px] text-[var(--color-ink-tertiary)]">{t('clients.block_reason_hint')}</p>
+          <Button variant="danger" className="w-full" loading={submitting} disabled={reason.trim().length < 3} onClick={() => run(() => apiBlockClient(id, reason.trim()), t('clients.blocked_toast'), () => setReason(''))}>
             <Ban size={15} /> {t('clients.block_btn')}
-          </>
-        )}
-      </Button>
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

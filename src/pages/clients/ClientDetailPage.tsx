@@ -166,6 +166,9 @@ export function ClientDetailPage() {
         </div>
         <Badge tone={card.blocked ? 'danger' : 'success'}>{card.blocked ? t('common.blocked') : t('common.active')}</Badge>
       </header>
+      {card.blocked && card.blockedReason && (
+        <p className="rounded-lg bg-[var(--color-danger-soft)] px-3.5 py-2 text-[13px] text-[var(--color-ink)]">{t('clients.blocked_reason_line', { reason: card.blockedReason })}</p>
+      )}
 
       <Card padded={false} className={CELLS}>
         <Stat label={t('clients.balance')} value={formatMoneyShort(card.balance)} full={formatMoneyFull(card.balance)} color="var(--color-lime)" />
@@ -214,7 +217,7 @@ export function ClientDetailPage() {
         {canEdit && (
           <Card>
             <h2 className="mb-3 text-[15px] font-semibold text-[var(--color-ink)]">{t('cd.manage_title')}</h2>
-            <ClientActions key={`${user.id}-${user.firstName}`} id={user.id} name={user.firstName} blocked={card.blocked} onChanged={refreshAll} />
+            <ClientActions key={`${user.id}-${user.firstName}-${card.blocked}`} id={user.id} name={user.firstName} blocked={card.blocked} blockedReason={card.blockedReason} onChanged={refreshAll} />
           </Card>
         )}
       </div>
