@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import useSWR, { useSWRConfig } from 'swr'
-import { Ban, CheckCircle2, Send, ShieldCheck } from 'lucide-react'
+import { Ban, CheckCircle2, Send, ShieldCheck, Trash2, X } from 'lucide-react'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Skeleton } from '@/shared/ui/Skeleton'
 import { useToast } from '@/shared/ui/Toast'
-import { apiFeedbackReply, apiFeedbackThread, apiResolveFeedback, apiUnblockClient } from '@/shared/api/client'
+import { apiDeleteFeedback, apiFeedbackReply, apiFeedbackThread, apiResolveFeedback, apiUnblockClient } from '@/shared/api/client'
 import { useFeedbackTemplates } from '@/shared/api/hooks'
 import { usePermission } from '@/shared/lib/permissions'
 import { formatDateTime } from '@/shared/lib/dates'
@@ -19,17 +19,19 @@ import { KIND_LABEL, KIND_TONE } from './kinds'
  * One conversation with a client, like a messenger: the client's messages on the left, ours on the right.
  * Answer by typing or by tapping a ready-made reply (it lands in the box — edit it or send it as is).
  */
-export function FeedbackChat({ id, onChanged }: { id: string; onChanged: () => void }) {
+export function FeedbackChat({ id, onChanged, onDeleted }: { id: string; onChanged: () => void; onDeleted: () => void }) {
   const { t } = useI18n()
   const { show } = useToast()
   const { mutate: globalMutate } = useSWRConfig()
   const canReply = usePermission('disputes.decide')
   const canOpenClient = usePermission('clients.detail')
   const canUnblock = usePermission('clients.edit')
+  const canDelete = usePermission('feedback.delete')
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const { data: templates } = useFeedbackTemplates()
   const { data: thread, mutate } = useSWR(['feedback-thread', id], () => apiFeedbackThread(id), { refreshInterval: 8_000, revalidateOnFocus: true })
   const [text, setText] = useState('')
-  const [busy, setBusy] = useState<'send' | 'resolve' | 'unblock' | null>(null)
+  const [busy, setBusy] = useState<'send' | 'resolve' | 'unblock' | 'delete' | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const count = thread?.messages.length ?? 0
 
@@ -56,6 +58,19 @@ export function FeedbackChat({ id, onChanged }: { id: string; onChanged: () => v
     } catch {
       show(t('common.error_generic'))
     } finally {
+      setBusy(null)
+    }
+  }
+
+  async function remove() {
+    setBusy('delete')
+    try {
+      await apiDeleteFeedback(id)
+      show(t('fbchat.deleted'))
+      void globalMutate('/admin/feedback/unread-count')
+      onDeleted()
+    } catch {
+      show(t('common.error_generic'))
       setBusy(null)
     }
   }
@@ -102,6 +117,25 @@ export function FeedbackChat({ id, onChanged }: { id: string; onChanged: () => v
           <Badge tone={KIND_TONE[thread.kind]}>{t(KIND_LABEL[thread.kind])}</Badge>
           <Badge tone={open ? 'warning' : 'success'}>{open ? t('feedback.status.open') : t('feedback.status.closed')}</Badge>
           {c.blocked && <Badge tone="danger">{t('common.blocked')}</Badge>}
+          {canDelete && (
+            <span className="ml-auto flex items-center gap-1">
+              {confirmDelete ? (
+                <>
+                  <span className="text-[12px] text-[var(--color-ink-secondary)]">{t('fbchat.delete_ask')}</span>
+                  <Button size="sm" variant="danger" loading={busy === 'delete'} onClick={() => void remove()}>
+                    {t('changelog.confirm_delete')}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(false)} aria-label={t('common.cancel')}>
+                    <X size={14} />
+                  </Button>
+                </>
+              ) : (
+                <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(true)} aria-label={t('fbchat.delete')} title={t('fbchat.delete')}>
+                  <Trash2 size={14} />
+                </Button>
+              )}
+            </span>
+          )}
         </div>
         <p className="mt-0.5 text-[12.5px] text-[var(--color-ink-tertiary)]">
           {c.phone ? formatPhone(c.phone) : '—'} · {ru ? 'Русский' : "O'zbekcha"}

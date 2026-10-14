@@ -54,6 +54,7 @@ export const ACTIONS: Record<string, { label: DictKey; tone: Tone }> = {
   'broadcast.delete': { label: 'audit.a.broadcast_delete', tone: 'danger' },
   'feedback.resolve': { label: 'audit.a.feedback_resolve', tone: 'success' },
   'feedback.reply': { label: 'audit.a.fb_reply', tone: 'primary' },
+  'feedback.delete': { label: 'audit.a.fb_delete', tone: 'danger' },
   'feedback.template_create': { label: 'audit.a.tpl_create', tone: 'success' },
   'feedback.template_update': { label: 'audit.a.tpl_update', tone: 'primary' },
   'feedback.template_delete': { label: 'audit.a.tpl_delete', tone: 'danger' },
