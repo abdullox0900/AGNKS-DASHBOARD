@@ -81,6 +81,17 @@ export function formatDateTime(iso: string | Date): string {
   return formatTz(d, 'd MMM, HH:mm', { timeZone: TASHKENT_TZ, locale: dfLocale() })
 }
 
+/** "today, 14:08" / "yesterday, 14:08" / "12 oct., 14:08" — `today`/`yesterday` are the translated words. */
+export function formatSeen(iso: string | Date, words: { today: string; yesterday: string }): string {
+  const d = typeof iso === 'string' ? new Date(iso) : iso
+  const day = formatTz(d, 'yyyy-MM-dd', { timeZone: TASHKENT_TZ })
+  const time = formatTz(d, 'HH:mm', { timeZone: TASHKENT_TZ })
+  const now = new Date()
+  if (day === formatTz(now, 'yyyy-MM-dd', { timeZone: TASHKENT_TZ })) return `${words.today}, ${time}`
+  if (day === formatTz(subDays(now, 1), 'yyyy-MM-dd', { timeZone: TASHKENT_TZ })) return `${words.yesterday}, ${time}`
+  return formatDateTime(d)
+}
+
 export function formatDateInput(d: Date): string {
   return formatTz(d, 'yyyy-MM-dd', { timeZone: TASHKENT_TZ })
 }

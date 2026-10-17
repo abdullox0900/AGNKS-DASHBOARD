@@ -22,14 +22,14 @@ export function useGlobalFilters(): { filters: GlobalFilters; setStations: (ids:
   const filters = useMemo<GlobalFilters>(() => {
     // branch_manager is always scoped to their own station regardless of URL tampering.
     if (role === 'branch_manager') {
-      const preset = (params.get('period') as PeriodPreset) || '7d'
+      const preset = (params.get('period') as PeriodPreset) || '30d'
       const { from, to } = readRange(params, preset)
       return { stationIds: stationId ? [stationId] : null, preset, from, to }
     }
 
     const stationsParam = params.get('stations')
     const stationIds = stationsParam ? stationsParam.split(',').filter(Boolean) : null
-    const preset = (params.get('period') as PeriodPreset) || '7d'
+    const preset = (params.get('period') as PeriodPreset) || '30d'
     const { from, to } = readRange(params, preset)
     return { stationIds, preset, from, to }
   }, [params, role, stationId])

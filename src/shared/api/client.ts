@@ -627,6 +627,44 @@ export async function apiSearchClients(q?: string): Promise<ClientRecord[]> {
   return all.filter((u) => u.card).map(toClient)
 }
 
+export interface ClientListRow {
+  id: string
+  name: string
+  phone: string | null
+  balance: number
+  blocked: boolean
+  registeredAt: string
+  lastSeenAt: string | null
+  /** on how many of the last 30 days the person opened the app */
+  activeDays: number
+}
+
+export type ClientsSort = 'balance' | 'seen' | 'registered'
+export type ClientsFilter = 'recent' | 'frequent'
+
+export interface ClientsPageData {
+  total: number
+  page: number
+  pageSize: number
+  pages: number
+  items: ClientListRow[]
+}
+
+export interface ClientsStats {
+  total: number
+  today: number
+  recent: number
+  frequent: number
+  recentDays: number
+  frequentMinDays: number
+  frequentWindowDays: number
+}
+
+export const apiClientsPage = (params: { q?: string; page: number; pageSize: number; sort: ClientsSort; filter?: ClientsFilter }) =>
+  unwrap<ClientsPageData>(http.get('/admin/clients/page', { params }))
+
+export const apiClientsStats = () => unwrap<ClientsStats>(http.get('/admin/clients/stats'))
+
 export interface ClientProfile {
   user: {
     id: string
