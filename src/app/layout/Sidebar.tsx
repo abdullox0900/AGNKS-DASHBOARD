@@ -67,7 +67,7 @@ const GROUPS: NavGroup[] = [
     title: 'nav.group.control',
     icon: ClipboardCheck,
     items: [
-      { to: '/review', label: 'nav.review', icon: ClipboardList, permission: 'review.view', badgeKey: 'review' },
+      { to: '/review', label: 'nav.review', icon: ClipboardList, permission: 'review.view', badgeKey: 'review', newSince: '2026-10-17' },
       { to: '/disputes', label: 'nav.feedback', icon: MessageSquareWarning, permission: 'disputes.view', badgeKey: 'disputes' },
     ],
   },

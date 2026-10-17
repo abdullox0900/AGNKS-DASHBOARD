@@ -23,6 +23,7 @@ const GROUPS: AuditGroup[] = ['review', 'clients', 'staff', 'stations', 'rules',
 type Tone = 'success' | 'danger' | 'primary' | 'warning' | 'neutral'
 export const ACTIONS: Record<string, { label: DictKey; tone: Tone }> = {
   'review.approve': { label: 'audit.a.review_approve', tone: 'success' },
+  'review.auto_approve': { label: 'audit.a.review_auto', tone: 'primary' },
   'review.reject': { label: 'audit.a.review_reject', tone: 'danger' },
   'receipt.ack_large': { label: 'audit.a.ack_large', tone: 'neutral' },
   'client.rename': { label: 'audit.a.client_rename', tone: 'primary' },

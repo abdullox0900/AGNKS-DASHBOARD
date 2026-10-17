@@ -35,6 +35,7 @@ export type Permission =
   | 'attendants.manage'
   | 'feedback.templates'
   | 'feedback.delete'
+  | 'review.auto'
 
 const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
   branch_manager: [
@@ -106,6 +107,7 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'attendants.manage',
     'feedback.templates',
     'feedback.delete',
+    'review.auto',
   ],
 }
 

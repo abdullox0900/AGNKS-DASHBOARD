@@ -571,6 +571,19 @@ export async function apiApproveReceipt(id: string, note?: string, amount?: numb
   return unwrap(http.post(`/admin/review/${id}/approve`, { note, amount }))
 }
 
+export interface AutoReviewSettings {
+  enabled: boolean
+  delayMin: number
+}
+
+export async function apiAutoReviewSettings() {
+  return unwrap<AutoReviewSettings>(http.get('/admin/review/auto'))
+}
+
+export async function apiSaveAutoReviewSettings(patch: Partial<AutoReviewSettings>) {
+  return unwrap<AutoReviewSettings>(http.put('/admin/review/auto', patch))
+}
+
 export async function apiRejectReceipt(id: string, note: string) {
   return unwrap(http.post(`/admin/review/${id}/reject`, { note }))
 }

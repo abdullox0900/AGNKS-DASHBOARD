@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useSWRConfig } from 'swr'
-import { Check, ExternalLink, X } from 'lucide-react'
+import useSWR, { useSWRConfig } from 'swr'
+import { Bot, Check, ExternalLink, X } from 'lucide-react'
+import { NewBadge } from '@/shared/ui/NewBadge'
 import { Card } from '@/shared/ui/Card'
 import { Button } from '@/shared/ui/Button'
 import { Skeleton } from '@/shared/ui/Skeleton'
 import { EmptyState } from '@/shared/ui/EmptyState'
 import { useReviewQueue } from '@/shared/api/hooks'
 import { usePermission } from '@/shared/lib/permissions'
-import { apiApproveReceipt, apiRejectReceipt } from '@/shared/api/client'
+import { apiApproveReceipt, apiAutoReviewSettings, apiRejectReceipt, apiSaveAutoReviewSettings } from '@/shared/api/client'
 import { useToast } from '@/shared/ui/Toast'
 import { formatDateTime } from '@/shared/lib/dates'
 import { formatMoneyFull, formatNumber } from '@/shared/lib/format'
@@ -250,12 +251,91 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
   )
 }
 
+const AUTO_DELAYS = [5, 10, 30, 60]
+
+/** "Avto-tekshiruv": the program re-checks receipts soliq.uz couldn't confirm and credits the bonus itself. */
+function AutoReviewCard() {
+  const { t } = useI18n()
+  const { show } = useToast()
+  const { mutate: globalMutate } = useSWRConfig()
+  const canEdit = usePermission('review.auto')
+  const { data, mutate } = useSWR('/admin/review/auto', apiAutoReviewSettings)
+  const [busy, setBusy] = useState(false)
+
+  async function save(patch: { enabled?: boolean; delayMin?: number }) {
+    setBusy(true)
+    try {
+      await apiSaveAutoReviewSettings(patch)
+      await mutate()
+      void globalMutate('/admin/overview')
+      show(t('review.auto_saved'))
+    } catch {
+      show(t('common.error_generic'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={!!data?.enabled}
+            aria-label={t('review.auto_title')}
+            disabled={!canEdit || !data || busy}
+            onClick={() => data && void save({ enabled: !data.enabled })}
+            className={cn(
+              'relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50',
+              data?.enabled ? 'bg-[var(--color-success)]' : 'bg-[var(--color-border-strong)]',
+            )}
+          >
+            <span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all', data?.enabled ? 'left-[22px]' : 'left-0.5')} />
+          </button>
+          <div className="min-w-0">
+            <p className="flex items-center gap-2 text-[14px] font-semibold text-[var(--color-ink)]">
+              <Bot size={16} className="text-[var(--color-primary)]" /> {t('review.auto_title')} <NewBadge since="2026-10-17" />
+            </p>
+            <p className="mt-0.5 text-[12.5px] leading-relaxed text-[var(--color-ink-tertiary)]">
+              {data?.enabled ? t('review.auto_on_hint', { n: data.delayMin }) : t('review.auto_off_hint')}
+            </p>
+          </div>
+        </div>
+        {data && (
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] font-medium text-[var(--color-ink-secondary)]">{t('review.auto_delay')}</span>
+            <div className="inline-flex gap-1 rounded-lg border border-[var(--color-border)] p-0.5">
+              {AUTO_DELAYS.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  disabled={!canEdit || busy}
+                  onClick={() => n !== data.delayMin && void save({ delayMin: n })}
+                  className={cn(
+                    'rounded-md px-2.5 py-1 text-[12.5px] font-medium disabled:cursor-default',
+                    data.delayMin === n ? 'bg-[var(--color-primary)] text-[var(--color-primary-ink)]' : 'text-[var(--color-ink-secondary)]',
+                  )}
+                >
+                  {t('review.auto_min', { n })}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </Card>
+  )
+}
+
 /** Tekshiruv: the open queue plus the history of everything a reviewer already decided. */
 export function ReviewPage() {
   const { t } = useI18n()
   const [tab, setTab] = useState<'queue' | 'history'>('queue')
   return (
     <div className="space-y-4">
+      <AutoReviewCard />
       <div className="inline-flex gap-1 rounded-lg border border-[var(--color-border)] p-0.5">
         {(['queue', 'history'] as const).map((key) => (
           <button

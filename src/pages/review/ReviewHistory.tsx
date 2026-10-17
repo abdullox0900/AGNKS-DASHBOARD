@@ -1,5 +1,5 @@
 import useSWRInfinite from 'swr/infinite'
-import { ExternalLink } from 'lucide-react'
+import { Bot, ExternalLink } from 'lucide-react'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { DataTable, type DataTableColumn } from '@/shared/ui/DataTable'
@@ -34,8 +34,16 @@ export function ReviewHistory() {
     {
       id: 'by',
       header: 'review.hist_by',
-      accessor: (r) => r.reviewerName ?? '',
-      cell: (r) => (
+      accessor: (r) => (r.auto ? t('review.hist_auto') : r.reviewerName ?? ''),
+      cell: (r) =>
+        r.auto || !r.reviewerId ? (
+          <span className="inline-flex items-center gap-2">
+            <span className="flex h-[26px] w-[26px] items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
+              <Bot size={14} />
+            </span>
+            <span className="font-medium text-[var(--color-ink)]">{t('review.hist_auto')}</span>
+          </span>
+        ) : (
         <span className="flex items-center gap-2">
           <Avatar src={avatars?.[r.reviewerId]} name={r.reviewerName} size={26} />
           <span>
@@ -43,7 +51,7 @@ export function ReviewHistory() {
             {r.reviewerPhone ? <span className="ml-1.5 text-[var(--color-ink-tertiary)]">{formatPhone(r.reviewerPhone)}</span> : null}
           </span>
         </span>
-      ),
+        ),
     },
     {
       id: 'client',
@@ -66,7 +74,7 @@ export function ReviewHistory() {
       numeric: true,
       cell: (r) => (r.status === 'applied' ? <span className="font-semibold text-[var(--color-success)]">+{formatMoneyFull(r.bonus)}</span> : '—'),
     },
-    { id: 'note', header: 'review.hist_note', accessor: (r) => r.reviewNote ?? '', cell: (r) => <span className="text-[var(--color-ink-secondary)]">{r.reviewNote || '—'}</span> },
+    { id: 'note', header: 'review.hist_note', accessor: (r) => r.reviewNote ?? '', cell: (r) => <span className="text-[var(--color-ink-secondary)]">{r.auto ? t('review.hist_auto_note') : r.reviewNote || '—'}</span> },
     {
       id: 'link',
       header: 'review.hist_soliq',

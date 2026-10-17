@@ -56,7 +56,9 @@ export interface ReviewedReceipt {
   bonus: number
   reviewNote: string | null
   reviewedAt: string
-  reviewerId: string
+  /** null when the program decided (Avto-tekshiruv) */
+  reviewerId: string | null
+  auto: boolean
   reviewerName: string | null
   reviewerPhone: string | null
   soliqLink: string | null
