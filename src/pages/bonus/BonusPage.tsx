@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 import { Card } from "@/shared/ui/Card";
 import { Button } from "@/shared/ui/Button";
 import { Badge } from "@/shared/ui/Badge";
@@ -19,7 +19,7 @@ import {
 import { usePermission } from "@/shared/lib/permissions";
 import { formatDateTime } from "@/shared/lib/dates";
 import { formatMoneyFull } from "@/shared/lib/format";
-import type { PromotionStatus } from "@/entities/models";
+import type { Promotion, PromotionStatus } from "@/entities/models";
 import {
   SendTimePicker,
   resolveSendAt,
@@ -79,6 +79,10 @@ export function BonusPage() {
   const [rateNote, setRateNote] = useState("");
   const [rateImpact, setRateImpact] = useState<ImpactPreview | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [justCreated, setJustCreated] = useState<Promotion | null>(null);
+  const { data: stations } = useStations();
+  const detail = detailId ? (promotions?.find((p) => p.id === detailId) ?? (justCreated?.id === detailId ? justCreated : null)) : null;
 
   useEffect(() => {
     if (!editingRate || !rateInput) {
@@ -151,9 +155,15 @@ export function BonusPage() {
           {promotions?.map((p) => (
             <div
               key={p.id}
-              className="flex items-center justify-between rounded-xl border border-[var(--color-border)] px-4 py-3"
+              role="button"
+              tabIndex={0}
+              onClick={() => setDetailId(p.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") setDetailId(p.id);
+              }}
+              className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] px-4 py-3 transition-colors hover:bg-[var(--color-surface-alt)]"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <Badge tone={STATUS_TONE[p.status]}>
                   {t(STATUS_LABEL[p.status])}
                 </Badge>
@@ -164,20 +174,27 @@ export function BonusPage() {
                   <p className="text-[12px] text-[var(--color-ink-tertiary)]">
                     {formatDateTime(p.startsAt)} → {formatDateTime(p.endsAt)}
                   </p>
+                  <p className="truncate text-[12px] text-[var(--color-ink-tertiary)]">
+                    {stationNames(p, stations, t("bonus.scope_all_stations"))}
+                  </p>
                 </div>
               </div>
-              {canEdit && p.status !== "cancelled" && p.status !== "ended" && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={async () => {
-                    await apiCancelPromotion(p.id);
-                    mutatePromotions();
-                  }}
-                >
-                  {t("bonus.stop")}
-                </Button>
-              )}
+              <div className="flex shrink-0 items-center gap-1">
+                {canEdit && p.status !== "cancelled" && p.status !== "ended" && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      await apiCancelPromotion(p.id);
+                      mutatePromotions();
+                    }}
+                  >
+                    {t("bonus.stop")}
+                  </Button>
+                )}
+                <ChevronRight size={15} className="text-[var(--color-ink-tertiary)]" />
+              </div>
             </div>
           ))}
           {(!promotions || promotions.length === 0) && (
@@ -234,17 +251,167 @@ export function BonusPage() {
         title={t("bonus.new_promo")}
       >
         <PromotionForm
-          onCreated={() => {
+          onCreated={(created) => {
             setFormOpen(false);
+            setJustCreated(created);
+            setDetailId(created.id); // show what was just made: branches, period, who announced…
             mutatePromotions();
           }}
         />
+      </Drawer>
+
+      <Drawer
+        open={!!detail}
+        onClose={() => setDetailId(null)}
+        title={t("bonus.detail_title")}
+      >
+        {detail && (
+          <PromotionDetail
+            promo={detail}
+            stations={stations}
+            baseRatePercent={baseRatePercent}
+            canStop={canEdit && detail.status !== "cancelled" && detail.status !== "ended"}
+            onStop={async () => {
+              await apiCancelPromotion(detail.id);
+              mutatePromotions();
+            }}
+          />
+        )}
       </Drawer>
     </div>
   );
 }
 
-function PromotionForm({ onCreated }: { onCreated: () => void }) {
+/** "Fargona, Quva" / "all stations" — names of the branches an offer applies to. */
+function stationNames(p: Promotion, stations: { id: string; name: string }[] | undefined, all: string): string {
+  if (!p.stationIds || p.stationIds.length === 0) return all;
+  const byId = new Map((stations ?? []).map((s) => [s.id, s.name]));
+  return p.stationIds.map((id) => byId.get(id) ?? "…").join(", ");
+}
+
+function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-[11.5px] font-medium uppercase tracking-wide text-[var(--color-ink-tertiary)]">{label}</p>
+      <div className="mt-0.5 text-[13.5px] text-[var(--color-ink)]">{children}</div>
+    </div>
+  );
+}
+
+/** Everything about one offer: status, rate, period, the branches it covers, the reason, who made it, the announcement. */
+function PromotionDetail({
+  promo,
+  stations,
+  baseRatePercent,
+  canStop,
+  onStop,
+}: {
+  promo: Promotion;
+  stations: { id: string; name: string; address: string }[] | undefined;
+  baseRatePercent: number | null;
+  canStop: boolean;
+  onStop: () => Promise<void>;
+}) {
+  const { t } = useI18n();
+  const [stopping, setStopping] = useState(false);
+  const covered = promo.stationIds && promo.stationIds.length > 0 ? promo.stationIds : null;
+  const days = Math.max(1, Math.ceil((new Date(promo.endsAt).getTime() - new Date(promo.startsAt).getTime()) / 86_400_000));
+  const n = promo.notification;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge tone={STATUS_TONE[promo.status]}>{t(STATUS_LABEL[promo.status])}</Badge>
+        <h3 className="text-[17px] font-bold text-[var(--color-ink)]">{promo.name}</h3>
+      </div>
+
+      <div className="rounded-xl bg-[var(--color-primary-soft)] px-4 py-3">
+        <p className="tnum text-[28px] font-bold leading-tight text-[var(--color-primary)]">{promo.rateBps / 100}%</p>
+        {baseRatePercent !== null && (
+          <p className="text-[12.5px] text-[var(--color-ink-secondary)]">{t("bonus.detail_vs_base", { base: baseRatePercent })}</p>
+        )}
+      </div>
+
+      <DetailRow label={t("bonus.detail_period")}>
+        <p className="tnum">
+          {formatDateTime(promo.startsAt)} → {formatDateTime(promo.endsAt)}
+        </p>
+        <p className="text-[12px] text-[var(--color-ink-tertiary)]">{t("bonus.detail_days", { n: days })}</p>
+      </DetailRow>
+
+      <DetailRow label={t("bonus.f_stations")}>
+        {covered ? (
+          <ul className="space-y-1">
+            {covered.map((id) => {
+              const s = stations?.find((x) => x.id === id);
+              return (
+                <li key={id}>
+                  <span className="font-medium">{s?.name ?? "…"}</span>
+                  {s?.address ? <span className="block text-[12px] text-[var(--color-ink-tertiary)]">{s.address}</span> : null}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          t("bonus.scope_all_stations")
+        )}
+      </DetailRow>
+
+      <DetailRow label={t("bonus.f_reason")}>
+        <p className="whitespace-pre-line">{promo.reason}</p>
+      </DetailRow>
+
+      <DetailRow label={t("bonus.notify_title")}>
+        {n ? (
+          <>
+            <p>
+              {n.status === "sent"
+                ? t("bonus.detail_sent", { at: formatDateTime(n.sentAt ?? n.sendAt), n: n.recipientCount })
+                : n.status === "cancelled"
+                  ? t("bonus.detail_notify_cancelled")
+                  : n.status === "sending"
+                    ? t("bonus.detail_sending")
+                    : t("bonus.detail_will_send", { at: formatDateTime(n.sendAt) })}
+            </p>
+          </>
+        ) : (
+          t("bonus.detail_no_notify")
+        )}
+      </DetailRow>
+
+      <DetailRow label={t("bonus.detail_created")}>
+        <p>
+          {promo.createdByName ?? "—"} · {formatDateTime(promo.createdAt)}
+        </p>
+        {promo.cancelledAt && (
+          <p className="text-[12.5px] text-[var(--color-danger)]">
+            {t("bonus.detail_stopped", { who: promo.cancelledByName ?? "—", at: formatDateTime(promo.cancelledAt) })}
+          </p>
+        )}
+      </DetailRow>
+
+      {canStop && (
+        <Button
+          variant="danger"
+          className="w-full"
+          loading={stopping}
+          onClick={async () => {
+            setStopping(true);
+            try {
+              await onStop();
+            } finally {
+              setStopping(false);
+            }
+          }}
+        >
+          {t("bonus.stop")}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function PromotionForm({ onCreated }: { onCreated: (promo: Promotion) => void }) {
   const { t } = useI18n();
   const { data: stations } = useStations();
   const { data: settings } = useBonusSettings();
@@ -283,7 +450,7 @@ function PromotionForm({ onCreated }: { onCreated: () => void }) {
     if (!name || !startsAt || !endsAt || !reason || !notifyValid) return;
     setSubmitting(true);
     try {
-      await apiCreatePromotion({
+      const created = await apiCreatePromotion({
         name,
         rateBps: Math.round(rateNum * 100),
         stationIds,
@@ -292,7 +459,7 @@ function PromotionForm({ onCreated }: { onCreated: () => void }) {
         reason,
         notifyAt: resolveSendAt(notifyMode, notifyAt, startsAt),
       });
-      onCreated();
+      onCreated(created);
     } finally {
       setSubmitting(false);
     }

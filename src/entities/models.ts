@@ -117,6 +117,12 @@ export interface Promotion {
   status: PromotionStatus
   createdBy: string
   createdAt: string
+  /** filled by the list / create endpoints (not by every place a Promotion shows up) */
+  createdByName?: string | null
+  cancelledByName?: string | null
+  cancelledAt?: string | null
+  /** the announcement sent to clients for this promotion, if any */
+  notification?: { status: BroadcastStatus; sendAt: string; recipientCount: number; sentAt: string | null } | null
 }
 
 export type BroadcastStatus = 'scheduled' | 'sending' | 'sent' | 'cancelled'
