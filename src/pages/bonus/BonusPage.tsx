@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { ChevronRight, Plus } from "lucide-react";
 import { Card } from "@/shared/ui/Card";
 import { Button } from "@/shared/ui/Button";
@@ -14,9 +15,11 @@ import {
   apiCancelPromotion,
   apiCreatePromotion,
   apiImpactPreview,
+  apiPromoAudience,
   apiSetBaseRate,
 } from "@/shared/api/client";
 import { usePermission } from "@/shared/lib/permissions";
+import { cn } from "@/shared/lib/cn";
 import { formatDateTime } from "@/shared/lib/dates";
 import { formatMoneyFull } from "@/shared/lib/format";
 import type { Promotion, PromotionStatus } from "@/entities/models";
@@ -421,6 +424,7 @@ function PromotionForm({ onCreated }: { onCreated: (promo: Promotion) => void })
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [reason, setReason] = useState("");
+  const [notifyOn, setNotifyOn] = useState(true);
   const [notifyMode, setNotifyMode] = useState<SendTimeMode>("start");
   const [notifyAt, setNotifyAt] = useState("");
   const [impact, setImpact] = useState<ImpactPreview | null>(null);
@@ -442,7 +446,9 @@ function PromotionForm({ onCreated }: { onCreated: (promo: Promotion) => void })
   }, [rate, scope]);
 
   const rateNum = Number(rate);
-  const notifyValid = notifyMode !== "custom" || !!notifyAt;
+  const notifyValid = !notifyOn || notifyMode !== "custom" || !!notifyAt;
+  const stationKey = stationIds ? [...stationIds].sort().join(",") : "all";
+  const { data: audience } = useSWR(notifyOn ? ["promo-audience", stationKey] : null, () => apiPromoAudience(stationIds));
   const warnHigh = rateNum > 3;
 
   async function handleSubmit(e: React.FormEvent) {
@@ -457,7 +463,7 @@ function PromotionForm({ onCreated }: { onCreated: (promo: Promotion) => void })
         startsAt: new Date(startsAt).toISOString(),
         endsAt: new Date(endsAt).toISOString(),
         reason,
-        notifyAt: resolveSendAt(notifyMode, notifyAt, startsAt),
+        notifyAt: notifyOn ? resolveSendAt(notifyMode, notifyAt, startsAt) : null,
       });
       onCreated(created);
     } finally {
@@ -572,19 +578,41 @@ function PromotionForm({ onCreated }: { onCreated: (promo: Promotion) => void })
       </div>
 
       <div className="rounded-xl border border-[var(--color-border)] p-3">
-        <p className="text-[13px] font-medium text-[var(--color-ink)]">
-          {t("bonus.notify_title")}
-        </p>
-        <p className="mb-2 text-[11.5px] text-[var(--color-ink-tertiary)]">
-          {t("bonus.notify_hint")}
-        </p>
-        <SendTimePicker
-          modes={["start", "now", "custom", "none"]}
-          mode={notifyMode}
-          onModeChange={setNotifyMode}
-          customAt={notifyAt}
-          onCustomAtChange={setNotifyAt}
-        />
+        <div className="flex items-start gap-3">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={notifyOn}
+            aria-label={t("bonus.notify_title")}
+            onClick={() => setNotifyOn((v) => !v)}
+            className={cn(
+              "relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors",
+              notifyOn ? "bg-[var(--color-success)]" : "bg-[var(--color-border-strong)]",
+            )}
+          >
+            <span className={cn("absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all", notifyOn ? "left-[22px]" : "left-0.5")} />
+          </button>
+          <div className="min-w-0">
+            <p className="text-[13px] font-medium text-[var(--color-ink)]">{t("bonus.notify_title")}</p>
+            <p className="text-[11.5px] text-[var(--color-ink-tertiary)]">
+              {!notifyOn ? t("bonus.notify_off_hint") : stationIds ? t("bonus.notify_hint_stations") : t("bonus.notify_hint_all")}
+            </p>
+            {notifyOn && audience && (
+              <p className="mt-1 text-[12px] font-medium text-[var(--color-primary)]">{t("bonus.notify_audience", { n: audience.count })}</p>
+            )}
+          </div>
+        </div>
+        {notifyOn && (
+          <div className="mt-3">
+            <SendTimePicker
+              modes={["start", "now", "custom"]}
+              mode={notifyMode}
+              onModeChange={setNotifyMode}
+              customAt={notifyAt}
+              onCustomAtChange={setNotifyAt}
+            />
+          </div>
+        )}
       </div>
 
       {impact && <ImpactNote impact={impact} />}

@@ -463,6 +463,11 @@ export async function apiGetPromotions(status?: string): Promise<Promotion[]> {
   return unwrap(http.get('/admin/promotions', { params: { status } }))
 }
 
+/** How many clients an announcement of a promotion for these stations (null/empty = all) would reach. */
+export async function apiPromoAudience(stationIds: string[] | null): Promise<{ count: number }> {
+  return unwrap(http.get('/admin/promotions/audience', { params: { stationIds: (stationIds ?? []).join(',') } }))
+}
+
 export async function apiCreatePromotion(input: {
   name: string
   rateBps: number
