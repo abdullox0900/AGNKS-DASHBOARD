@@ -6,6 +6,8 @@ export interface Station {
   lng: number
   radiusM: number
   status: 'active' | 'paused' | 'closed'
+  /** key of this station's own Telegram bot (clients on it count as this station's clients); null = none */
+  botKey?: string | null
 }
 
 export interface Terminal {

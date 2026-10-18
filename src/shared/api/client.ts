@@ -172,6 +172,11 @@ export async function apiGetStations(): Promise<Station[]> {
   return rows.map(toStation)
 }
 
+/** Keys of the client Telegram bots the server runs (`main`, `kokand`, …). */
+export async function apiStationBotKeys(): Promise<string[]> {
+  return (await unwrap<{ keys: string[] }>(http.get('/admin/stations/bot-keys'))).keys
+}
+
 export async function apiGetTerminals(stationId: string): Promise<Terminal[]> {
   return unwrap(http.get(`/admin/stations/${stationId}/terminals`))
 }

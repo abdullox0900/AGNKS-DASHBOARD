@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import useSWR from 'swr'
 import { ExternalLink, MapPin, Pencil, Plus, ScanLine, Trash2 } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { Button } from '@/shared/ui/Button'
@@ -6,7 +7,7 @@ import { Badge } from '@/shared/ui/Badge'
 import { Drawer } from '@/shared/ui/Drawer'
 import { useToast } from '@/shared/ui/Toast'
 import { useStations, useTerminals } from '@/shared/api/hooks'
-import { apiCreateStation, apiCreateTerminal, apiDeleteStation, apiDeleteTerminal, apiUpdateStation, apiUpdateTerminal } from '@/shared/api/client'
+import { apiCreateStation, apiCreateTerminal, apiDeleteStation, apiDeleteTerminal, apiStationBotKeys, apiUpdateStation, apiUpdateTerminal } from '@/shared/api/client'
 import { ApiError } from '@/shared/api/errors'
 import { usePermission } from '@/shared/lib/permissions'
 import type { Station, Terminal } from '@/entities/models'
@@ -385,6 +386,8 @@ function EditStationForm({ station, onUpdated }: { station: Station; onUpdated: 
   const [lat, setLat] = useState(hasCoords(station) ? String(station.lat) : '')
   const [lng, setLng] = useState(hasCoords(station) ? String(station.lng) : '')
   const [status, setStatus] = useState<Station['status']>(station.status)
+  const [botKey, setBotKey] = useState<string>(station.botKey ?? '')
+  const { data: botKeys } = useSWR('/admin/stations/bot-keys', apiStationBotKeys)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -407,7 +410,7 @@ function EditStationForm({ station, onUpdated }: { station: Station; onUpdated: 
     setSubmitting(true)
     setError(null)
     try {
-      await apiUpdateStation(station.id, { name, address, status, lat: bothEmpty ? 0 : latNum!, lng: bothEmpty ? 0 : lngNum! })
+      await apiUpdateStation(station.id, { name, address, status, botKey: botKey || null, lat: bothEmpty ? 0 : latNum!, lng: bothEmpty ? 0 : lngNum! })
       show(t('common.saved'))
       onUpdated()
     } catch (err) {
@@ -434,6 +437,23 @@ function EditStationForm({ station, onUpdated }: { station: Station; onUpdated: 
           <option value="paused">{t('stations.status.paused')}</option>
           <option value="closed">{t('stations.status.closed')}</option>
         </select>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-[13px] font-medium text-[var(--color-ink-secondary)]">{t('stations.bot')}</label>
+        <select
+          value={botKey}
+          onChange={(e) => setBotKey(e.target.value)}
+          className="h-10 w-full rounded-lg border border-[var(--color-border)] px-3 text-[13px] outline-none focus:border-[var(--color-primary)]"
+        >
+          <option value="">{t('stations.bot_none')}</option>
+          {(botKeys ?? []).concat(botKey && !(botKeys ?? []).includes(botKey) ? [botKey] : []).map((k) => (
+            <option key={k} value={k}>
+              {k}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-[11.5px] text-[var(--color-ink-tertiary)]">{t('stations.bot_hint')}</p>
       </div>
 
       <div className="pt-1">
