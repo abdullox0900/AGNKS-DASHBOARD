@@ -378,8 +378,6 @@ const uz = {
 
   // ---------- overview ----------
   'overview.title': 'Umumiy holat',
-  'overview.status_ok': 'Tizim: normal',
-  'overview.status_attention': 'Diqqat: {n}',
   'kpi.receipts': 'Cheklar',
   'kpi.receipts_sum': 'Cheklar summasi',
   'kpi.bonus_issued': 'Berilgan bonus',
@@ -410,7 +408,6 @@ const uz = {
   'map.roads': "Asosiy yo'llar",
   'delta.vs_prev': 'oldingi davrga nisbatan',
   'delta.new': 'yangi',
-  'attention.title': 'Diqqat talab qiladi',
   'notif.title': 'Bildirishnomalar',
   'notif.open_page': 'Sahifaga o\'tish',
   'notif.more': "Yana {n} ta",
@@ -424,9 +421,6 @@ const uz = {
   'chart.hourly': 'Soatlik yuk',
   'chart.heatmap_failed': "Issiqlik xaritasini yuklab bo'lmadi",
   'log.failed': "Hodisalar jurnalini yuklab bo'lmadi",
-  'alert.review': '{n} ta chek tekshiruvni kutmoqda',
-  'alert.dispute': '{n} ta ochiq shikoyat',
-  'alert.large': "{n} ta katta chek ({threshold} va undan ko'p)",
   'promos.active': 'Faol aksiyalar:',
   'promos.until': '{when} gacha',
   'promos.failed': "Aksiyalarni yuklab bo'lmadi",
@@ -1258,8 +1252,6 @@ const ru: Record<DictKey, string> = {
 
   // ---------- overview ----------
   'overview.title': 'Общее состояние',
-  'overview.status_ok': 'Система: в норме',
-  'overview.status_attention': 'Внимание: {n}',
   'kpi.receipts': 'Чеки',
   'kpi.receipts_sum': 'Сумма чеков',
   'kpi.bonus_issued': 'Начислено бонусов',
@@ -1290,7 +1282,6 @@ const ru: Record<DictKey, string> = {
   'map.roads': 'Главные дороги',
   'delta.vs_prev': 'к предыдущему периоду',
   'delta.new': 'новое',
-  'attention.title': 'Требует внимания',
   'notif.title': 'Уведомления',
   'notif.open_page': 'Открыть раздел',
   'notif.more': 'Ещё {n}',
@@ -1304,9 +1295,6 @@ const ru: Record<DictKey, string> = {
   'chart.hourly': 'Почасовая нагрузка',
   'chart.heatmap_failed': 'Не удалось загрузить тепловую карту',
   'log.failed': 'Не удалось загрузить журнал событий',
-  'alert.review': 'Чеков ожидают проверки: {n}',
-  'alert.dispute': 'Открытых жалоб: {n}',
-  'alert.large': 'Крупных чеков: {n} (от {threshold})',
   'promos.active': 'Активные акции:',
   'promos.until': 'до {when}',
   'promos.failed': 'Не удалось загрузить акции',

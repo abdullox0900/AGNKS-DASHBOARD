@@ -93,40 +93,6 @@ export async function apiGetOverview(filter: Filter): Promise<OverviewData> {
   )
 }
 
-export interface AlertItem {
-  type: 'review' | 'dispute' | 'large'
-  icon: string
-  count: number
-  /** large-receipt threshold, so'm (type === 'large') */
-  threshold?: number
-  href: string
-}
-
-export async function apiGetAlerts(filter: Filter): Promise<{ items: AlertItem[] }> {
-  const raw = await unwrap<{ openDisputes: unknown[]; pendingReview: unknown[] }>(
-    http.get('/admin/alerts', { params: { stationIds: stationParams(filter.stationIds) } }),
-  )
-  const items: AlertItem[] = []
-  if (raw.pendingReview.length > 0) {
-    items.push({ type: 'review', icon: 'clock', count: raw.pendingReview.length, href: '/review' })
-  }
-  if (raw.openDisputes.length > 0) {
-    items.push({ type: 'dispute', icon: 'x', count: raw.openDisputes.length, href: '/disputes' })
-  }
-  // root_admin/seo only — other roles get 403 here, which just means no such alert.
-  const large = await apiGetLargeReceipts().catch(() => null)
-  if (large && large.items.length > 0) {
-    items.unshift({
-      type: 'large',
-      icon: 'alert',
-      count: large.items.length,
-      threshold: large.threshold,
-      href: '/large-receipts',
-    })
-  }
-  return { items }
-}
-
 // ---------- Large receipts ----------
 
 export interface LargeReceipt {

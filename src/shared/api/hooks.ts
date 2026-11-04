@@ -1,7 +1,6 @@
 import useSWR from 'swr'
 import {
   apiGetActivePromotions,
-  apiGetAlerts,
   apiGetOverview,
   apiGetStations,
   apiGetTerminals,
@@ -37,13 +36,6 @@ export function useTerminals(stationId: string | null) {
 
 export function useOverview(filters: Filter) {
   return useSWR(filterKey('/admin/overview', filters), () => apiGetOverview(filters), {
-    refreshInterval: 60_000,
-    keepPreviousData: true,
-  })
-}
-
-export function useAlerts(filters: Filter) {
-  return useSWR(filterKey('/admin/alerts', filters), () => apiGetAlerts(filters), {
     refreshInterval: 60_000,
     keepPreviousData: true,
   })

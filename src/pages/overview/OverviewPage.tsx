@@ -4,7 +4,6 @@ import { BonusBudget } from '@/widgets/BonusBudget'
 import { StationRanking } from '@/widgets/StationRanking'
 import { CashierShareDonut, StationShareDonut } from '@/widgets/ShareDonuts'
 import { StationsMap } from '@/widgets/StationsMap'
-import { SystemStatus } from '@/widgets/SystemStatus'
 import { ActivePromotions } from '@/widgets/ActivePromotions'
 import { DailyReceiptsChart } from '@/widgets/charts/DailyReceiptsChart'
 import { HourlyLoadChart } from '@/widgets/charts/HourlyLoadChart'
@@ -23,7 +22,6 @@ export function OverviewPage() {
     <div className="space-y-5">
       <header className="flex flex-wrap items-center gap-3">
         <h1 className="flex-1 text-[24px] font-bold text-[var(--color-ink)]">{t('overview.title')}</h1>
-        <SystemStatus filters={filters} />
       </header>
 
       <ErrorBoundary label={t('kpi.load_failed')}>
