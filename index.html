@@ -14,6 +14,8 @@
         var t = (JSON.parse(localStorage.getItem('agnks-dashboard-ui') || '{}').state || {}).theme || 'dark';
         if (t === 'auto') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         document.documentElement.dataset.theme = t === 'light' ? 'light' : 'dark';
+        var st = JSON.parse(localStorage.getItem('agnks-dashboard-ui') || '{}').state || {};
+        if (/^#[0-9a-f]{6}$/i.test(st.accent || '')) document.documentElement.style.setProperty('--boot-accent', st.accent);
       } catch (e) {}
     </script>
     <style>
@@ -21,10 +23,10 @@
       html[data-theme='light'] #boot { background: #f3f6f9; }
       #boot.boot-hide { opacity: 0; pointer-events: none; }
       #boot svg { width: 112px; height: auto; overflow: visible; }
-      #boot path { fill: none; stroke: #22d3ee; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; animation: boot-draw 2.4s ease-in-out infinite; }
+      #boot path { fill: none; stroke: var(--boot-accent, #22d3ee); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; animation: boot-draw 2.4s ease-in-out infinite; }
       #boot path:nth-child(2) { animation-delay: 0.16s; }
       #boot path:nth-child(3) { animation-delay: 0.32s; }
-      html[data-theme='light'] #boot path { stroke: #0891b2; }
+      html[data-theme='light'] #boot path { stroke: var(--boot-accent, #0891b2); }
       @keyframes boot-draw {
         0% { stroke-dashoffset: 1; }
         40%, 62% { stroke-dashoffset: 0; }

@@ -23,7 +23,7 @@ import { ChangelogPage } from '@/pages/changelog/ChangelogPage'
 import { AttendantsPage } from '@/pages/attendants/AttendantsPage'
 import { FaceIdPage } from '@/pages/faceid/FaceIdPage'
 import { ChangelogPostPage } from '@/pages/changelog/ChangelogPostPage'
-import { ComingSoonPage } from '@/pages/coming-soon/ComingSoonPage'
+import { SettingsPage } from '@/pages/settings/SettingsPage'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -131,7 +131,7 @@ export const router = createBrowserRouter([
           </RequirePermission>
         ),
       },
-      { path: '/settings', element: <ComingSoonPage title="nav.settings" /> },
+      { path: '/settings', element: <SettingsPage /> },
     ],
   },
 ])

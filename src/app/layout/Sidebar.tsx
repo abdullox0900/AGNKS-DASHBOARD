@@ -110,7 +110,7 @@ const GROUPS: NavGroup[] = [
     icon: Settings,
     items: [
       { to: '/changelog', label: 'nav.changelog', icon: Sparkles, permission: 'changelog.view', badgeKey: 'changelog', newSince: '2026-10-12' },
-      { to: '/settings', label: 'nav.settings', icon: Settings, comingSoon: true },
+      { to: '/settings', label: 'nav.settings', icon: Settings, newSince: '2026-11-05' },
     ],
   },
 ]
