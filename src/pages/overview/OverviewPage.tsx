@@ -3,7 +3,6 @@ import { KpiStrip } from '@/widgets/KpiStrip'
 import { BonusBudget } from '@/widgets/BonusBudget'
 import { StationRanking } from '@/widgets/StationRanking'
 import { CashierShareDonut, StationShareDonut } from '@/widgets/ShareDonuts'
-import { AttentionBanner } from '@/widgets/AttentionBanner'
 import { StationsMap } from '@/widgets/StationsMap'
 import { SystemStatus } from '@/widgets/SystemStatus'
 import { ActivePromotions } from '@/widgets/ActivePromotions'
@@ -26,10 +25,6 @@ export function OverviewPage() {
         <h1 className="flex-1 text-[24px] font-bold text-[var(--color-ink)]">{t('overview.title')}</h1>
         <SystemStatus filters={filters} />
       </header>
-
-      <ErrorBoundary label={t('log.failed')}>
-        <AttentionBanner filters={filters} />
-      </ErrorBoundary>
 
       <ErrorBoundary label={t('kpi.load_failed')}>
         <KpiStrip filters={filters} />

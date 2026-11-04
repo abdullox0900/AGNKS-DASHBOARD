@@ -9,6 +9,7 @@ import { Avatar } from '@/shared/ui/Avatar'
 import { NewBadge } from '@/shared/ui/NewBadge'
 import { useProfile } from '@/shared/api/hooks'
 import { ChangePasswordForm } from '@/features/profile/ChangePasswordForm'
+import { NotificationBell } from '@/features/notifications/NotificationBell'
 import { PreferencesBar } from '@/features/preferences/PreferencesBar'
 import { useI18n } from '@/app/providers/I18nProvider'
 import type { DictKey } from '@/shared/config/dictionaries'
@@ -35,6 +36,7 @@ export function Topbar() {
 
       <div className="flex items-center gap-3">
       <PreferencesBar />
+      <NotificationBell />
       <Menu>
         <MenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1.5 outline-none transition-colors hover:bg-[var(--color-surface-alt)] focus-visible:bg-[var(--color-surface-alt)] data-[state=open]:bg-[var(--color-surface-alt)]">
           <Avatar src={profile?.avatar} name={profile?.firstName ?? firstName} size={32} />
