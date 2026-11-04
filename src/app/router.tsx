@@ -22,7 +22,6 @@ import { ProfilePage } from '@/pages/profile/ProfilePage'
 import { ChangelogPage } from '@/pages/changelog/ChangelogPage'
 import { AttendantsPage } from '@/pages/attendants/AttendantsPage'
 import { FaceIdPage } from '@/pages/faceid/FaceIdPage'
-import { NotificationsPage } from '@/pages/notifications/NotificationsPage'
 import { ChangelogPostPage } from '@/pages/changelog/ChangelogPostPage'
 import { ComingSoonPage } from '@/pages/coming-soon/ComingSoonPage'
 
@@ -67,7 +66,6 @@ export const router = createBrowserRouter([
         ),
       },
       { path: '/profile', element: <ProfilePage /> },
-      { path: '/notifications', element: <NotificationsPage /> },
       {
         path: '/faceid',
         element: (
