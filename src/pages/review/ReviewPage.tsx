@@ -276,56 +276,45 @@ function AutoReviewCard() {
     }
   }
 
+  // one slim line: the switch is touched once in a blue moon, so it must not take room from the queue
   return (
-    <Card>
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <div className="flex min-w-0 flex-1 items-start gap-3">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={!!data?.enabled}
-            aria-label={t('review.auto_title')}
-            disabled={!canEdit || !data || busy}
-            onClick={() => data && void save({ enabled: !data.enabled })}
-            className={cn(
-              'relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50',
-              data?.enabled ? 'bg-[var(--color-success)]' : 'bg-[var(--color-border-strong)]',
-            )}
-          >
-            <span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all', data?.enabled ? 'left-[22px]' : 'left-0.5')} />
-          </button>
-          <div className="min-w-0">
-            <p className="flex items-center gap-2 text-[14px] font-semibold text-[var(--color-ink)]">
-              <Bot size={16} className="text-[var(--color-primary)]" /> {t('review.auto_title')} <NewBadge since="2026-10-17" />
-            </p>
-            <p className="mt-0.5 text-[12.5px] leading-relaxed text-[var(--color-ink-tertiary)]">
-              {data?.enabled ? t('review.auto_on_hint', { n: data.delayMin }) : t('review.auto_off_hint')}
-            </p>
-          </div>
-        </div>
-        {data && (
-          <div className="flex items-center gap-2">
-            <span className="text-[12px] font-medium text-[var(--color-ink-secondary)]">{t('review.auto_delay')}</span>
-            <div className="inline-flex gap-1 rounded-lg border border-[var(--color-border)] p-0.5">
-              {AUTO_DELAYS.map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  disabled={!canEdit || busy}
-                  onClick={() => n !== data.delayMin && void save({ delayMin: n })}
-                  className={cn(
-                    'rounded-md px-2.5 py-1 text-[12.5px] font-medium disabled:cursor-default',
-                    data.delayMin === n ? 'bg-[var(--color-primary)] text-[var(--color-primary-ink)]' : 'text-[var(--color-ink-secondary)]',
-                  )}
-                >
-                  {t('review.auto_min', { n })}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </Card>
+    <div
+      className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] px-3 py-2"
+      title={data?.enabled ? t('review.auto_on_hint', { n: data.delayMin }) : t('review.auto_off_hint')}
+    >
+      <button
+        type="button"
+        role="switch"
+        aria-checked={!!data?.enabled}
+        aria-label={t('review.auto_title')}
+        disabled={!canEdit || !data || busy}
+        onClick={() => data && void save({ enabled: !data.enabled })}
+        className={cn('relative h-5 w-9 shrink-0 rounded-full transition-colors disabled:opacity-50', data?.enabled ? 'bg-[var(--color-success)]' : 'bg-[var(--color-border-strong)]')}
+      >
+        <span className={cn('absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all', data?.enabled ? 'left-[18px]' : 'left-0.5')} />
+      </button>
+      <p className="flex shrink-0 items-center gap-1.5 text-[13px] font-semibold text-[var(--color-ink)]">
+        <Bot size={15} className="text-[var(--color-primary)]" /> {t('review.auto_title')} <NewBadge since="2026-10-17" />
+      </p>
+      <p className="hidden min-w-0 flex-1 truncate text-[12px] text-[var(--color-ink-tertiary)] sm:block">
+        {data?.enabled ? t('review.auto_on_short', { n: data.delayMin }) : t('review.auto_off_short')}
+      </p>
+      {data?.enabled && (
+        <select
+          value={data.delayMin}
+          disabled={!canEdit || busy}
+          onChange={(e) => void save({ delayMin: Number(e.target.value) })}
+          aria-label={t('review.auto_delay')}
+          className="ml-auto h-7 shrink-0 rounded-md border border-[var(--color-border)] bg-transparent px-1.5 text-[12px] text-[var(--color-ink-secondary)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60 sm:ml-0"
+        >
+          {AUTO_DELAYS.map((n) => (
+            <option key={n} value={n}>
+              {t('review.auto_min', { n })}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
   )
 }
 
