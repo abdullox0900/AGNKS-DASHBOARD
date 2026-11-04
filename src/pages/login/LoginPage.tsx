@@ -29,7 +29,7 @@ export function LoginPage() {
   const [reveal, setReveal] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [welcome, setWelcome] = useState<{ name: string; x: number; y: number } | null>(null)
+  const [welcome, setWelcome] = useState<{ x: number; y: number } | null>(null)
   const submitRef = useRef<HTMLButtonElement>(null)
   const timer = useRef<number>(undefined)
 
@@ -56,7 +56,6 @@ export function LoginPage() {
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       playLoginSound(sound)
       setWelcome({
-        name: user.firstName,
         x: box ? box.left + box.width / 2 : window.innerWidth / 2,
         y: box ? box.top + box.height / 2 : window.innerHeight / 2,
       })

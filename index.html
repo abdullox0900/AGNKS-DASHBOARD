@@ -20,24 +20,25 @@
       #boot { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: #0a0f16; transition: opacity 0.35s ease; }
       html[data-theme='light'] #boot { background: #f3f6f9; }
       #boot.boot-hide { opacity: 0; pointer-events: none; }
-      #boot svg { width: 44px; height: 44px; animation: boot-rot 1.8s linear infinite; }
-      #boot .track { stroke: #22d3ee; stroke-opacity: 0.14; }
-      #boot .line { stroke: #22d3ee; stroke-linecap: round; animation: boot-dash 1.8s ease-in-out infinite; }
-      html[data-theme='light'] #boot .track, html[data-theme='light'] #boot .line { stroke: #0891b2; }
-      @keyframes boot-rot { to { transform: rotate(360deg); } }
-      @keyframes boot-dash {
-        0% { stroke-dasharray: 0.03 0.97; stroke-dashoffset: 0; }
-        50% { stroke-dasharray: 0.62 0.38; stroke-dashoffset: -0.2; }
-        100% { stroke-dasharray: 0.03 0.97; stroke-dashoffset: -1; }
+      #boot svg { width: 112px; height: auto; overflow: visible; }
+      #boot path { fill: none; stroke: #22d3ee; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; animation: boot-draw 2.4s ease-in-out infinite; }
+      #boot path:nth-child(2) { animation-delay: 0.16s; }
+      #boot path:nth-child(3) { animation-delay: 0.32s; }
+      html[data-theme='light'] #boot path { stroke: #0891b2; }
+      @keyframes boot-draw {
+        0% { stroke-dashoffset: 1; }
+        40%, 62% { stroke-dashoffset: 0; }
+        100% { stroke-dashoffset: -1; }
       }
-      @media (prefers-reduced-motion: reduce) { #boot svg, #boot .line { animation: none; } #boot .line { stroke-dasharray: 0.25 0.75; } }
+      @media (prefers-reduced-motion: reduce) { #boot path { animation: none; stroke-dashoffset: 0; } }
     </style>
   </head>
   <body>
     <div id="boot" aria-hidden="true">
-      <svg viewBox="0 0 44 44" fill="none">
-        <circle class="track" cx="22" cy="22" r="19" stroke-width="1.5" />
-        <circle class="line" cx="22" cy="22" r="19" stroke-width="1.5" pathLength="1" />
+      <svg viewBox="0 0 116 40">
+        <path d="M30 11C26 6 20 4 16 4C8 4 2 10 2 20C2 30 8 36 16 36C20 36 26 34 30 29" pathLength="1" />
+        <path d="M40 36V4L57 24L74 4V36" pathLength="1" />
+        <path d="M114 11C110 6 104 4 100 4C92 4 84 10 84 20C84 30 92 36 100 36C108 36 114 31 114 22V20H100" pathLength="1" />
       </svg>
     </div>
     <div id="root"></div>
