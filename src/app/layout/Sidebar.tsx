@@ -21,6 +21,7 @@ import {
   Store,
   Users,
   Users2,
+  ScanFace,
   UserCheck,
 } from 'lucide-react'
 import { cn } from '@/shared/lib/cn'
@@ -80,6 +81,7 @@ const GROUPS: NavGroup[] = [
       { to: '/cashiers', label: 'nav.cashiers', icon: Users2, permission: 'cashiers.view' },
       { to: '/clients', label: 'nav.clients', icon: Users, permission: 'clients.view' },
       { to: '/attendants', label: 'nav.attendants', icon: UserCheck, permission: 'attendants.view', newSince: '2026-10-12' },
+      { to: '/faceid', label: 'nav.faceid', icon: ScanFace, permission: 'faceid.view', comingSoon: true },
     ],
   },
   {

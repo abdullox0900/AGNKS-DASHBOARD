@@ -32,6 +32,7 @@ export type Permission =
   | 'changelog.view'
   | 'changelog.manage'
   | 'attendants.view'
+  | 'faceid.view'
   | 'attendants.manage'
   | 'feedback.templates'
   | 'feedback.delete'
@@ -53,6 +54,7 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'clients.detail',
     'changelog.view',
     'attendants.view',
+    'faceid.view',
   ],
   // View-only by product decision: sees everything below, changes nothing, and has no Admins section.
   // (The backend enforces this too: any non-GET request from root_admin is refused.)
@@ -71,6 +73,7 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'broadcasts.view',
     'changelog.view',
     'attendants.view',
+    'faceid.view',
   ],
   // The only role that changes things network-wide (stations, admins, clients, bonus, broadcasts...).
   seo: [
@@ -104,6 +107,7 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'changelog.view',
     'changelog.manage',
     'attendants.view',
+    'faceid.view',
     'attendants.manage',
     'feedback.templates',
     'feedback.delete',
