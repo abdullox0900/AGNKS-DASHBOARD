@@ -24,6 +24,7 @@ import { AttendantsPage } from '@/pages/attendants/AttendantsPage'
 import { FaceIdPage } from '@/pages/faceid/FaceIdPage'
 import { ChangelogPostPage } from '@/pages/changelog/ChangelogPostPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
+import { AppearancePage } from '@/pages/settings/AppearancePage'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -132,6 +133,7 @@ export const router = createBrowserRouter([
         ),
       },
       { path: '/settings', element: <SettingsPage /> },
+      { path: '/settings/appearance', element: <AppearancePage /> },
     ],
   },
 ])
