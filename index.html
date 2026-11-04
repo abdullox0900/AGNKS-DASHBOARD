@@ -8,8 +8,38 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AGNKS Dashboard</title>
+    <script>
+      // pick the saved theme before the first paint so the loader does not flash the wrong colours
+      try {
+        var t = (JSON.parse(localStorage.getItem('agnks-dashboard-ui') || '{}').state || {}).theme || 'dark';
+        if (t === 'auto') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.dataset.theme = t === 'light' ? 'light' : 'dark';
+      } catch (e) {}
+    </script>
+    <style>
+      #boot { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: #0a0f16; transition: opacity 0.35s ease; }
+      html[data-theme='light'] #boot { background: #f3f6f9; }
+      #boot.boot-hide { opacity: 0; pointer-events: none; }
+      #boot svg { width: 44px; height: 44px; animation: boot-rot 1.8s linear infinite; }
+      #boot .track { stroke: #22d3ee; stroke-opacity: 0.14; }
+      #boot .line { stroke: #22d3ee; stroke-linecap: round; animation: boot-dash 1.8s ease-in-out infinite; }
+      html[data-theme='light'] #boot .track, html[data-theme='light'] #boot .line { stroke: #0891b2; }
+      @keyframes boot-rot { to { transform: rotate(360deg); } }
+      @keyframes boot-dash {
+        0% { stroke-dasharray: 0.03 0.97; stroke-dashoffset: 0; }
+        50% { stroke-dasharray: 0.62 0.38; stroke-dashoffset: -0.2; }
+        100% { stroke-dasharray: 0.03 0.97; stroke-dashoffset: -1; }
+      }
+      @media (prefers-reduced-motion: reduce) { #boot svg, #boot .line { animation: none; } #boot .line { stroke-dasharray: 0.25 0.75; } }
+    </style>
   </head>
   <body>
+    <div id="boot" aria-hidden="true">
+      <svg viewBox="0 0 44 44" fill="none">
+        <circle class="track" cx="22" cy="22" r="19" stroke-width="1.5" />
+        <circle class="line" cx="22" cy="22" r="19" stroke-width="1.5" pathLength="1" />
+      </svg>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

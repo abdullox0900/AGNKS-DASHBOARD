@@ -12,3 +12,14 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+// the entry loader from index.html fades out once React has painted
+const boot = document.getElementById('boot')
+if (boot) {
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      boot.classList.add('boot-hide')
+      window.setTimeout(() => boot.remove(), 400)
+    }),
+  )
+}
