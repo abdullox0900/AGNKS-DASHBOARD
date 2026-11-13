@@ -239,11 +239,12 @@ export function FaceOverviewPage() {
         </div>
       {/* passes / late / absent */}
       <div className="space-y-4">
-        <section className={cn(card, 'overflow-hidden')}>
+        <section className={cn(card, 'flex min-h-[220px] flex-col overflow-hidden')}>
           <h3 className="flex items-center justify-between px-5 py-3.5 text-[15px] font-semibold text-[var(--color-ink)]">
             {t('fid.passes')}
             <span className="tnum rounded-md bg-[var(--color-surface-alt)] px-2 py-0.5 text-[12px] font-medium text-[var(--color-ink-secondary)]">{scanEvents(date).length}</span>
           </h3>
+          {feed.length === 0 && <p className="flex flex-1 items-center justify-center border-t border-[var(--color-border)] px-5 text-[13px] text-[var(--color-ink-tertiary)]">{t('fid.none')}</p>}
           {feed.map((ev) => (
             <Link key={ev.id} to={`/faceid/employees/${ev.employee.id}`} className="flex items-center gap-3 border-t border-[var(--color-border)] px-4 py-2.5 hover:bg-[var(--color-surface-alt)]">
               <Person e={ev.employee} size={34} />
@@ -259,11 +260,12 @@ export function FaceOverviewPage() {
           ))}
         </section>
 
-        <section className={cn(card, 'overflow-hidden')}>
+        <section className={cn(card, 'flex min-h-[220px] flex-col overflow-hidden')}>
           <h3 className="flex items-center justify-between px-5 py-3.5 text-[15px] font-semibold text-[var(--color-ink)]">
             {t('fid.lates')}
             <span className="tnum rounded-md bg-[var(--color-surface-alt)] px-2 py-0.5 text-[12px] font-medium text-[var(--color-ink-secondary)]">{lates.length}</span>
           </h3>
+          {lates.length === 0 && <p className="flex flex-1 items-center justify-center border-t border-[var(--color-border)] px-5 text-[13px] text-[var(--color-ink-tertiary)]">{t('fid.all_ok')}</p>}
           {lates.slice(0, 6).map((r) => (
             <Link key={r.employee.id} to={`/faceid/employees/${r.employee.id}`} className="flex items-center gap-3 border-t border-[var(--color-border)] px-4 py-2.5 hover:bg-[var(--color-surface-alt)]">
               <Person e={r.employee} size={34} />
@@ -279,11 +281,12 @@ export function FaceOverviewPage() {
           ))}
         </section>
 
-        <section className={cn(card, 'overflow-hidden')}>
+        <section className={cn(card, 'flex min-h-[220px] flex-col overflow-hidden')}>
           <h3 className="flex items-center justify-between px-5 py-3.5 text-[15px] font-semibold text-[var(--color-ink)]">
             {t('fid.absentees')}
             <span className="tnum rounded-md bg-[var(--color-surface-alt)] px-2 py-0.5 text-[12px] font-medium text-[var(--color-ink-secondary)]">{absents.length}</span>
           </h3>
+          {absents.length === 0 && <p className="flex flex-1 items-center justify-center border-t border-[var(--color-border)] px-5 text-[13px] text-[var(--color-ink-tertiary)]">{t('fid.all_ok')}</p>}
           {absents.slice(0, 6).map((r) => (
             <AbsentRow key={r.employee.id} r={r} date={date} />
           ))}
