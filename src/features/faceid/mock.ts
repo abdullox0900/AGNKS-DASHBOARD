@@ -124,13 +124,16 @@ export const LIVE = {
   branchIdx: new Map<string, number>(),
 }
 
+/** TimeFace branch names carry the company in front ("Универсал метан сервис МЧЖ — Нурсух"); the screens only need the station. */
+const shortName = (n: string) => n.split(' — ').pop()!.trim() || n
+
 export function applyBase(branches: ApiBranch[], employees: ApiEmployee[]): void {
   LIVE.on = true
   LIVE.branchIdx = new Map(branches.map((b, i) => [b.id, i]))
   BRANCHES.splice(
     0,
     BRANCHES.length,
-    ...branches.map((b, i) => ({ id: i, name: b.name, terminal: { id: b.id, name: `Terminal ${i + 1}`, online: b.online, lastSeenMin: b.online ? undefined : (b.lastSeenMin ?? undefined) } })),
+    ...branches.map((b, i) => ({ id: i, name: shortName(b.name), terminal: { id: b.id, name: `Terminal ${i + 1}`, online: b.online, lastSeenMin: b.online ? undefined : (b.lastSeenMin ?? undefined) } })),
   )
   EMPLOYEES.splice(
     0,
