@@ -16,10 +16,8 @@ createRoot(document.getElementById('root')!).render(
 // the entry loader from index.html fades out once React has painted
 const boot = document.getElementById('boot')
 if (boot) {
-  requestAnimationFrame(() =>
-    requestAnimationFrame(() => {
-      boot.classList.add('boot-hide')
-      window.setTimeout(() => boot.remove(), 400)
-    }),
-  )
+  window.setTimeout(() => {
+    boot.classList.add('boot-hide')
+    window.setTimeout(() => boot.remove(), 400)
+  }, 80)
 }
