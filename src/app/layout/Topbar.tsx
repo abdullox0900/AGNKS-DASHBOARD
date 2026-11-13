@@ -47,7 +47,7 @@ export function Topbar() {
           <ChevronDown size={14} className="text-[var(--color-ink-tertiary)]" />
         </MenuTrigger>
         <MenuContent align="end" className="w-52">
-          <MenuItem onSelect={() => navigate('/profile')}>
+          <MenuItem onSelect={() => navigate('/settings/profile')}>
             <UserRound size={14} /> {t('profile.menu')} <NewBadge since="2026-10-12" className="ml-auto" />
           </MenuItem>
           <MenuItem onSelect={() => setPasswordOpen(true)}>

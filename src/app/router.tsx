@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { Navigate, createBrowserRouter } from 'react-router-dom'
 import { AuthGuard } from './AuthGuard'
 import { RequirePermission } from './RequirePermission'
 import { AppLayout } from './layout/AppLayout'
@@ -28,7 +28,7 @@ import { FaceAnalyticsPage } from '@/pages/faceid/AnalyticsPage'
 import { BranchesPage } from '@/pages/faceid/BranchesPage'
 import { EmployeePage } from '@/pages/faceid/EmployeePage'
 import { ChangelogPostPage } from '@/pages/changelog/ChangelogPostPage'
-import { SettingsPage } from '@/pages/settings/SettingsPage'
+import { SettingsLayout, ToSettings } from '@/pages/settings/SettingsPage'
 import { AppearancePage } from '@/pages/settings/AppearancePage'
 
 export const router = createBrowserRouter([
@@ -56,23 +56,6 @@ export const router = createBrowserRouter([
       { path: '/bonus', element: <BonusPage /> },
       { path: '/bonus-report', element: <BonusReportPage /> },
       {
-        path: '/data-fix',
-        element: (
-          <RequirePermission permission="dataFix.manage">
-            <DataFixPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: '/admins',
-        element: (
-          <RequirePermission permission="admins.manage">
-            <AdminsPage />
-          </RequirePermission>
-        ),
-      },
-      { path: '/profile', element: <ProfilePage /> },
-      {
         path: '/faceid',
         element: (
           <RequirePermission permission="faceid.view">
@@ -95,22 +78,6 @@ export const router = createBrowserRouter([
           </RequirePermission>
         ),
       },
-      {
-        path: '/changelog',
-        element: (
-          <RequirePermission permission="changelog.view">
-            <ChangelogPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: '/changelog/:id',
-        element: (
-          <RequirePermission permission="changelog.view">
-            <ChangelogPostPage />
-          </RequirePermission>
-        ),
-      },
       { path: '/clients', element: <ClientsPage /> },
       {
         path: '/clients/:id',
@@ -129,23 +96,28 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: '/broadcasts',
-        element: (
-          <RequirePermission permission="broadcasts.view">
-            <BroadcastsPage />
-          </RequirePermission>
-        ),
+        path: '/settings',
+        element: <SettingsLayout />,
+        children: [
+          { index: true, element: <Navigate to="profile" replace /> },
+          { path: 'profile', element: <ProfilePage /> },
+          { path: 'appearance', element: <AppearancePage /> },
+          { path: 'admins', element: <RequirePermission permission="admins.manage"><AdminsPage /></RequirePermission> },
+          { path: 'audit', element: <RequirePermission permission="audit.view"><AuditPage /></RequirePermission> },
+          { path: 'data-fix', element: <RequirePermission permission="dataFix.manage"><DataFixPage /></RequirePermission> },
+          { path: 'changelog', element: <RequirePermission permission="changelog.view"><ChangelogPage /></RequirePermission> },
+          { path: 'changelog/:id', element: <RequirePermission permission="changelog.view"><ChangelogPostPage /></RequirePermission> },
+          { path: 'broadcasts', element: <RequirePermission permission="broadcasts.view"><BroadcastsPage /></RequirePermission> },
+        ],
       },
-      {
-        path: '/audit',
-        element: (
-          <RequirePermission permission="audit.view">
-            <AuditPage />
-          </RequirePermission>
-        ),
-      },
-      { path: '/settings', element: <SettingsPage /> },
-      { path: '/settings/appearance', element: <AppearancePage /> },
+      // old addresses → their place in Sozlamalar
+      { path: '/profile', element: <ToSettings to="profile" /> },
+      { path: '/admins', element: <ToSettings to="admins" /> },
+      { path: '/audit', element: <ToSettings to="audit" /> },
+      { path: '/data-fix', element: <ToSettings to="data-fix" /> },
+      { path: '/changelog', element: <ToSettings to="changelog" /> },
+      { path: '/changelog/:id', element: <ToSettings to="changelog" /> },
+      { path: '/broadcasts', element: <ToSettings to="broadcasts" /> },
     ],
   },
 ])

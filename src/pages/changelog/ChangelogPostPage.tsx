@@ -35,14 +35,14 @@ export function ChangelogPostPage() {
       await apiChangelogRemove(id)
       show(t('changelog.deleted'))
       void globalMutate('/admin/changelog')
-      navigate('/changelog', { replace: true })
+      navigate('/settings/changelog', { replace: true })
     } catch {
       show(t('common.error_generic'))
     }
   }
 
   const back = (
-    <Link to="/changelog" className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--color-ink-tertiary)] transition-colors hover:text-[var(--color-ink)]">
+    <Link to="/settings/changelog" className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--color-ink-tertiary)] transition-colors hover:text-[var(--color-ink)]">
       <ArrowLeft size={15} /> {t('changelog.title')}
     </Link>
   )

@@ -86,7 +86,7 @@ export function ChangelogPage() {
                 {m.items.map((post) => (
                   <li key={post.id}>
                     <Link
-                      to={`/changelog/${post.id}`}
+                      to={`/settings/changelog/${post.id}`}
                       className="group flex items-center gap-4 rounded-md px-2 py-2.5 outline-none transition-colors hover:bg-[var(--color-surface-alt)] focus-visible:bg-[var(--color-surface-alt)]"
                     >
                       <span className="tnum w-[64px] shrink-0 text-[12.5px] text-[var(--color-ink-tertiary)]">{formatDateShort(post.createdAt)}</span>

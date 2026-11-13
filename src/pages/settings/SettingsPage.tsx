@@ -1,33 +1,70 @@
-import { Link } from 'react-router-dom'
-import { ChevronRight, Palette } from 'lucide-react'
+import { NavLink, Navigate, Outlet, useParams } from 'react-router-dom'
+import { PageTitle } from '@/shared/ui/PageTitle'
+import { useChangelogUnread } from '@/features/changelog/useChangelogUnread'
+import { roleHasPermission, type Permission } from '@/shared/lib/permissions'
+import { useAuthStore } from '@/shared/config/authStore'
+import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
 import type { DictKey } from '@/shared/config/dictionaries'
 
-const SECTIONS: { to: string; icon: React.ComponentType<{ size?: number }>; title: DictKey }[] = [
-  { to: '/settings/appearance', icon: Palette, title: 'settings.appearance' },
+interface Section {
+  to: string
+  label: DictKey
+  permission?: Permission
+  badge?: 'changelog'
+}
+
+/** Pages people open rarely live here instead of the main menu. */
+export const SETTINGS_SECTIONS: Section[] = [
+  { to: 'profile', label: 'settings.profile' },
+  { to: 'appearance', label: 'settings.appearance' },
+  { to: 'admins', label: 'nav.admins', permission: 'admins.manage' },
+  { to: 'audit', label: 'nav.audit', permission: 'audit.view' },
+  { to: 'data-fix', label: 'nav.data_fix', permission: 'dataFix.manage' },
+  { to: 'changelog', label: 'nav.changelog', permission: 'changelog.view', badge: 'changelog' },
+  { to: 'broadcasts', label: 'nav.broadcasts', permission: 'broadcasts.view' },
 ]
 
-/** Sozlamalar: the list of settings sections; each one is a page of its own. */
-export function SettingsPage() {
+/** Sozlamalar: section list on the left, the chosen section on the right. */
+export function SettingsLayout() {
   const { t } = useI18n()
+  const role = useAuthStore((s) => s.role)
+  const unread = useChangelogUnread()
+  const sections = SETTINGS_SECTIONS.filter((s) => !s.permission || roleHasPermission(role, s.permission))
+
   return (
-    <div className="w-full max-w-3xl">
-      <h2 className="text-[26px] font-bold tracking-tight text-[var(--color-ink)]">{t('nav.settings')}</h2>
-      <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
-        {SECTIONS.map((s) => (
-          <Link
-            key={s.to}
-            to={s.to}
-            className="group flex items-center gap-3 rounded-xl border border-[var(--color-border)] px-4 py-3.5 transition-colors hover:bg-[var(--color-surface-alt)]"
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
-              <s.icon size={18} />
-            </span>
-            <span className="flex-1 text-[14.5px] font-semibold text-[var(--color-ink)] group-hover:text-[var(--color-primary)]">{t(s.title)}</span>
-            <ChevronRight size={16} className="text-[var(--color-ink-tertiary)]" />
-          </Link>
-        ))}
+    <div className="w-full">
+      <PageTitle title={t('nav.settings')} sub={t('settings.subtitle')} />
+      <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <nav className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
+          {sections.map((s) => (
+            <NavLink
+              key={s.to}
+              to={`/settings/${s.to}`}
+              className={({ isActive }) =>
+                cn(
+                  'flex shrink-0 items-center justify-between gap-3 rounded-xl border px-4 py-2.5 text-[14.5px] font-medium transition-colors',
+                  isActive
+                    ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]'
+                    : 'border-transparent text-[var(--color-ink)] hover:bg-[var(--color-surface-alt)]',
+                )
+              }
+            >
+              {t(s.label)}
+              {s.badge === 'changelog' && unread > 0 && <span className="font-mono text-[12px] font-bold text-[var(--color-amber)]">{unread}</span>}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="min-w-0">
+          <Outlet />
+        </div>
       </div>
     </div>
   )
+}
+
+/** Old addresses (bookmarks, links in messages) keep working. */
+export function ToSettings({ to }: { to: string }) {
+  const { id } = useParams()
+  return <Navigate to={`/settings/${to}${id ? `/${id}` : ''}`} replace />
 }

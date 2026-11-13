@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Check, ChevronLeft, Monitor, Moon, RotateCcw, Sun } from 'lucide-react'
+import { Check, Monitor, Moon, RotateCcw, Sun } from 'lucide-react'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
@@ -152,9 +151,6 @@ export function AppearancePage() {
     <div className="w-full max-w-5xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link to="/settings" className="inline-flex items-center gap-1 text-[12.5px] font-medium text-[var(--color-ink-tertiary)] hover:text-[var(--color-primary)]">
-            <ChevronLeft size={14} /> {t('nav.settings')}
-          </Link>
           <h2 className="mt-1 text-[26px] font-bold tracking-tight text-[var(--color-ink)]">{t('settings.appearance')}</h2>
         </div>
         <Button variant="ghost" size="sm" onClick={reset} disabled={!dirty}>
