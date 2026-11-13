@@ -23,6 +23,7 @@ import { ChangelogPage } from '@/pages/changelog/ChangelogPage'
 import { AttendantsPage } from '@/pages/attendants/AttendantsPage'
 import { FaceIdLayout } from '@/pages/faceid/FaceIdLayout'
 import { TodayPage } from '@/pages/faceid/TodayPage'
+import { BranchesPage } from '@/pages/faceid/BranchesPage'
 import { LogPage } from '@/pages/faceid/LogPage'
 import { TimesheetPage } from '@/pages/faceid/TimesheetPage'
 import { UnrecognizedPage } from '@/pages/faceid/UnrecognizedPage'
@@ -81,6 +82,7 @@ export const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <TodayPage /> },
+          { path: 'branches', element: <BranchesPage /> },
           { path: 'log', element: <LogPage /> },
           { path: 'timesheet', element: <TimesheetPage /> },
           { path: 'unrecognized', element: <UnrecognizedPage /> },

@@ -2,7 +2,8 @@
  * SAMPLE DATA for the FaceID section until it is connected to TimeFace (face-recognition terminals, separate system).
  * Deterministic: the same date always gives the same day, so the screens look the same on every visit.
  */
-export type Status = 'came' | 'late' | 'absent' | 'off'
+/** pending = a later shift that has not started yet (today only) */
+export type Status = 'came' | 'late' | 'absent' | 'off' | 'pending'
 
 export interface Terminal {
   id: string
@@ -102,18 +103,22 @@ export function dayRecord(e: Employee, date: string): DayRecord | null {
   if (dow(date) === 0) return { employee: e, status: 'off' }
   const r = rnd(`${e.id}|${date}`)
   if (r < 0.07) return { employee: e, status: 'absent' }
+  const isToday = date === today
+  // today only: some people work the afternoon shift and have not arrived yet
+  if (isToday && rnd(`${e.id}|${date}|s`) < 0.13) return { employee: e, status: 'pending' }
   const late = r > 0.83
   const inMin = late ? 8 * 60 + 6 + Math.floor(rnd(`${e.id}|${date}|l`) * 58) : 7 * 60 + 42 + Math.floor(rnd(`${e.id}|${date}|i`) * 18)
-  const isToday = date === today
-  const leaveMin = 17 * 60 + Math.floor((rnd(`${e.id}|${date}|o`) - 0.5) * 40)
-  const out = isToday ? undefined : hhmm(leaveMin)
-  const end = isToday ? Math.round(NOW_H * 60) : leaveMin
-  return { employee: e, status: late ? 'late' : 'came', in: hhmm(inMin), out, late: late ? inMin - 8 * 60 : undefined, worked: Math.max(0, end - inMin - (isToday ? 0 : 60)), now: isToday }
+  // today only: some people have already left (half-day / morning shift)
+  const leftEarly = isToday && rnd(`${e.id}|${date}|x`) < 0.2
+  const leaveMin = leftEarly ? 11 * 60 + 20 + Math.floor(rnd(`${e.id}|${date}|y`) * 100) : 17 * 60 + Math.floor((rnd(`${e.id}|${date}|o`) - 0.5) * 40)
+  const out = isToday && !leftEarly ? undefined : hhmm(leaveMin)
+  const end = isToday && !leftEarly ? Math.round(NOW_H * 60) : leaveMin
+  return { employee: e, status: late ? 'late' : 'came', in: hhmm(inMin), out, late: late ? inMin - 8 * 60 : undefined, worked: Math.max(0, end - inMin - (isToday || leftEarly ? 0 : 60)), now: isToday && !leftEarly }
 }
 
 export const dayRecords = (date: string): DayRecord[] => EMPLOYEES.flatMap((e) => dayRecord(e, date) ?? [])
 
-export const STATUS_ORDER: Record<Status, number> = { late: 0, absent: 1, came: 2, off: 3 }
+export const STATUS_ORDER: Record<Status, number> = { late: 0, absent: 1, came: 2, pending: 3, off: 4 }
 export const here = (list: DayRecord[]) => list.filter((r) => r.status === 'came' || r.status === 'late').length
 export const countOf = (list: DayRecord[], s: Status) => list.filter((r) => r.status === s).length
 export const workedLabel = (min?: number) => (min === undefined ? '—' : `${Math.floor(min / 60)} s ${String(min % 60).padStart(2, '0')} d`)

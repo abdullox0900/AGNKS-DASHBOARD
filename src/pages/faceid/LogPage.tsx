@@ -10,7 +10,7 @@ import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
 
 const PAGE = 14
-const FILTERS: (Status | 'all')[] = ['all', 'came', 'late', 'absent', 'off']
+const FILTERS: (Status | 'all')[] = ['all', 'came', 'late', 'absent', 'pending', 'off']
 
 /** "Jurnal": every employee of the day in one list, filterable; a record can be corrected by hand (with a reason). */
 export function LogPage() {

@@ -9,6 +9,7 @@ export const STATUS_META: Record<Status, { label: DictKey; dot: string; chip: st
   came: { label: 'fid.s_came', dot: 'bg-[var(--color-success)]', chip: 'bg-[var(--color-success-soft)] text-[var(--color-success)]', cell: 'bg-[var(--color-success-soft)] text-[var(--color-success)]' },
   late: { label: 'fid.s_late', dot: 'bg-[var(--color-amber)]', chip: 'bg-[var(--color-amber-soft)] text-[var(--color-amber)]', cell: 'bg-[var(--color-amber-soft)] text-[var(--color-amber)]' },
   absent: { label: 'fid.s_absent', dot: 'bg-[var(--color-danger)]', chip: 'bg-[var(--color-danger-soft)] text-[var(--color-danger)]', cell: 'bg-[var(--color-danger-soft)] text-[var(--color-danger)]' },
+  pending: { label: 'fid.s_pending', dot: 'border border-[var(--color-ink-tertiary)] bg-transparent', chip: 'border border-[var(--color-border)] text-[var(--color-ink-tertiary)]', cell: 'bg-[var(--color-surface-alt)] text-[var(--color-ink-tertiary)]' },
   off: { label: 'fid.s_off', dot: 'bg-[var(--color-ink-tertiary)]', chip: 'bg-[var(--color-surface-alt)] text-[var(--color-ink-tertiary)]', cell: 'bg-[var(--color-surface-alt)] text-[var(--color-ink-tertiary)]' },
 }
 
@@ -66,6 +67,7 @@ export function Tile({ label, value, tone }: { label: string; value: React.React
 
 const TABS: { to: string; label: DictKey; end?: boolean }[] = [
   { to: '/faceid', label: 'fid.tab_today', end: true },
+  { to: '/faceid/branches', label: 'fid.tab_branches' },
   { to: '/faceid/log', label: 'fid.tab_log' },
   { to: '/faceid/timesheet', label: 'fid.tab_timesheet' },
   { to: '/faceid/unrecognized', label: 'fid.tab_unrecognized' },
