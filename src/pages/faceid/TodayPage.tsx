@@ -114,20 +114,26 @@ export function TodayPage() {
           <p className="tnum flex items-baseline gap-2">
             <span className="text-[68px] font-semibold leading-none tracking-tight text-[var(--color-ink)]">{isToday ? nHere : came.length}</span>
             <span className="text-[22px] font-medium text-[var(--color-ink-tertiary)]">/ {staff.length}</span>
+            <span className="ml-1 hidden self-end pb-1.5 text-[13px] font-medium text-[var(--color-ink-secondary)] 2xl:block">{isToday ? t('fid.hero_now') : t('fid.hero_came')}</span>
           </p>
         </div>
         <div>
           <div className={cn('grid gap-4', stats.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3')}>
             {stats.map((s) => (
-              <div key={s.label} title={s.label} className="flex items-center gap-3 border-l border-[var(--color-border)] pl-4">
-                <s.icon size={20} className={s.tone} />
-                <span className="tnum text-[30px] font-semibold leading-none text-[var(--color-ink)]">{s.n}</span>
-                {s.sub !== undefined && (
-                  <span className="tnum flex items-center gap-1 text-[13px] font-medium text-[var(--color-amber)]" title={t('fid.of_late', { n: s.sub })}>
-                    <Clock size={13} />
-                    {s.sub}
-                  </span>
-                )}
+              <div key={s.label} className="border-l border-[var(--color-border)] pl-4">
+                <p className="flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--color-ink-secondary)]">
+                  <s.icon size={15} className={s.tone} />
+                  {s.label}
+                </p>
+                <p className="mt-1.5 flex items-baseline gap-2">
+                  <span className="tnum text-[30px] font-semibold leading-none text-[var(--color-ink)]">{s.n}</span>
+                  {s.sub !== undefined && (
+                    <span className="tnum flex items-center gap-1 text-[12.5px] font-medium text-[var(--color-amber)]" title={t('fid.of_late', { n: s.sub })}>
+                      <Clock size={12} />
+                      {s.sub}
+                    </span>
+                  )}
+                </p>
               </div>
             ))}
           </div>
@@ -138,6 +144,7 @@ export function TodayPage() {
       {offline.length > 0 && isToday && (
         <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-2.5" title={t('fid.warn_terminals', { n: offline.length })}>
           <WifiOff size={16} className="text-[var(--color-danger)]" />
+          <span className="text-[13px] font-medium text-[var(--color-ink)]">{t('fid.warn_terminals', { n: offline.length })}</span>
           {offline.map((b) => (
             <span key={b.id} className="rounded-md bg-[var(--color-surface-alt)] px-2 py-0.5 text-[12.5px] font-medium text-[var(--color-ink)]">
               {b.name}
@@ -151,8 +158,8 @@ export function TodayPage() {
           {/* branches table */}
           <section className={cn(card, 'overflow-hidden')}>
             <div className="flex items-center justify-between px-5 pt-4">
-              <h3 className={cap} title={t('fid.branches')}>
-                <Building2 size={16} />
+              <h3 className={cn(cap, 'flex items-center gap-2')}>
+                <Building2 size={16} /> {t('fid.branches')}
               </h3>
               <Link to="/faceid/branches" className="text-[12.5px] font-medium text-[var(--color-ink-secondary)] hover:text-[var(--color-ink)]">
                 →
@@ -211,8 +218,8 @@ export function TodayPage() {
           {/* day timeline */}
           <section className={cn(card, 'overflow-hidden')}>
             <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-4">
-              <h3 className={cap} title={t('fid.day_sheet')}>
-                <CalendarClock size={16} />
+              <h3 className={cn(cap, 'flex items-center gap-2')}>
+                <CalendarClock size={16} /> {t('fid.day_sheet')}
               </h3>
               <div className="flex gap-1 rounded-lg border border-[var(--color-border)] p-0.5 text-[12.5px] font-medium">
                 {tabs.map((tab) => (
@@ -299,7 +306,10 @@ export function TodayPage() {
         <div className="space-y-5">
           <section className={cn(card, 'p-4')}>
             <h3 className={cn(cap, 'mb-2 flex items-center justify-between')} title={t('fid.lates')}>
-              <Clock size={16} className="text-[var(--color-amber)]" /> <span className="tnum text-[var(--color-ink-secondary)]">{lates.length}</span>
+              <span className="flex items-center gap-2">
+                <Clock size={16} /> {t('fid.lates')}
+              </span>
+              <span className="tnum text-[var(--color-ink-secondary)]">{lates.length}</span>
             </h3>
             {lates.length === 0 ? (
               <p className="py-5 text-center text-[13px] text-[var(--color-ink-tertiary)]">{t('fid.all_ok')}</p>
@@ -329,7 +339,7 @@ export function TodayPage() {
           <section className={cn(card, 'p-4')}>
             <h3 className={cn(cap, 'mb-2 flex items-center justify-between')}>
               <span className="flex items-center gap-2" title={t('fid.feed')}>
-                <Activity size={16} />
+                <Activity size={16} /> {t('fid.feed')}
                 {isToday && (
                   <span className="flex items-center gap-1 rounded-full bg-[var(--color-surface-alt)] px-2 py-0.5 text-[10.5px] font-semibold normal-case tracking-normal text-[var(--color-ink-secondary)]">
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-success)]" />
