@@ -7,7 +7,7 @@ import { BRANCHES, MONTH_NAMES, MONTH_NAMES_RU, SHIFT_HOURS, dow, employeeById, 
 import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
 
-const card = 'rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]'
+const card = 'fid-card rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]'
 const shiftMonth = (ym: string, n: number) => {
   const [y, m] = ym.split('-').map(Number)
   const d = new Date(Date.UTC(y, m - 1 + n, 1))
@@ -111,7 +111,7 @@ export function EmployeePage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1 text-[13.5px]">
+        <div className="flex items-center gap-1 fid-card rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1 text-[13.5px]">
           <button type="button" onClick={() => setYm(shiftMonth(ym, -1))} aria-label={t('fid.prev_month')} className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]">
             <ChevronLeft size={16} />
           </button>

@@ -68,9 +68,13 @@ const initials = (n: string) =>
     .slice(0, 2)
     .join('')
 
-/** Round initials badge standing in for the face photo. */
-export function Person({ e, size = 34 }: { e: Pick<Employee, 'name'>; size?: number }) {
+/** The face photo when TimeFace has one, otherwise round initials. */
+export function Person({ e, size = 34 }: { e: Pick<Employee, 'name' | 'photo'>; size?: number }) {
+  const [broken, setBroken] = useState(false)
   const h = hue(e.name)
+  if (e.photo && !broken) {
+    return <img src={e.photo} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} className="shrink-0 rounded-full bg-[var(--color-surface-alt)] object-cover" style={{ width: size, height: size }} />
+  }
   return (
     <span
       className="inline-flex shrink-0 items-center justify-center rounded-full font-semibold"

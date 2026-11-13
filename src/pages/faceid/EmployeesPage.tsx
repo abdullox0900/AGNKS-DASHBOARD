@@ -51,14 +51,14 @@ export function EmployeesPage() {
         title={t('fid.emp_title')}
         sub={t('fid.emp_sub', { n: all.length, b: BRANCHES.length })}
         right={
-          <label className="flex h-10 w-full max-w-[300px] items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[var(--color-ink-tertiary)] sm:w-[280px]">
+          <label className="flex h-10 w-full max-w-[300px] items-center gap-2 fid-card rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[var(--color-ink-tertiary)] sm:w-[280px]">
             <Search size={16} />
             <input value={q} onChange={(e) => (setQ(e.target.value), setPage(0))} placeholder={t('fid.emp_search')} className="min-w-0 flex-1 bg-transparent text-[13.5px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink-tertiary)]" />
           </label>
         }
       />
 
-      <section className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+      <section className="overflow-hidden fid-card rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
         <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5">
           <h3 className="text-[15px] font-semibold text-[var(--color-ink)]">{t('fid.emp_all')}</h3>
           <div className="flex gap-1.5">

@@ -80,7 +80,7 @@ export function BranchesPage() {
         title={t('fid.tab_branches')}
         sub={t('fid.br_sub', { n: BRANCHES.length, on: online, date: dayLabel(date, locale) })}
         right={
-          <label className="flex h-10 w-full max-w-[300px] items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[var(--color-ink-tertiary)] sm:w-[260px]">
+          <label className="flex h-10 w-full max-w-[300px] items-center gap-2 fid-card rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[var(--color-ink-tertiary)] sm:w-[260px]">
             <Search size={16} />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('fid.br_search')} className="min-w-0 flex-1 bg-transparent text-[13.5px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink-tertiary)]" />
           </label>
@@ -93,7 +93,7 @@ export function BranchesPage() {
           const blind = isToday && !b.terminal.online
           const here = list.filter((r) => (isToday ? r.now : r.status === 'came' || r.status === 'late')).length
           return (
-            <a key={b.id} href={`#b${b.id}`} className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2 text-[13px] font-semibold text-[var(--color-ink)] hover:bg-[var(--color-surface-alt)]">
+            <a key={b.id} href={`#b${b.id}`} className="flex items-center gap-2 fid-card rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2 text-[13px] font-semibold text-[var(--color-ink)] hover:bg-[var(--color-surface-alt)]">
               {b.terminal.online ? <Wifi size={15} className="text-[var(--color-success)]" /> : <WifiOff size={15} className="text-[var(--color-ink-tertiary)]" />}
               {b.name}
               <span className={cn('tnum text-[12.5px]', blind ? 'text-[var(--color-ink-tertiary)]' : 'text-[var(--color-success)]')}>{blind ? '—' : `${here}/${list.length}`}</span>
@@ -115,7 +115,7 @@ export function BranchesPage() {
           const blind = isToday && !b.terminal.online
           const st = (r: DayRecord) => dstate(r, isToday)
           return (
-            <section key={b.id} id={`b${b.id}`} className="min-w-0 scroll-mt-4 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+            <section key={b.id} id={`b${b.id}`} className="min-w-0 scroll-mt-4 overflow-hidden fid-card rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
               <header className="flex items-center justify-between gap-3 px-5 py-3.5">
                 <h4 className="flex items-center gap-2 text-[15px] font-semibold text-[var(--color-ink)]">
                   {b.terminal.online ? <Wifi size={15} className="text-[var(--color-success)]" /> : <WifiOff size={15} className="text-[var(--color-ink-tertiary)]" />}

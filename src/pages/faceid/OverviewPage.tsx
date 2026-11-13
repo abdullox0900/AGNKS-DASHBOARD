@@ -10,7 +10,7 @@ import { PageHead } from './FaceIdLayout'
 import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
 
-const card = 'rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]'
+const card = 'fid-card rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]'
 const th = 'px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-ink-tertiary)]'
 type Mode = 'all' | 'here' | 'late' | 'left'
 
@@ -103,8 +103,10 @@ export function FaceOverviewPage() {
         {isToday && <Stat icon={Clock} label={t('fid.t_pending')} value={nPending} tone="text-[var(--color-primary)]" sub={t('fid.sub_pending')} />}
       </div>
 
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0 space-y-4">
       {/* branches */}
-      <section className={cn(card, 'mt-4 overflow-hidden')}>
+      <section className={cn(card, 'overflow-hidden')}>
         <div className="flex items-center justify-between px-5 py-3.5">
           <h3 className="text-[15px] font-semibold text-[var(--color-ink)]">{t('fid.branches')}</h3>
           <Button variant="ghost" size="sm" onClick={() => show(t('fid.sample_toast'))}>
@@ -112,7 +114,7 @@ export function FaceOverviewPage() {
           </Button>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-[13.5px]">
+          <table className="w-full min-w-[640px] text-[13.5px]">
             <thead className="bg-[var(--color-surface-alt)]/60">
               <tr>
                 <th className={th}>{t('fid.col_branch')}</th>
@@ -157,7 +159,7 @@ export function FaceOverviewPage() {
       </section>
 
       {/* day table */}
-      <section className={cn(card, 'mt-4 overflow-hidden')}>
+      <section className={cn(card, 'overflow-hidden')}>
         <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5">
           <h3 className="text-[15px] font-semibold text-[var(--color-ink)]">{t('fid.day_sheet')}</h3>
           <div className="flex gap-1.5">
@@ -174,7 +176,7 @@ export function FaceOverviewPage() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-[13.5px]">
+          <table className="w-full min-w-[680px] text-[13.5px]">
             <thead className="bg-[var(--color-surface-alt)]/60">
               <tr>
                 <th className={cn(th, 'pl-5')}>{t('fid.c_employee')}</th>
@@ -189,9 +191,12 @@ export function FaceOverviewPage() {
               {rows.map((r) => (
                 <tr key={r.employee.id} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-alt)]">
                   <td className="px-3 py-2.5 pl-5">
-                    <Link to={`/faceid/employees/${r.employee.id}`} className="block">
-                      <span className="block font-semibold text-[var(--color-ink)]">{r.employee.name}</span>
-                      <span className="block text-[12px] text-[var(--color-ink-tertiary)]">{r.employee.position}</span>
+                    <Link to={`/faceid/employees/${r.employee.id}`} className="flex items-center gap-3">
+                      <Person e={r.employee} size={34} />
+                      <span>
+                        <span className="block font-semibold text-[var(--color-ink)]">{r.employee.name}</span>
+                        <span className="block text-[12px] text-[var(--color-ink-tertiary)]">{r.employee.position}</span>
+                      </span>
                     </Link>
                   </td>
                   <td className="px-3 py-2.5">
@@ -216,8 +221,9 @@ export function FaceOverviewPage() {
         </div>
       </section>
 
+        </div>
       {/* passes / late / absent */}
-      <div className="mt-4 grid gap-4 xl:grid-cols-3">
+      <div className="space-y-4">
         <section className={cn(card, 'overflow-hidden')}>
           <h3 className="flex items-center justify-between px-5 py-3.5 text-[15px] font-semibold text-[var(--color-ink)]">
             {t('fid.passes')}
@@ -267,6 +273,7 @@ export function FaceOverviewPage() {
             <AbsentRow key={r.employee.id} r={r} date={date} />
           ))}
         </section>
+      </div>
       </div>
     </div>
   )

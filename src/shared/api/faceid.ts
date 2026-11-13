@@ -17,6 +17,8 @@ export interface ApiEmployee {
   position: string
   branchId: string
   shift: 'day' | 'night'
+  /** absolute URL of the face photo, when TimeFace gives one */
+  photo?: string | null
 }
 export type ApiStatus = 'came' | 'late' | 'absent' | 'off' | 'pending'
 export interface ApiRecord {

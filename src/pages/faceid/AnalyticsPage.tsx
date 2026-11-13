@@ -8,7 +8,7 @@ import { PageHead } from './FaceIdLayout'
 import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
 
-const card = 'rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]'
+const card = 'fid-card rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]'
 const PERIODS = [7, 30, 90] as const
 const REASONS: Record<Reason, { icon: LucideIcon; key: 'fid.rs_sick' | 'fid.rs_leave' | 'fid.rs_none' | 'fid.rs_trip' | 'fid.rs_other' }> = {
   sick: { icon: HeartPulse, key: 'fid.rs_sick' },
@@ -67,7 +67,7 @@ export function FaceAnalyticsPage() {
         title={t('fid.an_title')}
         sub={t('fid.an_sub', { b: BRANCHES.length, n: EMPLOYEES.length })}
         right={
-          <div className="flex rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1 text-[13px] font-medium">
+          <div className="flex fid-card rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1 text-[13px] font-medium">
             {PERIODS.map((p) => (
               <button key={p} type="button" onClick={() => setDays(p)} className={cn('rounded-lg px-4 py-1.5', days === p ? 'bg-[var(--color-primary)] text-[var(--color-primary-ink)]' : 'text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]')}>
                 {t(`fid.p_${p}` as const)}

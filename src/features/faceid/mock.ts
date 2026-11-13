@@ -28,6 +28,7 @@ export interface Employee {
   position: string
   branch: number
   shift: Shift
+  photo?: string
 }
 export interface DayRecord {
   employee: Employee
@@ -140,7 +141,7 @@ export function applyBase(branches: ApiBranch[], employees: ApiEmployee[]): void
     EMPLOYEES.length,
     ...employees
       .filter((e) => LIVE.branchIdx.has(e.branchId))
-      .map((e) => ({ id: e.id, name: e.name, position: e.position, branch: LIVE.branchIdx.get(e.branchId)!, shift: e.shift }) as Employee)
+      .map((e) => ({ id: e.id, name: e.name, position: e.position, branch: LIVE.branchIdx.get(e.branchId)!, shift: e.shift, photo: e.photo ?? undefined }) as Employee)
       .sort((a, b) => a.branch - b.branch || a.name.localeCompare(b.name)),
   )
 }
