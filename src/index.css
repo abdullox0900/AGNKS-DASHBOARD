@@ -265,3 +265,34 @@ body {
 .fid-photo-card { animation: fid-pop 0.14s ease-out; transform-origin: var(--radix-hover-card-content-transform-origin); }
 @keyframes fid-pop { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .fid-photo-card { animation: none; } }
+
+/* react-day-picker in the dashboard palette */
+.rdp-root.agnks-rdp {
+  --rdp-accent-color: var(--color-primary);
+  --rdp-accent-background-color: var(--color-primary-soft);
+  --rdp-range_middle-background-color: var(--color-primary-soft);
+  --rdp-range_middle-color: var(--color-ink);
+  --rdp-range_start-color: var(--color-primary-ink);
+  --rdp-range_end-color: var(--color-primary-ink);
+  --rdp-range_start-date-background-color: var(--color-primary);
+  --rdp-range_end-date-background-color: var(--color-primary);
+  --rdp-today-color: var(--color-primary);
+  --rdp-day-height: 36px;
+  --rdp-day-width: 36px;
+  --rdp-day_button-height: 34px;
+  --rdp-day_button-width: 34px;
+  --rdp-nav-height: 36px;
+  --rdp-selected-border: 0;
+  --rdp-range_start-background: linear-gradient(var(--rdp-gradient-direction), transparent 50%, var(--color-primary-soft) 50%);
+  --rdp-range_end-background: linear-gradient(var(--rdp-gradient-direction), var(--color-primary-soft) 50%, transparent 50%);
+  color: var(--color-ink);
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+.agnks-rdp .rdp-caption_label { font-size: 14px; font-weight: 600; padding-left: 6px; }
+.agnks-rdp .rdp-weekday { color: var(--color-ink-tertiary); font-size: 11.5px; font-weight: 500; }
+.agnks-rdp .rdp-outside { color: var(--color-ink-tertiary); opacity: 0.5; }
+.agnks-rdp .rdp-disabled { opacity: 0.3; }
+.agnks-rdp .rdp-chevron { fill: var(--color-ink-secondary); }
+.agnks-rdp .rdp-day_button { border-radius: 8px; }
+.agnks-rdp .rdp-day:not(.rdp-range_middle):not(.rdp-selected) .rdp-day_button:hover { background: var(--color-surface-alt); }

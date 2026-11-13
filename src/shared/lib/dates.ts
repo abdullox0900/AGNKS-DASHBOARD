@@ -8,7 +8,10 @@ const dfLocale = () => (getLocale() === 'ru' ? ru : uz)
 
 export const TASHKENT_TZ = 'Asia/Tashkent'
 
-export type PeriodPreset = 'today' | 'yesterday' | '7d' | '30d' | 'this_month' | 'last_month' | 'custom'
+export type PeriodPreset = 'today' | 'yesterday' | '7d' | '30d' | 'this_month' | 'last_month' | 'all' | 'custom'
+
+/** the first day the system holds data for — "all time" starts here */
+export const ALL_TIME_FROM = '2025-01-01'
 
 export interface PeriodRange {
   preset: PeriodPreset
@@ -43,6 +46,8 @@ export function resolvePreset(preset: PeriodPreset): { from: Date; to: Date } {
       return { from: startOfTashkentDay(subDays(now, 29)), to: endOfTashkentDay(now) }
     case 'this_month':
       return { from: startOfTashkentDay(startOfMonth(now)), to: endOfTashkentDay(now) }
+    case 'all':
+      return { from: startOfTashkentDay(fromZonedTime(new Date(`${ALL_TIME_FROM}T00:00:00`), TASHKENT_TZ)), to: endOfTashkentDay(now) }
     case 'last_month': {
       const lastMonth = subMonths(now, 1)
       return { from: startOfTashkentDay(startOfMonth(lastMonth)), to: endOfTashkentDay(endOfMonth(lastMonth)) }
@@ -108,6 +113,7 @@ export const PERIOD_KEYS: Record<PeriodPreset, DictKey> = {
   '30d': 'period.30d',
   this_month: 'period.this_month',
   last_month: 'period.last_month',
+  all: 'period.all',
   custom: 'period.custom',
 }
 

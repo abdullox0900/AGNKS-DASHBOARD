@@ -300,13 +300,13 @@ export const defaultNote = (r: DayRecord): string => (r.status === 'absent' && r
 // ---------- analytics ----------
 export interface Analytics {
   attendance: number
-  attendanceDelta: number
+  attendanceDelta: number | null
   avgIn: string
-  avgInDelta: number
+  avgInDelta: number | null
   lateShare: number
-  lateShareDelta: number
+  lateShareDelta: number | null
   avgWorked: string
-  avgWorkedDelta: string
+  avgWorkedDelta: string | null
   byHour: { hour: number; n: number }[]
   top: { employee: Employee; pct: number; onTime: number; days: number }[]
   lates7: { dow: number; n: number }[]
@@ -351,6 +351,7 @@ export function analytics(days: number): Analytics {
   const share = (a: Agg) => (a.came ? (a.late / a.came) * 100 : 0)
   const avgIn = (a: Agg) => (a.inN ? a.inSum / a.inN : 0)
   const avgW = (a: Agg) => (a.workedN ? a.workedSum / a.workedN : 0)
+  const hasPrev = prev.came + prev.absent > 0
 
   const byHour = Array.from({ length: 14 }, (_, i) => ({ hour: 6 + i, n: 0 }))
   const perEmp = new Map<string, { onTime: number; days: number; late: number }>()
@@ -398,14 +399,14 @@ export function analytics(days: number): Analytics {
 
   return {
     attendance: Math.round(pct(cur)),
-    attendanceDelta: Math.round(pct(cur) - pct(prev)),
+    attendanceDelta: hasPrev ? Math.round(pct(cur) - pct(prev)) : null,
     avgIn: hhmm(Math.round(avgIn(cur))),
-    avgInDelta: Math.round(avgIn(cur) - avgIn(prev)),
+    avgInDelta: hasPrev && prev.inN ? Math.round(avgIn(cur) - avgIn(prev)) : null,
     lateShare: Math.round(share(cur)),
-    lateShareDelta: Math.round(share(cur) - share(prev)),
+    lateShareDelta: hasPrev ? Math.round(share(cur) - share(prev)) : null,
     avgWorked: hm(avgW(cur)),
-    avgWorkedDelta: (avgW(cur) - avgW(prev) >= 0 ? '+' : '−') + hm(Math.abs(avgW(cur) - avgW(prev))),
-    byHour: byHour.map((h) => ({ ...h, n: Math.round(h.n / days) })),
+    avgWorkedDelta: hasPrev && prev.workedN ? (avgW(cur) - avgW(prev) >= 0 ? '+' : '−') + hm(Math.abs(avgW(cur) - avgW(prev))) : null,
+    byHour,
     top,
     lates7,
     reasons: [...reasons.entries()].map(([reason, n]) => ({ reason, n })).sort((x, y) => y.n - x.n),

@@ -6,6 +6,7 @@ import 'yet-another-react-lightbox/styles.css'
 import { NavLink, useSearchParams } from 'react-router-dom'
 import { Check, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, CircleX, Clock, LogOut, type LucideIcon } from 'lucide-react'
 import { useToast } from '@/shared/ui/Toast'
+import { Skeleton } from '@/shared/ui/Skeleton'
 import { apiFaceSaveNote } from '@/shared/api/faceid'
 import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
@@ -207,7 +208,59 @@ export function FaceWait({ load }: { load: FaceLoad }) {
       </div>
     )
   }
-  return <p className="py-20 text-center text-[14px] text-[var(--color-ink-tertiary)]">{t('common.loading')}</p>
+  return <FaceSkeleton />
+}
+
+/** Placeholder shaped like a FaceID page (stat cards + a table) while the data is on its way. */
+export function FaceSkeleton() {
+  return (
+    <div aria-busy="true" className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="fid-card rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+            <Skeleton className="h-3.5 w-24" />
+            <Skeleton className="mt-3 h-8 w-16" />
+            <Skeleton className="mt-3 h-3 w-32" />
+          </div>
+        ))}
+      </div>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="fid-card overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+          <div className="px-5 py-4">
+            <Skeleton className="h-4 w-32" />
+          </div>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 border-t border-[var(--color-border)] px-5 py-3">
+              <Skeleton className="h-[42px] w-[42px] rounded-full" />
+              <div className="flex-1">
+                <Skeleton className="h-3.5 w-44" />
+                <Skeleton className="mt-2 h-3 w-24" />
+              </div>
+              <Skeleton className="hidden h-3.5 w-14 sm:block" />
+              <Skeleton className="hidden h-3.5 w-24 md:block" />
+              <Skeleton className="h-3.5 w-16" />
+            </div>
+          ))}
+        </div>
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="fid-card rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+              <Skeleton className="h-4 w-28" />
+              {Array.from({ length: 3 }).map((_, j) => (
+                <div key={j} className="mt-4 flex items-center gap-3">
+                  <Skeleton className="h-[38px] w-[38px] rounded-full" />
+                  <div className="flex-1">
+                    <Skeleton className="h-3 w-32" />
+                    <Skeleton className="mt-1.5 h-2.5 w-20" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ---------- shell ----------

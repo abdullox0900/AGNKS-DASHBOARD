@@ -18,9 +18,9 @@ const REASONS: Record<Reason, { icon: LucideIcon; key: 'fid.rs_sick' | 'fid.rs_l
   other: { icon: MoreHorizontal, key: 'fid.rs_other' },
 }
 
-function Kpi({ icon: Icon, label, value, delta, goodWhenUp = true }: { icon: LucideIcon; label: string; value: string; delta: string; goodWhenUp?: boolean }) {
-  const up = !delta.startsWith('−') && !delta.startsWith('-')
-  const good = up === goodWhenUp
+function Kpi({ icon: Icon, label, value, delta, goodWhenUp = true }: { icon: LucideIcon; label: string; value: string; delta: string | null; goodWhenUp?: boolean }) {
+  const up = !!delta && !delta.startsWith('−') && !delta.startsWith('-')
+    const good = up === goodWhenUp
   return (
     <div className={cn(card, 'flex items-center gap-3.5 px-4 py-4')}>
       <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
@@ -30,7 +30,7 @@ function Kpi({ icon: Icon, label, value, delta, goodWhenUp = true }: { icon: Luc
         <p className="text-[12.5px] text-[var(--color-ink-secondary)]">{label}</p>
         <p className="tnum flex items-baseline gap-2 text-[26px] font-bold leading-tight text-[var(--color-ink)]">
           {value}
-          <span className={cn('text-[12.5px] font-semibold', good ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]')}>{delta}</span>
+          {delta && <span className={cn('text-[12.5px] font-semibold', good ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]')}>{delta}</span>}
         </p>
       </div>
     </div>
@@ -78,23 +78,23 @@ export function FaceAnalyticsPage() {
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi icon={TrendingUp} label={t('fid.k_att')} value={`${a.attendance}%`} delta={signed(a.attendanceDelta, '%')} />
-        <Kpi icon={Clock} label={t('fid.k_avg_in')} value={a.avgIn} delta={`${a.avgInDelta >= 0 ? '+' : '−'}${Math.abs(a.avgInDelta)} ${locale === 'ru' ? 'мин' : 'daq'}`} goodWhenUp={false} />
-        <Kpi icon={TriangleAlert} label={t('fid.k_late_share')} value={`${a.lateShare}%`} delta={signed(a.lateShareDelta, '%')} goodWhenUp={false} />
+        <Kpi icon={TrendingUp} label={t('fid.k_att')} value={`${a.attendance}%`} delta={a.attendanceDelta === null ? null : signed(a.attendanceDelta, '%')} />
+        <Kpi icon={Clock} label={t('fid.k_avg_in')} value={a.avgIn} delta={a.avgInDelta === null ? null : `${a.avgInDelta >= 0 ? '+' : '−'}${Math.abs(a.avgInDelta)} ${locale === 'ru' ? 'мин' : 'daq'}`} goodWhenUp={false} />
+        <Kpi icon={TriangleAlert} label={t('fid.k_late_share')} value={`${a.lateShare}%`} delta={a.lateShareDelta === null ? null : signed(a.lateShareDelta, '%')} goodWhenUp={false} />
         <Kpi icon={Timer} label={t('fid.k_hours')} value={a.avgWorked} delta={a.avgWorkedDelta} />
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-3">
-        <section className={cn(card, 'p-5')}>
+        <section className={cn(card, 'flex flex-col p-5')}>
           <h3 className="flex items-center justify-between text-[15px] font-semibold text-[var(--color-ink)]">
             {t('fid.ch_entries')}
-            <span className="text-[12.5px] font-normal text-[var(--color-ink-tertiary)]">{t('fid.ch_peak', { h: `${String(peak.hour).padStart(2, '0')}:00` })}</span>
+            <span className="text-[12.5px] font-normal text-[var(--color-ink-tertiary)]">{peak.n > 0 ? t('fid.ch_peak', { h: `${String(peak.hour).padStart(2, '0')}:00` }) : ''}</span>
           </h3>
-          <div className="mt-4 flex h-[220px] items-end gap-1.5">
+          <div className="mt-4 flex min-h-[220px] flex-1 items-end gap-1.5">
             {a.byHour.map((h) => (
               <div key={h.hour} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
                 <span className="tnum text-[11px] text-[var(--color-ink-secondary)]">{h.n}</span>
-                <div className={cn('w-full rounded-t-md', h.hour === peak.hour ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-track)]')} style={{ height: `${Math.max(2, (h.n / maxHour) * 82)}%` }} />
+                <div className={cn('w-full rounded-t-md', h.hour === peak.hour && peak.n > 0 ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-track)]')} style={{ height: `${Math.max(2, (h.n / maxHour) * 82)}%` }} />
                 <span className="tnum text-[11px] text-[var(--color-ink-tertiary)]">{String(h.hour).padStart(2, '0')}</span>
               </div>
             ))}
@@ -127,16 +127,16 @@ export function FaceAnalyticsPage() {
           </div>
         </section>
 
-        <section className={cn(card, 'p-5')}>
+        <section className={cn(card, 'flex flex-col p-5')}>
           <h3 className="flex items-center justify-between text-[15px] font-semibold text-[var(--color-ink)]">
             {t('fid.ch_lates7')}
             <span className="text-[12.5px] font-normal text-[var(--color-ink-tertiary)]">{t('fid.ch_total', { n: a.lates7.reduce((s, d) => s + d.n, 0) })}</span>
           </h3>
-          <div className="mt-4 flex h-[220px] items-end gap-3">
+          <div className="mt-4 flex min-h-[220px] flex-1 items-end gap-3">
             {a.lates7.map((d) => (
               <div key={d.dow} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
                 <span className="tnum text-[12px] font-medium text-[var(--color-ink-secondary)]">{d.n}</span>
-                <div className={cn('w-full rounded-t-md', d === maxPeak ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-track)]')} style={{ height: `${Math.max(2, (d.n / maxLate) * 78)}%` }} />
+                <div className={cn('w-full rounded-t-md', d === maxPeak && maxPeak.n > 0 ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-track)]')} style={{ height: `${Math.max(2, (d.n / maxLate) * 78)}%` }} />
                 <span className="text-[12px] text-[var(--color-ink-tertiary)]">{wd[d.dow]}</span>
               </div>
             ))}
