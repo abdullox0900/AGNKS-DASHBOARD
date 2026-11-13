@@ -110,7 +110,8 @@ export function DataTable<T>({
   })
 
   const rows = table.getRowModel().rows
-  const shouldVirtualize = rows.length > VIRTUALIZE_THRESHOLD
+  // the page scrolls, not the table — so no inner scroll box and no virtualization
+  const shouldVirtualize = false && rows.length > VIRTUALIZE_THRESHOLD
 
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -193,9 +194,9 @@ export function DataTable<T>({
   ) : data.length === 0 ? (
     <EmptyState title={emptyMessage ?? t('common.no_data')} />
   ) : (
-    <div ref={parentRef} className="overflow-auto" style={{ maxHeight }}>
+    <div ref={parentRef} className="overflow-x-auto" data-max-height={maxHeight}>
       <table className="w-full border-collapse">
-        <thead className="sticky top-0 z-[2] bg-[var(--color-surface-alt)]">
+        <thead className="bg-[var(--color-surface-alt)]">
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
               {index && <th className={cn(thBase, 'w-14 text-left')}>#</th>}
@@ -239,7 +240,7 @@ export function DataTable<T>({
             )}
           </tbody>
           {footer && (
-            <tfoot className="sticky bottom-0 z-[2] bg-[var(--color-surface-alt)]">
+            <tfoot className="bg-[var(--color-surface-alt)]">
               <tr>
                 {index && <td className="border-t border-[var(--color-border-strong)] px-4 py-3.5" />}
                 {table.getVisibleLeafColumns().map((col) => {

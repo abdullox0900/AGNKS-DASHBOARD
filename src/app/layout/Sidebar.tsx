@@ -11,7 +11,6 @@ import {
   Percent,
   Coins,
   Settings,
-  Store,
   Users,
   Users2,
   ScanFace,
@@ -44,7 +43,7 @@ const MENU: NavItem[] = [
   { to: '/analytics', label: 'nav.analytics', icon: BarChart3, permission: 'analytics.view' },
   { to: '/review', label: 'nav.review', icon: ClipboardList, permission: 'review.view', badgeKey: 'review' },
   { to: '/disputes', label: 'nav.feedback', icon: MessageSquareWarning, permission: 'disputes.view', badgeKey: 'disputes' },
-  { to: '/stations', label: 'nav.stations', icon: Store, permission: 'stations.view' },
+  // "Filiallar" lives in Sozlamalar (rarely opened)
   { to: '/cashiers', label: 'nav.cashiers', icon: Users2, permission: 'cashiers.view' },
   { to: '/clients', label: 'nav.clients', icon: Users, permission: 'clients.view' },
   // "Zapravkachilar" (/attendants) is hidden from the menu for now — the page and its route stay.
@@ -104,12 +103,12 @@ function ItemLink({ item, collapsed, counts, indent, railIcon }: { item: NavItem
           aria-label={t(item.label)}
           className={({ isActive }) =>
             cn(
-              'relative flex items-center rounded-lg border-l-2 py-2 text-[13px] font-medium transition-colors',
+              'relative flex items-center rounded-lg py-2 text-[13px] font-medium transition-colors',
               collapsed ? 'h-[var(--rail-item,40px)] justify-center px-0' : 'justify-between px-2.5',
               indent && !collapsed && 'py-1.5',
               isActive
-                ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]'
-                : 'border-transparent text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]',
+                ? 'bg-[var(--color-primary-soft)] text-[var(--color-primary)]'
+                : 'text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]',
             )
           }
         >

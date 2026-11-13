@@ -5,7 +5,7 @@ import { AppLayout } from './layout/AppLayout'
 import { LoginPage } from '@/pages/login/LoginPage'
 import { OverviewPage } from '@/pages/overview/OverviewPage'
 import { AnalyticsPage } from '@/pages/analytics/AnalyticsPage'
-import { ReviewPage } from '@/pages/review/ReviewPage'
+import { AutoReviewCard, ReviewPage } from '@/pages/review/ReviewPage'
 import { DisputesPage } from '@/pages/disputes/DisputesPage'
 import { CashiersPage } from '@/pages/cashiers/CashiersPage'
 import { StationsPage } from '@/pages/stations/StationsPage'
@@ -45,14 +45,6 @@ export const router = createBrowserRouter([
       { path: '/review', element: <ReviewPage /> },
       { path: '/disputes', element: <DisputesPage /> },
       { path: '/cashiers', element: <CashiersPage /> },
-      {
-        path: '/stations',
-        element: (
-          <RequirePermission permission="stations.view">
-            <StationsPage />
-          </RequirePermission>
-        ),
-      },
       { path: '/bonus', element: <BonusPage /> },
       { path: '/bonus-report', element: <BonusReportPage /> },
       {
@@ -102,6 +94,8 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="profile" replace /> },
           { path: 'profile', element: <ProfilePage /> },
           { path: 'appearance', element: <AppearancePage /> },
+          { path: 'stations', element: <RequirePermission permission="stations.view"><StationsPage /></RequirePermission> },
+          { path: 'auto-review', element: <RequirePermission permission="review.view"><AutoReviewCard /></RequirePermission> },
           { path: 'admins', element: <RequirePermission permission="admins.manage"><AdminsPage /></RequirePermission> },
           { path: 'audit', element: <RequirePermission permission="audit.view"><AuditPage /></RequirePermission> },
           { path: 'data-fix', element: <RequirePermission permission="dataFix.manage"><DataFixPage /></RequirePermission> },
@@ -112,6 +106,7 @@ export const router = createBrowserRouter([
       },
       // old addresses → their place in Sozlamalar
       { path: '/profile', element: <ToSettings to="profile" /> },
+      { path: '/stations', element: <ToSettings to="stations" /> },
       { path: '/admins', element: <ToSettings to="admins" /> },
       { path: '/audit', element: <ToSettings to="audit" /> },
       { path: '/data-fix', element: <ToSettings to="data-fix" /> },

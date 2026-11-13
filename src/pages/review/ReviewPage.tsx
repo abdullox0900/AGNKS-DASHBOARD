@@ -254,7 +254,7 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
 const AUTO_DELAYS = [5, 10, 30, 60]
 
 /** "Avto-tekshiruv": the program re-checks receipts soliq.uz couldn't confirm and credits the bonus itself. */
-function AutoReviewCard() {
+export function AutoReviewCard() {
   const { t } = useI18n()
   const { show } = useToast()
   const { mutate: globalMutate } = useSWRConfig()
@@ -324,7 +324,6 @@ export function ReviewPage() {
   const [tab, setTab] = useState<'queue' | 'history'>('queue')
   return (
     <div className="space-y-4">
-      <AutoReviewCard />
       <div className="inline-flex gap-1 rounded-lg border border-[var(--color-border)] p-0.5">
         {(['queue', 'history'] as const).map((key) => (
           <button

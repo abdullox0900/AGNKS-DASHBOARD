@@ -18,6 +18,8 @@ interface Section {
 export const SETTINGS_SECTIONS: Section[] = [
   { to: 'profile', label: 'settings.profile' },
   { to: 'appearance', label: 'settings.appearance' },
+  { to: 'stations', label: 'nav.stations', permission: 'stations.view' },
+  { to: 'auto-review', label: 'settings.auto_review', permission: 'review.view' },
   { to: 'admins', label: 'nav.admins', permission: 'admins.manage' },
   { to: 'audit', label: 'nav.audit', permission: 'audit.view' },
   { to: 'data-fix', label: 'nav.data_fix', permission: 'dataFix.manage' },
