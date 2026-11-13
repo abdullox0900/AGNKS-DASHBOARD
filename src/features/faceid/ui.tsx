@@ -1,4 +1,8 @@
 import { useState } from 'react'
+import { HoverCard } from 'radix-ui'
+import Lightbox from 'yet-another-react-lightbox'
+import Zoom from 'yet-another-react-lightbox/plugins/zoom'
+import 'yet-another-react-lightbox/styles.css'
 import { NavLink, useSearchParams } from 'react-router-dom'
 import { Check, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, CircleX, Clock, LogOut, type LucideIcon } from 'lucide-react'
 import { useToast } from '@/shared/ui/Toast'
@@ -68,20 +72,58 @@ const initials = (n: string) =>
     .slice(0, 2)
     .join('')
 
-/** The face photo when TimeFace has one, otherwise round initials. */
-export function Person({ e, size = 34 }: { e: Pick<Employee, 'name' | 'photo'>; size?: number }) {
+/**
+ * The face photo when TimeFace has one, otherwise round initials. Hovering a photo shows it larger with the
+ * name; clicking opens it full-screen (zoomable). The click never reaches the row link around it.
+ */
+export function Person({ e, size = 34 }: { e: Pick<Employee, 'name' | 'photo'> & { position?: string }; size?: number }) {
   const [broken, setBroken] = useState(false)
+  const [open, setOpen] = useState(false)
   const h = hue(e.name)
-  if (e.photo && !broken) {
-    return <img src={e.photo} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} className="shrink-0 rounded-full bg-[var(--color-surface-alt)] object-cover" style={{ width: size, height: size }} />
+  if (!e.photo || broken) {
+    return (
+      <span
+        className="inline-flex shrink-0 items-center justify-center rounded-full font-semibold"
+        style={{ width: size, height: size, fontSize: size * 0.34, background: `hsl(${h} 50% 50% / 0.16)`, color: `hsl(${h} 60% 62%)` }}
+      >
+        {initials(e.name)}
+      </span>
+    )
+  }
+  const stop = (ev: React.SyntheticEvent) => {
+    ev.preventDefault()
+    ev.stopPropagation()
   }
   return (
-    <span
-      className="inline-flex shrink-0 items-center justify-center rounded-full font-semibold"
-      style={{ width: size, height: size, fontSize: size * 0.34, background: `hsl(${h} 50% 50% / 0.16)`, color: `hsl(${h} 60% 62%)` }}
-    >
-      {initials(e.name)}
-    </span>
+    <>
+      <HoverCard.Root openDelay={250} closeDelay={80}>
+        <HoverCard.Trigger asChild>
+          <button
+            type="button"
+            aria-label={e.name}
+            onClick={(ev) => (stop(ev), setOpen(true))}
+            className="shrink-0 cursor-zoom-in rounded-full outline-none ring-[var(--color-primary)] transition-transform hover:scale-105 focus-visible:ring-2"
+            style={{ width: size, height: size }}
+          >
+            <img src={e.photo} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} className="h-full w-full rounded-full bg-[var(--color-surface-alt)] object-cover" />
+          </button>
+        </HoverCard.Trigger>
+        <HoverCard.Portal>
+          <HoverCard.Content side="right" align="center" sideOffset={10} className="fid-photo-card z-50 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl" onClick={stop}>
+            <img src={e.photo} alt={e.name} className="block h-[220px] w-[220px] object-cover" />
+            <div className="px-3.5 py-2.5">
+              <p className="text-[13.5px] font-semibold text-[var(--color-ink)]">{e.name}</p>
+              {e.position && <p className="text-[12px] text-[var(--color-ink-tertiary)]">{e.position}</p>}
+            </div>
+          </HoverCard.Content>
+        </HoverCard.Portal>
+      </HoverCard.Root>
+      {open && (
+        <span onClick={stop} className="contents">
+          <Lightbox open close={() => setOpen(false)} slides={[{ src: e.photo, alt: e.name }]} plugins={[Zoom]} zoom={{ maxZoomPixelRatio: 3 }} carousel={{ finite: true }} render={{ buttonPrev: () => null, buttonNext: () => null }} controller={{ closeOnBackdropClick: true }} />
+        </span>
+      )}
+    </>
   )
 }
 

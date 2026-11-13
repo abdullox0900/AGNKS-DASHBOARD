@@ -260,3 +260,8 @@ body {
 
 /* FaceID top band: the same surface as every other card, in both themes */
 .fid-band { background: var(--color-surface); border: 1px solid var(--color-border); }
+
+/* FaceID photo hover card */
+.fid-photo-card { animation: fid-pop 0.14s ease-out; transform-origin: var(--radix-hover-card-content-transform-origin); }
+@keyframes fid-pop { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .fid-photo-card { animation: none; } }

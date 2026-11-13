@@ -23,7 +23,7 @@ function Row({ r, date, isToday, blind }: { r: DayRecord; date: string; isToday:
     <tr className="border-t border-[var(--color-border)] align-top">
       <td className="px-3 py-2.5 pl-5">
         <Link to={`/faceid/employees/${r.employee.id}`} className="flex items-center gap-3">
-          <Person e={r.employee} size={34} />
+          <Person e={r.employee} size={42} />
           <span>
             <span className="block font-semibold text-[var(--color-ink)] hover:underline">{r.employee.name}</span>
             <span className="block text-[12px] text-[var(--color-ink-tertiary)]">{r.employee.position}</span>

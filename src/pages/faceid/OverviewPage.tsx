@@ -32,7 +32,7 @@ function AbsentRow({ r, date }: { r: DayRecord; date: string }) {
   const { note, reason } = useNote(r, date)
   return (
     <Link to={`/faceid/employees/${r.employee.id}`} className="flex items-center gap-3 border-t border-[var(--color-border)] px-4 py-2.5 first:border-0 hover:bg-[var(--color-surface-alt)]">
-      <Person e={r.employee} size={34} />
+      <Person e={r.employee} size={42} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[13.5px] font-semibold text-[var(--color-ink)]">{r.employee.name}</span>
         <span className="block truncate text-[12px] text-[var(--color-ink-tertiary)]">
@@ -207,7 +207,7 @@ export function FaceOverviewPage() {
                 <tr key={r.employee.id} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-alt)]">
                   <td className="px-3 py-2.5 pl-5">
                     <Link to={`/faceid/employees/${r.employee.id}`} className="flex items-center gap-3">
-                      <Person e={r.employee} size={34} />
+                      <Person e={r.employee} size={42} />
                       <span>
                         <span className="block font-semibold text-[var(--color-ink)]">{r.employee.name}</span>
                         <span className="block text-[12px] text-[var(--color-ink-tertiary)]">{r.employee.position}</span>
@@ -247,7 +247,7 @@ export function FaceOverviewPage() {
           {feed.length === 0 && <p className="flex flex-1 items-center justify-center border-t border-[var(--color-border)] px-5 text-[13px] text-[var(--color-ink-tertiary)]">{t('fid.none')}</p>}
           {feed.map((ev) => (
             <Link key={ev.id} to={`/faceid/employees/${ev.employee.id}`} className="flex items-center gap-3 border-t border-[var(--color-border)] px-4 py-2.5 hover:bg-[var(--color-surface-alt)]">
-              <Person e={ev.employee} size={34} />
+              <Person e={ev.employee} size={42} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13.5px] font-semibold text-[var(--color-ink)]">{ev.employee.name}</span>
                 <span className="block truncate text-[12px] text-[var(--color-ink-tertiary)]">{ev.branch.name}</span>
@@ -268,7 +268,7 @@ export function FaceOverviewPage() {
           {lates.length === 0 && <p className="flex flex-1 items-center justify-center border-t border-[var(--color-border)] px-5 text-[13px] text-[var(--color-ink-tertiary)]">{t('fid.all_ok')}</p>}
           {lates.slice(0, 6).map((r) => (
             <Link key={r.employee.id} to={`/faceid/employees/${r.employee.id}`} className="flex items-center gap-3 border-t border-[var(--color-border)] px-4 py-2.5 hover:bg-[var(--color-surface-alt)]">
-              <Person e={r.employee} size={34} />
+              <Person e={r.employee} size={42} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13.5px] font-semibold text-[var(--color-ink)]">{r.employee.name}</span>
                 <span className="block truncate text-[12px] text-[var(--color-ink-tertiary)]">

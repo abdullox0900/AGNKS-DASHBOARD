@@ -59,6 +59,9 @@ importers:
       swr:
         specifier: ^2.5.1
         version: 2.5.1(react@19.3.0)
+      yet-another-react-lightbox:
+        specifier: 3.32.2
+        version: 3.32.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod:
         specifier: ^4.6.5
         version: 4.6.5
@@ -1964,6 +1967,20 @@ packages:
       yaml:
         optional: true
 
+  yet-another-react-lightbox@3.32.2:
+    resolution: {integrity: sha512-F4HtHQfUNpvkj+AmECgWM4XRdCqMY5gXpKgOUx39+T+FyxLe8II4SK/pwMyYj2X54KH9lFSQeHYY1/GfYf3SdA==}
+    engines: {node: '>=14'}
+    peerDependencies:
+      '@types/react': ^16 || ^17 || ^18 || ^19
+      '@types/react-dom': ^16 || ^17 || ^18 || ^19
+      react: ^16.8.0 || ^17 || ^18 || ^19
+      react-dom: ^16.8.0 || ^17 || ^18 || ^19
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      '@types/react-dom':
+        optional: true
+
   zod@4.6.5:
     resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
 
@@ -3632,6 +3649,14 @@ snapshots:
       '@types/node': 24.13.6
       fsevents: 2.3.3
       jiti: 2.7.0
+
+  yet-another-react-lightbox@3.32.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+    dependencies:
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+    optionalDependencies:
+      '@types/react': 19.3.0
+      '@types/react-dom': 19.3.0(@types/react@19.3.0)
 
   zod@4.6.5: {}
 

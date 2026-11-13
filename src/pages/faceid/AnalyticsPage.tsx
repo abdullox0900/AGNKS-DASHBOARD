@@ -109,7 +109,7 @@ export function FaceAnalyticsPage() {
           <div className="mt-3">
             {a.top.map((x) => (
               <Link key={x.employee.id} to={`/faceid/employees/${x.employee.id}`} className="flex items-center gap-3 border-t border-[var(--color-border)] py-2.5 first:border-0">
-                <Person e={x.employee} size={34} />
+                <Person e={x.employee} size={42} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13.5px] font-semibold text-[var(--color-ink)]">{x.employee.name}</span>
                   <span className="block truncate text-[12px] text-[var(--color-ink-tertiary)]">
@@ -178,7 +178,7 @@ export function FaceAnalyticsPage() {
           <div className="mt-3">
             {a.frequent.map((f) => (
               <Link key={f.employee.id} to={`/faceid/employees/${f.employee.id}`} className="flex items-center gap-3 border-t border-[var(--color-border)] py-2.5 first:border-0">
-                <Person e={f.employee} size={34} />
+                <Person e={f.employee} size={42} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13.5px] font-semibold text-[var(--color-ink)]">{f.employee.name}</span>
                   <span className="block truncate text-[12px] text-[var(--color-ink-tertiary)]">{BRANCHES[f.employee.branch].name}</span>

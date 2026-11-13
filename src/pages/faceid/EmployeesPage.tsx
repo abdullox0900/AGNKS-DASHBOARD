@@ -97,7 +97,7 @@ export function EmployeesPage() {
                   <tr key={r.employee.id} onClick={() => navigate(`/faceid/employees/${r.employee.id}`)} className="cursor-pointer border-t border-[var(--color-border)] hover:bg-[var(--color-surface-alt)]">
                     <td className="px-3 py-2.5 pl-5">
                       <span className="flex items-center gap-3">
-                        <Person e={r.employee} size={36} />
+                        <Person e={r.employee} size={44} />
                         <span>
                           <span className="block font-semibold text-[var(--color-ink)]">{r.employee.name}</span>
                           <span className="block text-[12px] text-[var(--color-ink-tertiary)]">{r.employee.position}</span>
