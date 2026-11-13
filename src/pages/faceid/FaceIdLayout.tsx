@@ -16,8 +16,8 @@ export function FaceIdLayout() {
 
   return (
     <div className="w-full">
-      {/* always-dark band (like the login art): its children read the same colour variables, overridden in .fid-band */}
-      <div className="fid-band rounded-2xl px-5 py-4">
+      {/* top band: tabs, day picker and (on "Umumiy") the big counter — same surface as the other cards */}
+      <div className="fid-band fid-card rounded-2xl px-5 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <FaceTabs />
           <div className="flex flex-wrap items-center gap-2.5">

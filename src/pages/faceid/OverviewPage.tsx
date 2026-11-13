@@ -14,10 +14,10 @@ const card = 'fid-card rounded-2xl border border-[var(--color-border)] bg-[var(-
 const th = 'px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-ink-tertiary)]'
 type Mode = 'all' | 'here' | 'late' | 'left'
 
-/** A stat card inside the navy band. */
+/** A stat card inside the top band. */
 function Stat({ icon: Icon, label, value, sub, tone }: { icon: typeof UserX; label: string; value: number; sub?: string; tone?: string }) {
   return (
-    <div className="min-h-[112px] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5">
+    <div className="min-h-[112px] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-4 py-3.5">
       <p className="flex items-center gap-2 text-[13.5px] text-[var(--color-ink-secondary)]">
         <Icon size={17} className={tone} /> {label}
       </p>
