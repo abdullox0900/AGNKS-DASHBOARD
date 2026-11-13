@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import { Bot, Check, ExternalLink, X } from 'lucide-react'
 import { NewBadge } from '@/shared/ui/NewBadge'
-import { Card } from '@/shared/ui/Card'
+import { PageTitle } from '@/shared/ui/PageTitle'
 import { Button } from '@/shared/ui/Button'
 import { Skeleton } from '@/shared/ui/Skeleton'
 import { EmptyState } from '@/shared/ui/EmptyState'
@@ -82,171 +82,172 @@ function ReviewQueue() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queue, selectedId, rejecting, canDecide])
 
+  const card = 'dt-card rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]'
+
   if (isLoading) {
     return (
-      <div className="grid grid-cols-[360px_1fr] gap-4">
-        <Skeleton className="h-[600px] w-full" />
-        <Skeleton className="h-[600px] w-full" />
+      <div className="grid gap-5 lg:grid-cols-[400px_minmax(0,1fr)]">
+        <Skeleton className="h-[600px] w-full rounded-2xl" />
+        <Skeleton className="h-[420px] w-full rounded-2xl" />
       </div>
     )
   }
 
   if (!queue || queue.length === 0) {
     return (
-      <Card>
+      <div className={card}>
         <EmptyState title={t('review.empty')} />
-      </Card>
+      </div>
     )
   }
 
+  const reasonText = (r: { reviewReasons: string[] }) => r.reviewReasons.map((reason) => (REASON_LABELS[reason] ? t(REASON_LABELS[reason]) : reason)).join(', ')
+
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[360px_1fr]">
-      <Card padded={false} className="max-h-[calc(100vh-140px)] overflow-y-auto">
-        <div className="border-b border-[var(--color-border)] px-4 py-3">
-          <h2 className="text-[14px] font-semibold text-[var(--color-ink)]">{t('review.queue_title', { n: queue.length })}</h2>
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[400px_minmax(0,1fr)] lg:items-start">
+      <section className={cn(card, 'overflow-hidden lg:sticky lg:top-4')}>
+        <div className="flex items-center justify-between px-5 py-4">
+          <h2 className="text-[17px] font-semibold text-[var(--color-ink)]">{t('review.queue')}</h2>
+          <span className="font-mono text-[13px] text-[var(--color-ink-tertiary)]">{queue.length}</span>
         </div>
-        <div className="divide-y divide-[var(--color-border)]">
+        <div className="max-h-[calc(100vh-220px)] overflow-y-auto border-t border-[var(--color-border)]">
           {queue.map((r) => (
             <button
               key={r.id}
               onClick={() => setSelectedId(r.id)}
               className={cn(
-                'flex w-full flex-col gap-0.5 px-4 py-3 text-left',
+                'grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 border-b border-[var(--color-border)] px-5 py-3 text-left transition-colors last:border-0',
                 r.id === selectedId ? 'bg-[var(--color-primary-soft)]' : 'hover:bg-[var(--color-surface-alt)]',
               )}
             >
-              <span className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--color-ink)]">
-                <span className={cn('h-1.5 w-1.5 rounded-full', r.id === selectedId ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-ink-tertiary)]')} />
-                {r.clientName || t('common.client')} · {r.stationName}
-              </span>
-              <span className="tnum text-[13px] text-[var(--color-ink-secondary)]">
-                {r.checkNumber ? `№ ${r.checkNumber} · ` : ''}
-                {formatDateTime(r.receiptAt)}
-              </span>
-              <span className="text-[12px] text-[var(--color-amber)]">
-                {r.reviewReasons.map((reason) => (REASON_LABELS[reason] ? t(REASON_LABELS[reason]) : reason)).join(', ')}
-              </span>
+              <span className="truncate text-[15px] font-semibold text-[var(--color-ink)]">{r.clientName || t('common.client')}</span>
+              <span className="text-right font-mono text-[13px] text-[var(--color-ink-tertiary)]">{r.checkNumber ? `№ ${r.checkNumber}` : ''}</span>
+              <span className="truncate text-[13px] text-[var(--color-ink-tertiary)]">{r.stationName}</span>
+              <span className="text-right text-[13px] text-[var(--color-ink-tertiary)]">{formatDateTime(r.receiptAt)}</span>
             </button>
           ))}
         </div>
-      </Card>
+      </section>
 
       {selected && (
-        <Card>
-          <p className="mb-4 rounded-xl bg-[var(--color-warning-soft)] px-3.5 py-2.5 text-[12.5px] leading-relaxed text-[var(--color-ink)]">{t('review.explain')}</p>
-
-          <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-[var(--color-ink-tertiary)]">{t('review.sec_scanned')}</p>
-          <div className="mb-5 grid grid-cols-1 gap-x-6 gap-y-3 rounded-xl border border-[var(--color-border)] p-4 text-[13px] sm:grid-cols-2">
-            <Row label={t('review.f_client')} value={`${selected.clientName || '—'}${selected.clientPhone ? ` · ${formatPhone(selected.clientPhone)}` : ''}`} />
-            <Row label={t('review.f_balance')} value={selected.clientBalance === undefined ? '—' : formatMoneyFull(selected.clientBalance)} />
-            <Row label={t('common.station')} value={selected.stationName} />
-            <Row label={t('review.f_terminal')} value={selected.terminalCode ?? '—'} mono />
-            <Row label={t('review.f_check_no')} value={selected.checkNumber ? `№ ${selected.checkNumber}` : '—'} mono />
-            <Row label={t('review.f_check_time')} value={formatDateTime(selected.receiptAt)} />
-            <Row label={t('review.f_scanned_at')} value={selected.createdAt ? formatDateTime(selected.createdAt) : '—'} />
-            <Row label={t('review.rate')} value={`${(selected.rateBps / 100).toFixed(1)}%`} />
-          </div>
-
-          <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-[var(--color-ink-tertiary)]">{t('review.sec_amount')}</p>
-          {selected.soliqLink && (
-            <a
-              href={selected.soliqLink}
-              target="_blank"
-              rel="noreferrer"
-              className="mb-1.5 inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--color-primary)] px-4 text-[13.5px] font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary-soft)]"
-            >
-              {t('review.open_soliq')} <ExternalLink size={15} />
-            </a>
-          )}
-          <p className="mb-4 text-[12px] text-[var(--color-ink-tertiary)]">{t('review.open_hint')}</p>
-
-          {canDecide && (<>
-          <div className="mb-3">
-            <label className="mb-1.5 block text-[13px] font-medium text-[var(--color-ink-secondary)]">{t('review.amount_label')}</label>
-            <input
-              inputMode="numeric"
-              value={manualAmount ? formatNumber(Number(manualAmount)) : ''}
-              onChange={(e) => setManualAmount(e.target.value.replace(/\D/g, '').slice(0, 9))}
-              placeholder="0"
-              className="tnum h-12 w-full max-w-[260px] rounded-lg border border-[var(--color-border)] bg-transparent px-3 text-[18px] font-semibold text-[var(--color-ink)] outline-none focus:border-[var(--color-primary)]"
-            />
-          </div>
-
-          <div className={cn('mb-5 rounded-xl border px-4 py-3', bonus > 0 ? 'border-[var(--color-success)]/40 bg-[var(--color-success-soft)]' : 'border-dashed border-[var(--color-border-strong)]')}>
-            {bonus > 0 ? (
-              <>
-                <p className="tnum text-[12.5px] text-[var(--color-ink-secondary)]">{t('review.calc', { amount: formatMoneyFull(amountNum), rate: (selected.rateBps / 100).toFixed(1) })}</p>
-                <p className="mt-0.5 text-[12.5px] text-[var(--color-ink-secondary)]">{t('review.you_give')}</p>
-                <p className="tnum text-[24px] font-bold text-[var(--color-success)]">+{formatMoneyFull(bonus)}</p>
-                {selected.clientBalance !== undefined && (
-                  <p className="tnum mt-0.5 text-[12.5px] text-[var(--color-ink-secondary)]">
-                    {t('review.balance_after', { before: formatMoneyFull(selected.clientBalance), after: formatMoneyFull(selected.clientBalance + bonus) })}
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="text-[12.5px] text-[var(--color-ink-tertiary)]">{t('review.calc_empty')}</p>
+        <section className={cn(card, 'p-6')}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="truncate text-[24px] font-bold text-[var(--color-ink)]">{selected.clientName || t('common.client')}</h2>
+              {selected.clientPhone && <p className="mt-0.5 font-mono text-[14px] text-[var(--color-ink-tertiary)]">{formatPhone(selected.clientPhone)}</p>}
+            </div>
+            {selected.reviewReasons.length > 0 && (
+              <span className="flex items-center gap-2 text-[14px] font-medium text-[var(--color-danger)]">
+                <span className="h-2 w-2 rounded-full bg-[var(--color-danger)]" />
+                {reasonText(selected)}
+              </span>
             )}
           </div>
 
-          {!rejecting ? (
-            <div className="flex gap-2">
-              <Button variant="danger" onClick={() => setRejecting(true)}>
-                <X size={15} /> {t('review.reject')} <span className="ml-1 opacity-70">(R)</span>
-              </Button>
-              <Button onClick={handleApprove} disabled={bonus <= 0} title={bonus <= 0 ? t('review.need_amount') : undefined}>
-                <Check size={15} /> {bonus > 0 ? t('review.approve_give', { bonus: formatMoneyFull(bonus) }) : t('review.approve')}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-2 rounded-xl border border-[var(--color-border)] p-3">
-              <p className="text-[13px] font-medium text-[var(--color-ink)]">{t('review.reject_reason')}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {REJECT_REASONS.map((key) => {
-                  const reason = t(key)
-                  return (
-                  <button
-                    key={key}
-                    onClick={() => setRejectNote(reason)}
-                    className={cn(
-                      'rounded-full border px-2.5 py-1 text-[12px]',
-                      rejectNote === reason ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]' : 'border-[var(--color-border)] text-[var(--color-ink-secondary)]',
-                    )}
-                  >
-                    {reason}
-                  </button>
-                  )
-                })}
-              </div>
-              <textarea
-                value={rejectNote}
-                onChange={(e) => setRejectNote(e.target.value)}
-                placeholder={t('review.free_text')}
-                rows={2}
-                className="w-full resize-none rounded-lg border border-[var(--color-border)] px-2.5 py-2 text-[13px] outline-none focus:border-[var(--color-primary)]"
+          <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-5 md:grid-cols-4">
+            <Field label={t('common.station')} value={selected.stationName} />
+            <Field label={t('review.f_check')} value={selected.checkNumber ? `№ ${selected.checkNumber}` : '—'} />
+            <Field label={t('review.f_check_time')} value={formatDateTime(selected.receiptAt)} />
+            <Field label={t('review.f_terminal').replace(/ \(.*\)$/, '')} value={selected.terminalCode ?? '—'} />
+            <Field label={t('review.f_balance')} value={selected.clientBalance === undefined ? '—' : formatMoneyFull(selected.clientBalance)} />
+            <Field label={t('review.rate')} value={`${(selected.rateBps / 100).toFixed(1)}%`} />
+            <Field label={t('review.f_scanned_at')} value={selected.createdAt ? formatDateTime(selected.createdAt) : '—'} />
+          </div>
+
+          <div className="my-6 h-px bg-[var(--color-border)]" />
+
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-[16px] font-semibold text-[var(--color-ink)]">{t('review.sum_title')}</h3>
+            {selected.soliqLink && (
+              <a href={selected.soliqLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[14px] font-medium text-[var(--color-primary)] hover:underline">
+                {t('review.open_soliq_short')} <ExternalLink size={14} />
+              </a>
+            )}
+          </div>
+
+          <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <label className={cn('flex h-16 items-center gap-3 rounded-xl border bg-[var(--color-bg)] px-5 transition-colors focus-within:border-[var(--color-primary)]', 'border-[var(--color-border)]')}>
+              <input
+                inputMode="numeric"
+                disabled={!canDecide}
+                value={manualAmount ? formatNumber(Number(manualAmount)) : ''}
+                onChange={(e) => setManualAmount(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                placeholder={t('review.amount_ph')}
+                className="min-w-0 flex-1 bg-transparent font-mono text-[24px] font-bold text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink-tertiary)]/60 disabled:cursor-not-allowed"
               />
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setRejecting(false)}>
-                  {t('common.cancel')}
-                </Button>
-                <Button variant="danger" size="sm" disabled={!rejectNote} onClick={() => handleRejectConfirm(rejectNote)}>
-                  {t('review.confirm_reject')}
-                </Button>
-              </div>
+              <span className="text-[14px] text-[var(--color-ink-tertiary)]">so‘m</span>
+            </label>
+            <div className={cn('flex min-h-16 flex-col justify-center rounded-xl border px-5 py-2', bonus > 0 ? 'border-[var(--color-success)]/40 bg-[var(--color-success-soft)]' : 'border-dashed border-[var(--color-border-strong)]')}>
+              <p className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink-tertiary)]">{t('review.client_bonus')}</p>
+              <p className="font-mono text-[20px] font-bold text-[var(--color-success)]">{bonus > 0 ? `+${formatMoneyFull(bonus)}` : '—'}</p>
+              {bonus > 0 && selected.clientBalance !== undefined && <p className="text-[12px] text-[var(--color-ink-secondary)]">{t('review.after_balance', { v: formatMoneyFull(selected.clientBalance + bonus) })}</p>}
             </div>
+          </div>
+
+          {canDecide && (
+            <>
+              {!rejecting ? (
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+                  <p className="hidden text-[12px] text-[var(--color-ink-tertiary)] md:block">{t('review.keys')}</p>
+                  <div className="ml-auto flex gap-3">
+                    <Button variant="secondary" className="h-11 px-6 text-[14.5px]" onClick={() => setRejecting(true)}>
+                      {t('review.reject')}
+                    </Button>
+                    <Button className="h-11 px-6 text-[14.5px]" onClick={handleApprove} disabled={bonus <= 0} title={bonus <= 0 ? t('review.need_amount') : undefined}>
+                      <Check size={16} /> {t('review.approve')}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-6 space-y-3 rounded-xl border border-[var(--color-border)] p-4">
+                  <p className="text-[14px] font-medium text-[var(--color-ink)]">{t('review.reject_reason')}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {REJECT_REASONS.map((key) => {
+                      const reason = t(key)
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => setRejectNote(reason)}
+                          className={cn(
+                            'rounded-full border px-3 py-1 text-[13px]',
+                            rejectNote === reason ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]' : 'border-[var(--color-border)] text-[var(--color-ink-secondary)]',
+                          )}
+                        >
+                          {reason}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <textarea
+                    value={rejectNote}
+                    onChange={(e) => setRejectNote(e.target.value)}
+                    placeholder={t('review.free_text')}
+                    rows={2}
+                    className="w-full resize-none rounded-xl border border-[var(--color-border)] bg-transparent px-3 py-2 text-[13.5px] text-[var(--color-ink)] outline-none focus:border-[var(--color-primary)]"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" onClick={() => setRejecting(false)}>
+                      {t('common.cancel')}
+                    </Button>
+                    <Button variant="danger" disabled={!rejectNote} onClick={() => handleRejectConfirm(rejectNote)}>
+                      <X size={15} /> {t('review.confirm_reject')}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
-          </>)}
-        </Card>
+        </section>
       )}
     </div>
   )
 }
 
-function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <p className="text-[11px] text-[var(--color-ink-tertiary)]">{label}</p>
-      <p className={cn('break-words text-[13px] text-[var(--color-ink)]', mono && 'font-mono')}>{value}</p>
+      <p className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink-tertiary)]">{label}</p>
+      <p className="mt-1 break-words text-[15px] font-medium text-[var(--color-ink)]">{value}</p>
     </div>
   )
 }
@@ -323,18 +324,24 @@ export function ReviewPage() {
   const { t } = useI18n()
   const [tab, setTab] = useState<'queue' | 'history'>('queue')
   return (
-    <div className="space-y-4">
-      <div className="inline-flex gap-1 rounded-lg border border-[var(--color-border)] p-0.5">
-        {(['queue', 'history'] as const).map((key) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={cn('rounded-md px-3.5 py-1.5 text-[13px] font-medium', tab === key ? 'bg-[var(--color-primary)] text-[var(--color-primary-ink)]' : 'text-[var(--color-ink-secondary)]')}
-          >
-            {t(key === 'queue' ? 'review.tab_queue' : 'review.tab_history')}
-          </button>
-        ))}
-      </div>
+    <div>
+      <PageTitle
+        title={t('nav.review')}
+        sub={t('review.subtitle')}
+        right={
+          <div className="inline-flex gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
+            {(['queue', 'history'] as const).map((key) => (
+              <button
+                key={key}
+                onClick={() => setTab(key)}
+                className={cn('rounded-lg px-4 py-1.5 text-[13.5px] font-medium', tab === key ? 'bg-[var(--color-primary)] text-[var(--color-primary-ink)]' : 'text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]')}
+              >
+                {t(key === 'queue' ? 'review.tab_queue' : 'review.tab_history')}
+              </button>
+            ))}
+          </div>
+        }
+      />
       {tab === 'queue' ? <ReviewQueue /> : <ReviewHistory />}
     </div>
   )
