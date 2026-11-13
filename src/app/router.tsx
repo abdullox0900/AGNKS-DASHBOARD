@@ -21,7 +21,12 @@ import { AuditPage } from '@/pages/audit/AuditPage'
 import { ProfilePage } from '@/pages/profile/ProfilePage'
 import { ChangelogPage } from '@/pages/changelog/ChangelogPage'
 import { AttendantsPage } from '@/pages/attendants/AttendantsPage'
-import { FaceIdPage } from '@/pages/faceid/FaceIdPage'
+import { FaceIdLayout } from '@/pages/faceid/FaceIdLayout'
+import { TodayPage } from '@/pages/faceid/TodayPage'
+import { LogPage } from '@/pages/faceid/LogPage'
+import { TimesheetPage } from '@/pages/faceid/TimesheetPage'
+import { UnrecognizedPage } from '@/pages/faceid/UnrecognizedPage'
+import { EmployeePage } from '@/pages/faceid/EmployeePage'
 import { ChangelogPostPage } from '@/pages/changelog/ChangelogPostPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
 import { AppearancePage } from '@/pages/settings/AppearancePage'
@@ -71,7 +76,21 @@ export const router = createBrowserRouter([
         path: '/faceid',
         element: (
           <RequirePermission permission="faceid.view">
-            <FaceIdPage />
+            <FaceIdLayout />
+          </RequirePermission>
+        ),
+        children: [
+          { index: true, element: <TodayPage /> },
+          { path: 'log', element: <LogPage /> },
+          { path: 'timesheet', element: <TimesheetPage /> },
+          { path: 'unrecognized', element: <UnrecognizedPage /> },
+        ],
+      },
+      {
+        path: '/faceid/employees/:id',
+        element: (
+          <RequirePermission permission="faceid.view">
+            <EmployeePage />
           </RequirePermission>
         ),
       },
