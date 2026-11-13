@@ -1,4 +1,4 @@
-import { ChevronRight, ClipboardList, Coins, MessageSquareWarning } from 'lucide-react'
+import { ChevronRight, ClipboardList, Coins, MessageSquareWarning, ScanFace } from 'lucide-react'
 import { Badge } from '@/shared/ui/Badge'
 import { formatSeen } from '@/shared/lib/dates'
 import { formatMoneyFull } from '@/shared/lib/format'
@@ -12,6 +12,7 @@ export const GROUP_META: Record<NotificationKind, { title: DictKey; icon: React.
   review: { title: 'notif.g_review', icon: ClipboardList, tone: 'bg-[var(--color-amber-soft)] text-[var(--color-amber)]' },
   support: { title: 'notif.g_support', icon: MessageSquareWarning, tone: 'bg-[var(--color-primary-soft)] text-[var(--color-primary)]' },
   large: { title: 'notif.g_large', icon: Coins, tone: 'bg-[var(--color-danger-soft)] text-[var(--color-danger)]' },
+  faceid: { title: 'notif.g_faceid', icon: ScanFace, tone: 'bg-[var(--color-amber-soft)] text-[var(--color-amber)]' },
 }
 
 export function GroupIcon({ kind, size = 32 }: { kind: NotificationKind; size?: number }) {
@@ -33,7 +34,7 @@ export function NotificationRow({ item, onOpen, compact }: { item: NotificationI
       onClick={() => onOpen(item.href)}
       className={cn('group flex w-full items-start gap-3 rounded-lg px-2.5 text-left outline-none transition-colors hover:bg-[var(--color-surface-alt)] focus-visible:bg-[var(--color-surface-alt)]', compact ? 'py-2' : 'py-3')}
     >
-      <GroupIcon kind={item.kind} size={compact ? 28 : 34} />
+      {item.photo ? <img src={item.photo} alt="" loading="lazy" className="shrink-0 rounded-full object-cover" style={{ width: compact ? 28 : 34, height: compact ? 28 : 34 }} /> : <GroupIcon kind={item.kind} size={compact ? 28 : 34} />}
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="truncate text-[13.5px] font-semibold text-[var(--color-ink)]">{item.title}</span>

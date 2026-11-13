@@ -32,6 +32,9 @@ export interface ApiRecord {
   worked?: number
   now?: boolean
   blind?: boolean
+  /** terminal camera snapshots of the first scan-in / last scan-out */
+  inPhoto?: string
+  outPhoto?: string
 }
 export interface ApiNote {
   reason: string | null
@@ -55,6 +58,8 @@ export interface ApiEvent {
   kind: 'in' | 'out'
   time: string
   branchId: string
+  /** terminal camera snapshot of this pass */
+  photo?: string | null
 }
 
 export const apiFaceStatus = () => unwrap<{ configured: boolean }>(http.get('/admin/faceid/status'))

@@ -77,11 +77,13 @@ const initials = (n: string) =>
  * The face photo when TimeFace has one, otherwise round initials. Hovering a photo shows it larger with the
  * name; clicking opens it full-screen (zoomable). The click never reaches the row link around it.
  */
-export function Person({ e, size = 34 }: { e: Pick<Employee, 'name' | 'photo'> & { position?: string }; size?: number }) {
+export function Person({ e, size = 34, shot }: { e: Pick<Employee, 'name' | 'photo'> & { position?: string }; size?: number; shot?: string }) {
   const [broken, setBroken] = useState(false)
   const [open, setOpen] = useState(false)
   const h = hue(e.name)
-  if (!e.photo || broken) {
+  // the terminal's camera shot of that pass wins over the profile photo
+  const photo = (!broken && shot) || e.photo
+  if (!photo || (broken && !e.photo)) {
     return (
       <span
         className="inline-flex shrink-0 items-center justify-center rounded-full font-semibold"
@@ -106,12 +108,12 @@ export function Person({ e, size = 34 }: { e: Pick<Employee, 'name' | 'photo'> &
             className="shrink-0 cursor-zoom-in rounded-full outline-none ring-[var(--color-primary)] transition-transform hover:scale-105 focus-visible:ring-2"
             style={{ width: size, height: size }}
           >
-            <img src={e.photo} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} className="h-full w-full rounded-full bg-[var(--color-surface-alt)] object-cover" />
+            <img src={photo} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} className="h-full w-full rounded-full bg-[var(--color-surface-alt)] object-cover" />
           </button>
         </HoverCard.Trigger>
         <HoverCard.Portal>
           <HoverCard.Content side="right" align="center" sideOffset={10} className="fid-photo-card z-50 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl" onClick={stop}>
-            <img src={e.photo} alt={e.name} className="block h-[220px] w-[220px] object-cover" />
+            <img src={photo} alt={e.name} className="block h-[220px] w-[220px] object-cover" />
             <div className="px-3.5 py-2.5">
               <p className="text-[13.5px] font-semibold text-[var(--color-ink)]">{e.name}</p>
               {e.position && <p className="text-[12px] text-[var(--color-ink-tertiary)]">{e.position}</p>}
@@ -121,7 +123,7 @@ export function Person({ e, size = 34 }: { e: Pick<Employee, 'name' | 'photo'> &
       </HoverCard.Root>
       {open && (
         <span onClick={stop} className="contents">
-          <Lightbox open close={() => setOpen(false)} slides={[{ src: e.photo, alt: e.name }]} plugins={[Zoom]} zoom={{ maxZoomPixelRatio: 3 }} carousel={{ finite: true }} render={{ buttonPrev: () => null, buttonNext: () => null }} controller={{ closeOnBackdropClick: true }} />
+          <Lightbox open close={() => setOpen(false)} slides={[{ src: photo, alt: e.name }]} plugins={[Zoom]} zoom={{ maxZoomPixelRatio: 3 }} carousel={{ finite: true }} render={{ buttonPrev: () => null, buttonNext: () => null }} controller={{ closeOnBackdropClick: true }} />
         </span>
       )}
     </>

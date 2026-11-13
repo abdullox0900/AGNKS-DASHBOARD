@@ -24,6 +24,8 @@ export interface FaceLoad {
 }
 
 const KEEP = { revalidateOnFocus: false, shouldRetryOnError: false } as const
+/** branches + employees, one cache entry shared by every FaceID consumer */
+export const faceBaseFetcher = async () => ({ b: await apiFaceBranches(), e: await apiFaceEmployees() })
 
 /** "Is this server connected to TimeFace?" — the layout only needs this to show the sample badge. */
 export function useFaceMode() {
@@ -41,7 +43,7 @@ export function useFaceData(req: FaceRequest): FaceLoad {
   const live = status.data?.configured === true
   const today = todayStr()
 
-  const base = useSWR(live ? 'faceid:base' : null, async () => ({ b: await apiFaceBranches(), e: await apiFaceEmployees() }), { ...KEEP, refreshInterval: 120_000 })
+  const base = useSWR(live ? 'faceid:base' : null, faceBaseFetcher, { ...KEEP, refreshInterval: 120_000 })
   const ok = live && !!base.data
   const day = useSWR(ok && req.day ? ['faceid:day', req.day] : null, () => apiFaceDay(req.day!), { ...KEEP, refreshInterval: req.day === today ? 30_000 : 0 })
   const range = useSWR(ok && req.range ? ['faceid:range', req.range[0], req.range[1]] : null, () => apiFaceRange(req.range![0], req.range![1]), { ...KEEP, refreshInterval: 120_000 })

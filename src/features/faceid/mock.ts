@@ -43,6 +43,9 @@ export interface DayRecord {
   worked?: number
   /** why the employee did not come (status 'absent') */
   reason?: Reason
+  /** terminal snapshots (live only) */
+  inPhoto?: string
+  outPhoto?: string
   /** still at work right now */
   now?: boolean
 }
@@ -53,6 +56,8 @@ export interface ScanEvent {
   time: string
   confidence?: number
   branch: Branch
+  /** terminal snapshot (live only) */
+  photo?: string
 }
 export type RejectReason = 'unknown_face' | 'low_confidence' | 'not_registered'
 export interface Rejected {
@@ -154,7 +159,7 @@ export function applyRecords(records: ApiRecord[], notes: Record<string, ApiNote
     const key = `${r.employeeId}|${r.date}`
     if (!full && LIVE.full.has(key)) continue
     const reason = r.status === 'absent' ? (notes[key]?.reason as Reason | null | undefined) ?? undefined : undefined
-    LIVE.rec.set(key, { employee, status: r.status, in: r.in, out: r.out, late: r.late, early: r.early, worked: r.worked, now: r.now, reason })
+    LIVE.rec.set(key, { employee, status: r.status, in: r.in, out: r.out, late: r.late, early: r.early, worked: r.worked, now: r.now, reason, inPhoto: r.inPhoto, outPhoto: r.outPhoto })
     if (full) LIVE.full.add(key)
   }
 }
@@ -168,7 +173,7 @@ export function applyEvents(date: string, events: ApiEvent[]): void {
       .flatMap((ev) => {
         const employee = byId.get(ev.employeeId)
         const branch = [...LIVE.branchIdx.entries()].find(([uuid]) => uuid === ev.branchId)
-        return employee && branch ? [{ id: ev.id, employee, kind: ev.kind, time: ev.time, branch: BRANCHES[branch[1]] } as ScanEvent] : []
+        return employee && branch ? [{ id: ev.id, employee, kind: ev.kind, time: ev.time, branch: BRANCHES[branch[1]], photo: ev.photo ?? undefined } as ScanEvent] : []
       })
       .sort((a, b) => toMinutes(b.time) - toMinutes(a.time)),
   )
