@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { TriangleAlert } from 'lucide-react'
+import { Activity, ArrowDownLeft, ArrowUpRight, Building2, CalendarClock, Clock, Hourglass, LogOut, TimerReset, UserCheck, UserX, Users, WifiOff, type LucideIcon } from 'lucide-react'
 import { Person, useFaceDate } from '@/features/faceid/ui'
 import { BRANCHES, NOW_H, NOW_LABEL, SHIFT_START, countOf, dayRecords, scanEvents, todayStr, workedLabel, type DayRecord } from '@/features/faceid/mock'
 import { cn } from '@/shared/lib/cn'
@@ -16,8 +16,24 @@ type Mode = 'all' | 'here' | 'late' | 'left'
 const isHere = (r: DayRecord) => !!r.now
 const isLeft = (r: DayRecord) => !!r.out && r.status !== 'absent'
 
-function Square({ className }: { className: string }) {
-  return <span className={cn('inline-block h-2.5 w-2.5 rounded-[3px]', className)} />
+function StateIcon({ state }: { state: string }) {
+  const m: Record<string, [LucideIcon, string]> = {
+    came: [UserCheck, 'text-[var(--color-success)]'],
+    late: [Clock, 'text-[var(--color-amber)]'],
+    left: [LogOut, 'text-[var(--color-ink-tertiary)]'],
+    absent: [UserX, 'text-[var(--color-danger)]'],
+    pending: [Hourglass, 'text-[var(--color-ink-tertiary)]'],
+  }
+  const [Icon, tone] = m[state] ?? m.came
+  return <Icon size={16} className={tone} />
+}
+
+function ColIcon({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
+  return (
+    <th className="px-2 py-2.5 text-right" title={label}>
+      <Icon size={14} className="ml-auto text-[var(--color-ink-tertiary)]" />
+    </th>
+  )
 }
 
 /** Stacked share bar: here / left / absent, the rest stays empty (still expected). */
@@ -53,17 +69,17 @@ export function TodayPage() {
   const nPending = countOf(records, 'pending')
   const lateHere = records.filter((r) => isHere(r) && r.status === 'late').length
 
-  const stats = isToday
+  const stats: { label: string; n: number; icon: LucideIcon; tone: string; sub?: number }[] = isToday
     ? [
-        { label: t('fid.col_here'), n: nHere, sq: 'bg-[var(--color-ink)]', sub: lateHere ? t('fid.of_late', { n: lateHere }) : undefined },
-        { label: t('fid.col_left'), n: nLeft, sq: 'bg-[var(--color-ink-tertiary)]/60' },
-        { label: t('fid.col_absent'), n: nAbsent, sq: 'bg-[var(--color-danger)]' },
-        { label: t('fid.t_pending'), n: nPending, sq: 'border border-[var(--color-ink-tertiary)]' },
+        { label: t('fid.col_here'), n: nHere, icon: UserCheck, tone: 'text-[var(--color-success)]', sub: lateHere || undefined },
+        { label: t('fid.col_left'), n: nLeft, icon: LogOut, tone: 'text-[var(--color-ink-tertiary)]' },
+        { label: t('fid.col_absent'), n: nAbsent, icon: UserX, tone: 'text-[var(--color-danger)]' },
+        { label: t('fid.t_pending'), n: nPending, icon: Hourglass, tone: 'text-[var(--color-ink-tertiary)]' },
       ]
     : [
-        { label: t('fid.t_came'), n: came.length, sq: 'bg-[var(--color-ink)]' },
-        { label: t('fid.t_late'), n: nLate, sq: 'bg-[var(--color-amber)]' },
-        { label: t('fid.col_absent'), n: nAbsent, sq: 'bg-[var(--color-danger)]' },
+        { label: t('fid.t_came'), n: came.length, icon: UserCheck, tone: 'text-[var(--color-success)]' },
+        { label: t('fid.t_late'), n: nLate, icon: Clock, tone: 'text-[var(--color-amber)]' },
+        { label: t('fid.col_absent'), n: nAbsent, icon: UserX, tone: 'text-[var(--color-danger)]' },
       ]
 
   const lates = records.filter((r) => r.status === 'late').sort((a, b) => toMin(a.in!) - toMin(b.in!))
@@ -82,51 +98,51 @@ export function TodayPage() {
   // "all": a mixed sample (working, late, left, absent, expected) instead of ten people in the same state
   const pick = (g: number, n: number) => sorted.filter((r) => order(r) === g).slice(0, n)
   const rows = mode === 'all' ? [...pick(0, 3), ...pick(1, 2), ...pick(2, 3), ...pick(3, 1), ...pick(4, 1)] : sorted.slice(0, 10)
-  const tabs: { id: Mode; label: string; n?: number }[] = [
-    { id: 'all', label: t('fid.f_all'), n: staff.length },
-    { id: 'here', label: isToday ? t('fid.f_here') : t('fid.t_came'), n: modeOf.here ? staff.filter(modeOf.here).length : 0 },
-    { id: 'late', label: t('fid.f_late'), n: nLate },
-    ...(isToday ? [{ id: 'left' as Mode, label: t('fid.f_left'), n: nLeft }] : []),
+  const tabs: { id: Mode; label: string; n?: number; icon: LucideIcon }[] = [
+    { id: 'all', label: t('fid.f_all'), n: staff.length, icon: Users },
+    { id: 'here', label: isToday ? t('fid.f_here') : t('fid.t_came'), n: staff.filter(modeOf.here).length, icon: UserCheck },
+    { id: 'late', label: t('fid.f_late'), n: nLate, icon: Clock },
+    ...(isToday ? [{ id: 'left' as Mode, label: t('fid.f_left'), n: nLeft, icon: LogOut }] : []),
   ]
 
   return (
     <div>
       {/* hero */}
       <div className={cn(card, 'grid gap-6 p-5 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-center')}>
-        <div className="flex items-end gap-4">
-          <div>
-            <span className="tnum text-[68px] font-semibold leading-none tracking-tight text-[var(--color-ink)]">{isToday ? nHere : came.length}</span>
-          </div>
-          <p className="pb-1">
-            <span className="tnum block text-[22px] font-semibold text-[var(--color-ink-tertiary)]">/ {staff.length}</span>
-            <span className="block text-[13px] font-medium text-[var(--color-ink-secondary)]">{isToday ? t('fid.hero_now') : t('fid.hero_came')}</span>
+        <div className="flex items-center gap-4" title={isToday ? t('fid.hero_now') : t('fid.hero_came')}>
+          <Users size={26} className="text-[var(--color-ink-tertiary)]" />
+          <p className="tnum flex items-baseline gap-2">
+            <span className="text-[68px] font-semibold leading-none tracking-tight text-[var(--color-ink)]">{isToday ? nHere : came.length}</span>
+            <span className="text-[22px] font-medium text-[var(--color-ink-tertiary)]">/ {staff.length}</span>
           </p>
         </div>
         <div>
           <div className={cn('grid gap-4', stats.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3')}>
             {stats.map((s) => (
-              <div key={s.label} className="border-l-2 border-[var(--color-border)] pl-3">
-                <p className="flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-[0.1em] text-[var(--color-ink-tertiary)]">
-                  <Square className={s.sq} />
-                  {s.label}
-                </p>
-                <p className="tnum mt-1 text-[32px] font-bold leading-none text-[var(--color-ink)]">{s.n}</p>
-                {s.sub && <p className="mt-1.5 text-[12px] font-medium text-[var(--color-amber)]">{s.sub}</p>}
+              <div key={s.label} title={s.label} className="flex items-center gap-3 border-l border-[var(--color-border)] pl-4">
+                <s.icon size={20} className={s.tone} />
+                <span className="tnum text-[30px] font-semibold leading-none text-[var(--color-ink)]">{s.n}</span>
+                {s.sub !== undefined && (
+                  <span className="tnum flex items-center gap-1 text-[13px] font-medium text-[var(--color-amber)]" title={t('fid.of_late', { n: s.sub })}>
+                    <Clock size={13} />
+                    {s.sub}
+                  </span>
+                )}
               </div>
             ))}
           </div>
-          <SplitBar here={isToday ? nHere : came.length} left={isToday ? nLeft : 0} absent={nAbsent} total={staff.length} className="mt-4 h-2.5" />
+          <SplitBar here={isToday ? nHere : came.length} left={isToday ? nLeft : 0} absent={nAbsent} total={staff.length} className="mt-4 h-2" />
         </div>
       </div>
 
       {offline.length > 0 && isToday && (
-        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-[var(--color-border)] px-4 py-2.5 text-[13px]">
-          <span className="flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-[0.1em] text-[var(--color-ink-secondary)]">
-            <TriangleAlert size={14} className="text-[var(--color-amber)]" /> {t('fid.warn')}
-          </span>
-          <span className="text-[var(--color-ink)]">
-            <span className="font-medium">{t('fid.warn_terminals', { n: offline.length })}</span> {offline.map((b) => b.name).join(', ')}
-          </span>
+        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-2.5" title={t('fid.warn_terminals', { n: offline.length })}>
+          <WifiOff size={16} className="text-[var(--color-danger)]" />
+          {offline.map((b) => (
+            <span key={b.id} className="rounded-md bg-[var(--color-surface-alt)] px-2 py-0.5 text-[12.5px] font-medium text-[var(--color-ink)]">
+              {b.name}
+            </span>
+          ))}
         </div>
       )}
 
@@ -135,23 +151,25 @@ export function TodayPage() {
           {/* branches table */}
           <section className={cn(card, 'overflow-hidden')}>
             <div className="flex items-center justify-between px-5 pt-4">
-              <h3 className={cap}>{t('fid.branches')}</h3>
-              <Link to="/faceid/branches" className="text-[12.5px] font-medium text-[var(--color-ink-secondary)] underline-offset-2 hover:underline">
-                {t('fid.view')} →
+              <h3 className={cap} title={t('fid.branches')}>
+                <Building2 size={16} />
+              </h3>
+              <Link to="/faceid/branches" className="text-[12.5px] font-medium text-[var(--color-ink-secondary)] hover:text-[var(--color-ink)]">
+                →
               </Link>
             </div>
             <div className="mt-2 overflow-x-auto">
               <table className="w-full min-w-[640px] text-[13px]">
                 <thead>
                   <tr className="border-b border-[var(--color-border)] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink-tertiary)]">
-                    <th className="px-5 py-2 font-semibold">{t('fid.col_branch')}</th>
-                    <th className="px-2 py-2 font-semibold">{t('fid.col_terminal')}</th>
-                    <th className="px-2 py-2 text-right font-semibold">{isToday ? t('fid.col_here') : t('fid.t_came')}</th>
-                    <th className="px-2 py-2 text-right font-semibold">{t('fid.col_late')}</th>
-                    {isToday && <th className="px-2 py-2 text-right font-semibold">{t('fid.col_left')}</th>}
-                    <th className="px-2 py-2 text-right font-semibold">{t('fid.col_absent')}</th>
-                    <th className="px-2 py-2 text-right font-semibold">{t('fid.col_total')}</th>
-                    <th className="w-[22%] px-5 py-2 font-semibold">{t('fid.col_split')}</th>
+                    <th className="px-5 py-2.5" />
+                    <th className="px-2 py-2.5" />
+                    <ColIcon icon={UserCheck} label={isToday ? t('fid.col_here') : t('fid.t_came')} />
+                    <ColIcon icon={Clock} label={t('fid.col_late')} />
+                    {isToday && <ColIcon icon={LogOut} label={t('fid.col_left')} />}
+                    <ColIcon icon={UserX} label={t('fid.col_absent')} />
+                    <ColIcon icon={Users} label={t('fid.col_total')} />
+                    <th className="w-[22%] px-5 py-2.5" />
                   </tr>
                 </thead>
                 <tbody>
@@ -170,9 +188,8 @@ export function TodayPage() {
                           </Link>
                         </td>
                         <td className="px-2 py-2.5">
-                          <span className={cn('inline-flex items-center gap-1.5 text-[12px]', b.terminal.online ? 'text-[var(--color-ink-secondary)]' : 'font-medium text-[var(--color-danger)]')}>
-                            <span className={cn('h-2 w-2 rounded-full', b.terminal.online ? 'bg-[var(--color-ink-tertiary)]' : 'bg-[var(--color-danger)]')} />
-                            {b.terminal.online ? t('fid.online') : t('fid.offline')}
+                          <span title={b.terminal.online ? t('fid.online') : t('fid.offline')} className="inline-flex">
+                            {b.terminal.online ? <span className="h-2 w-2 rounded-full bg-[var(--color-success)]" /> : <WifiOff size={14} className="text-[var(--color-danger)]" />}
                           </span>
                         </td>
                         <td className="tnum px-2 py-2.5 text-right font-semibold text-[var(--color-ink)]">{isToday ? h : cm}</td>
@@ -194,17 +211,20 @@ export function TodayPage() {
           {/* day timeline */}
           <section className={cn(card, 'overflow-hidden')}>
             <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-4">
-              <h3 className={cap}>{t('fid.day_sheet')}</h3>
+              <h3 className={cap} title={t('fid.day_sheet')}>
+                <CalendarClock size={16} />
+              </h3>
               <div className="flex gap-1 rounded-lg border border-[var(--color-border)] p-0.5 text-[12.5px] font-medium">
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
                     type="button"
+                    title={tab.label}
                     onClick={() => setMode(tab.id)}
                     className={cn('flex items-center gap-1.5 rounded-md px-3 py-1', mode === tab.id ? 'bg-[var(--color-surface-alt)] text-[var(--color-ink)]' : 'text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]')}
                   >
-                    {tab.label}
-                    <span className="tnum opacity-70">{tab.n}</span>
+                    <tab.icon size={14} />
+                    <span className="tnum">{tab.n}</span>
                   </button>
                 ))}
               </div>
@@ -212,9 +232,9 @@ export function TodayPage() {
             <div className="mt-2 overflow-x-auto">
               <div className="min-w-[640px]">
                 <div className="grid grid-cols-[minmax(150px,1.25fr)_46px_46px_minmax(130px,1.6fr)_74px_88px] items-end gap-x-3 border-b border-[var(--color-border)] px-5 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink-tertiary)]">
-                  <span>{t('fid.c_employee')}</span>
-                  <span>{t('fid.in')}</span>
-                  <span>{t('fid.out')}</span>
+                  <span />
+                  <span title={t('fid.in')}><ArrowDownLeft size={14} /></span>
+                  <span title={t('fid.out')}><ArrowUpRight size={14} /></span>
                   <span className="relative h-4">
                     {[6, 10, 14, 18, 22].map((h) => (
                       <span key={h} className={cn('tnum absolute', h === 22 ? '-translate-x-full' : '-translate-x-1/2')} style={{ left: pos(h * 60) }}>
@@ -222,8 +242,8 @@ export function TodayPage() {
                       </span>
                     ))}
                   </span>
-                  <span>{t('fid.col_span')}</span>
-                  <span>{t('fid.col_status')}</span>
+                  <TimerReset size={14} />
+                  <span />
                 </div>
                 {rows.length === 0 && <p className="px-5 py-8 text-center text-[13px] text-[var(--color-ink-tertiary)]">{t('fid.none')}</p>}
                 {rows.map((r) => {
@@ -233,7 +253,6 @@ export function TodayPage() {
                   const tone = r.status === 'late' ? 'bg-[var(--color-amber)]' : left ? 'bg-[var(--color-ink-tertiary)]/40' : 'bg-[var(--color-ink)]'
                   const state = r.status === 'absent' ? 'absent' : r.status === 'pending' ? 'pending' : left ? 'left' : r.status === 'late' ? 'late' : 'came'
                   const stateLabel = state === 'left' ? t('fid.s_left') : state === 'came' ? (isToday ? t('fid.col_here') : t('fid.s_came')) : t(`fid.s_${state}`)
-                  const stateDot = state === 'left' ? 'bg-[var(--color-ink-tertiary)]/40' : state === 'pending' ? 'border border-[var(--color-ink-tertiary)]' : state === 'absent' ? 'bg-[var(--color-danger)]' : state === 'late' ? 'bg-[var(--color-amber)]' : 'bg-[var(--color-ink)]'
                   return (
                     <Link
                       key={r.employee.id}
@@ -245,7 +264,7 @@ export function TodayPage() {
                         <span className="min-w-0">
                           <span className="block truncate text-[13.5px] font-medium text-[var(--color-ink)]">{r.employee.name}</span>
                           <span className="block truncate text-[12px] text-[var(--color-ink-tertiary)]">
-                            {BRANCHES[r.employee.branch].name} · {r.employee.position}
+                            {BRANCHES[r.employee.branch].name}
                           </span>
                         </span>
                       </span>
@@ -260,9 +279,8 @@ export function TodayPage() {
                         {isToday && <span className="absolute -top-1 h-7 w-0.5 rounded bg-[var(--color-ink)]" style={{ left: pos(NOW_H * 60) }} />}
                       </span>
                       <span className="tnum whitespace-nowrap text-[12px] text-[var(--color-ink-secondary)]">{r.worked !== undefined ? workedLabel(r.worked) : '—'}</span>
-                      <span className="flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--color-ink)]">
-                        <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', stateDot)} />
-                        {stateLabel}
+                      <span title={stateLabel} className="flex justify-end">
+                        <StateIcon state={state} />
                       </span>
                     </Link>
                   )
@@ -270,9 +288,9 @@ export function TodayPage() {
               </div>
             </div>
             <div className="flex items-center justify-between border-t border-[var(--color-border)] px-5 py-3 text-[12.5px]">
-              <span className="text-[var(--color-ink-tertiary)]">{isToday && t('fid.now_label', { t: NOW_LABEL })}</span>
-              <Link to="/faceid/log" className="font-medium text-[var(--color-ink-secondary)] underline-offset-2 hover:underline">
-                {t('fid.see_all', { n: staff.length })}
+              <span className="tnum flex items-center gap-1.5 text-[var(--color-ink-tertiary)]">{isToday && (<><Clock size={13} />{NOW_LABEL}</>)}</span>
+              <Link to="/faceid/log" className="font-medium text-[var(--color-ink-secondary)] hover:text-[var(--color-ink)]">
+                {staff.length} →
               </Link>
             </div>
           </section>
@@ -280,8 +298,8 @@ export function TodayPage() {
 
         <div className="space-y-5">
           <section className={cn(card, 'p-4')}>
-            <h3 className={cn(cap, 'mb-2 flex items-center justify-between')}>
-              {t('fid.lates')} <span className="tnum text-[var(--color-ink-secondary)]">{lates.length}</span>
+            <h3 className={cn(cap, 'mb-2 flex items-center justify-between')} title={t('fid.lates')}>
+              <Clock size={16} className="text-[var(--color-amber)]" /> <span className="tnum text-[var(--color-ink-secondary)]">{lates.length}</span>
             </h3>
             {lates.length === 0 ? (
               <p className="py-5 text-center text-[13px] text-[var(--color-ink-tertiary)]">{t('fid.all_ok')}</p>
@@ -292,7 +310,7 @@ export function TodayPage() {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13.5px] font-medium text-[var(--color-ink)]">{r.employee.name}</span>
                     <span className="block truncate text-[12px] text-[var(--color-ink-tertiary)]">
-                      {BRANCHES[r.employee.branch].name} · {r.employee.position}
+                      {BRANCHES[r.employee.branch].name}
                     </span>
                   </span>
                   <span className="tnum text-[12px] text-[var(--color-amber)]">+{r.late}′</span>
@@ -300,21 +318,21 @@ export function TodayPage() {
               ))
             )}
             {nAbsent > 0 && (
-              <Link to="/faceid/log" className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--color-border)] px-3 py-2 text-[13px] font-medium text-[var(--color-ink)]">
-                <Square className="bg-[var(--color-danger)]" />
-                <span className="flex-1">{t('fid.absent_n', { n: nAbsent })}</span>
-                <span className="text-[12.5px] text-[var(--color-ink-secondary)] underline">{t('fid.view')}</span>
+              <Link to="/faceid/log" title={t('fid.absent_n', { n: nAbsent })} className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--color-border)] px-3 py-2 text-[13px] font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-alt)]">
+                <UserX size={16} className="text-[var(--color-danger)]" />
+                <span className="tnum flex-1">{nAbsent}</span>
+                <span className="text-[var(--color-ink-tertiary)]">→</span>
               </Link>
             )}
           </section>
 
           <section className={cn(card, 'p-4')}>
             <h3 className={cn(cap, 'mb-2 flex items-center justify-between')}>
-              <span className="flex items-center gap-2">
-                {t('fid.feed')}
+              <span className="flex items-center gap-2" title={t('fid.feed')}>
+                <Activity size={16} />
                 {isToday && (
                   <span className="flex items-center gap-1 rounded-full bg-[var(--color-surface-alt)] px-2 py-0.5 text-[10.5px] font-semibold normal-case tracking-normal text-[var(--color-ink-secondary)]">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-ink)]" /> {t('fid.live')}
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-success)]" />
                   </span>
                 )}
               </span>
@@ -327,13 +345,8 @@ export function TodayPage() {
                   <span className="block truncate text-[13.5px] font-medium text-[var(--color-ink)]">{ev.employee.name}</span>
                   <span className="block truncate text-[12px] text-[var(--color-ink-tertiary)]">{ev.branch.name}</span>
                 </span>
-                <span
-                  className={cn(
-                    'rounded-md px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.06em]',
-                    ev.kind === 'in' ? 'bg-[var(--color-ink)] text-[var(--color-bg)]' : 'border border-[var(--color-border-strong,var(--color-border))] text-[var(--color-ink-secondary)]',
-                  )}
-                >
-                  {ev.kind === 'in' ? t('fid.in') : t('fid.out')}
+                <span title={ev.kind === 'in' ? t('fid.in') : t('fid.out')} className={ev.kind === 'in' ? 'text-[var(--color-success)]' : 'text-[var(--color-ink-tertiary)]'}>
+                  {ev.kind === 'in' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
                 </span>
               </Link>
             ))}
