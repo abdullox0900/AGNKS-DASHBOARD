@@ -85,7 +85,7 @@ export function FaceOverviewPage() {
   ]
 
   const feed = scanEvents(date).slice(0, 6)
-  const lates = staff.filter((r) => r.status === 'late').sort((a, b) => a.in!.localeCompare(b.in!))
+  const lates = staff.filter((r) => r.status === 'late').sort((a, b) => (a.in ?? '').localeCompare(b.in ?? ''))
   const absents = staff.filter((r) => r.status === 'absent')
 
   return (

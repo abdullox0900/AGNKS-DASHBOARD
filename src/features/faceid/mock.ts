@@ -281,7 +281,7 @@ export function monthDays(e: Employee, ym: string): (DayRecord | null)[] {
 export function monthTotals(days: (DayRecord | null)[]): MonthTotals {
   const rec = days.filter((d): d is DayRecord => !!d)
   const came = rec.filter((r) => r.status === 'came' || r.status === 'late')
-  const ins = came.map((r) => toMin(r.in!))
+  const ins = came.flatMap((r) => (r.in ? [toMin(r.in)] : []))
   return {
     days: came.length,
     late: rec.filter((r) => r.status === 'late').length,
@@ -319,18 +319,20 @@ interface Agg {
   absent: number
   late: number
   inSum: number
+  /** days with a known arrival time (a scan-out without a scan-in has none) */
+  inN: number
   workedSum: number
   workedN: number
 }
 function aggregate(from: string, to: string): Agg {
-  const a: Agg = { came: 0, absent: 0, late: 0, inSum: 0, workedSum: 0, workedN: 0 }
+  const a: Agg = { came: 0, absent: 0, late: 0, inSum: 0, inN: 0, workedSum: 0, workedN: 0 }
   for (let d = from; d <= to; d = addDays(d, 1)) {
     for (const r of dayRecords(d)) {
       if (r.status === 'absent') a.absent++
       if (r.status === 'came' || r.status === 'late') {
         a.came++
         if (r.status === 'late') a.late++
-        a.inSum += toMin(r.in!)
+        if (r.in) (a.inSum += toMin(r.in), a.inN++)
         if (r.worked !== undefined && !r.now) (a.workedSum += r.worked, a.workedN++)
       }
     }
@@ -346,7 +348,7 @@ export function analytics(days: number): Analytics {
   const prev = aggregate(addDays(from, -days), addDays(from, -1))
   const pct = (a: Agg) => (a.came + a.absent ? (a.came / (a.came + a.absent)) * 100 : 0)
   const share = (a: Agg) => (a.came ? (a.late / a.came) * 100 : 0)
-  const avgIn = (a: Agg) => (a.came ? a.inSum / a.came : 0)
+  const avgIn = (a: Agg) => (a.inN ? a.inSum / a.inN : 0)
   const avgW = (a: Agg) => (a.workedN ? a.workedSum / a.workedN : 0)
 
   const byHour = Array.from({ length: 14 }, (_, i) => ({ hour: 6 + i, n: 0 }))
