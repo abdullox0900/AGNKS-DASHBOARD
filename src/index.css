@@ -254,8 +254,8 @@ body {
 }
 
 /* FaceID cards: on a light page a white card needs a firmer edge and a soft shadow to stand out */
-.fid-card { box-shadow: var(--shadow-card); }
-[data-theme='light'] .fid-card { border-color: var(--color-border-strong); box-shadow: 0 1px 2px rgb(15 23 42 / 0.06), 0 4px 14px rgb(15 23 42 / 0.05); }
+.fid-card, .dt-card { box-shadow: var(--shadow-card); }
+[data-theme='light'] .fid-card, [data-theme='light'] .dt-card { border-color: var(--color-border-strong); box-shadow: 0 1px 2px rgb(15 23 42 / 0.06), 0 4px 14px rgb(15 23 42 / 0.05); }
 [data-theme='light'] .fid-card thead { background: var(--color-surface-alt); }
 
 /* FaceID top band: the same surface as every other card, in both themes */

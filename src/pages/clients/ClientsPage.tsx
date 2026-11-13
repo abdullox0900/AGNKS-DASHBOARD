@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import useSWR from 'swr'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { Badge } from '@/shared/ui/Badge'
+import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/shared/ui/Button'
-import { ErrorState } from '@/shared/ui/ErrorState'
+import { DataTable, type DataTableColumn } from '@/shared/ui/DataTable'
 import { NewBadge } from '@/shared/ui/NewBadge'
-import { Skeleton } from '@/shared/ui/Skeleton'
-import { apiClientsPage, apiClientsStats, type ClientsFilter, type ClientsSort } from '@/shared/api/client'
+import { PageTitle } from '@/shared/ui/PageTitle'
+import { SearchInput } from '@/shared/ui/SearchInput'
+import { StatStrip } from '@/shared/ui/StatStrip'
+import { useToast } from '@/shared/ui/Toast'
+import { apiBlockClient, apiClientsPage, apiClientsStats, apiUnblockClient, type ClientListRow, type ClientsFilter, type ClientsSort } from '@/shared/api/client'
 import { formatDateTime, formatSeen } from '@/shared/lib/dates'
-import { formatMoneyFull, formatNumber } from '@/shared/lib/format'
+import { formatNumber } from '@/shared/lib/format'
 import { formatPhone } from '@/shared/lib/phone'
 import { usePermission } from '@/shared/lib/permissions'
 import { cn } from '@/shared/lib/cn'
@@ -35,19 +37,111 @@ function pageWindow(page: number, pages: number): (number | '…')[] {
   return out
 }
 
+const Som = ({ n }: { n: number }) => (
+  <span className="font-mono">
+    <span className="font-semibold text-[var(--color-ink)]">{formatNumber(n)}</span> <span className="text-[var(--color-ink-tertiary)]">so‘m</span>
+  </span>
+)
+
+/** The client picked in the list: the essentials and block / unblock (SEO), plus a link to the full page. */
+function ClientPanel({ row, onChanged }: { row: ClientListRow | null; onChanged: () => void }) {
+  const { t } = useI18n()
+  const { show } = useToast()
+  const canEdit = usePermission('clients.edit')
+  const canOpen = usePermission('clients.detail')
+  const [asking, setAsking] = useState(false)
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    setAsking(false)
+    setReason('')
+  }, [row?.id])
+
+  if (!row) {
+    return <div className="dt-card rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-10 text-center text-[13.5px] text-[var(--color-ink-tertiary)]">{t('clients.pick_hint')}</div>
+  }
+  const words = { today: t('clients.today'), yesterday: t('clients.yesterday') }
+  const line = (label: string, value: React.ReactNode) => (
+    <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] py-3.5 last:border-0">
+      <span className="text-[14px] text-[var(--color-ink-secondary)]">{label}</span>
+      <span className="text-right text-[14px]">{value}</span>
+    </div>
+  )
+  async function run(action: () => Promise<unknown>, message: string) {
+    setBusy(true)
+    try {
+      await action()
+      show(message)
+      setAsking(false)
+      setReason('')
+      onChanged()
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="dt-card rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-5">
+      <p className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink-tertiary)]">{t('clients.panel_label')}</p>
+      <p className="mt-1 break-words text-[22px] font-bold leading-tight text-[var(--color-ink)]">{row.name || '—'}</p>
+      <div className="mt-3">
+        {line(t('common.phone'), <span className="font-mono font-semibold text-[var(--color-ink)]">{row.phone ? formatPhone(row.phone) : '—'}</span>)}
+        {line(t('clients.balance'), <Som n={row.balance} />)}
+        {line(t('clients.last_seen'), <span className="text-[var(--color-ink)]">{row.lastSeenAt ? formatSeen(row.lastSeenAt, words) : '—'}</span>)}
+        {line(t('clients.registered'), <span className="font-mono text-[13px] text-[var(--color-ink)]">{formatDateTime(row.registeredAt)}</span>)}
+        {line(t('common.status'), <span className={cn('font-semibold', row.blocked ? 'text-[var(--color-danger)]' : 'text-[var(--color-success)]')}>{row.blocked ? t('common.blocked') : t('common.active')}</span>)}
+      </div>
+
+      {canEdit &&
+        (row.blocked ? (
+          <Button variant="secondary" className="mt-4 w-full" loading={busy} onClick={() => run(() => apiUnblockClient(row.id), t('clients.unblocked'))}>
+            {t('clients.unblock_btn')}
+          </Button>
+        ) : asking ? (
+          <div className="mt-4 space-y-2">
+            <textarea
+              autoFocus
+              value={reason}
+              onChange={(e) => setReason(e.target.value.slice(0, 300))}
+              rows={2}
+              placeholder={t('clients.block_reason_ph')}
+              className="w-full resize-none rounded-xl border border-[var(--color-border)] bg-transparent px-3 py-2 text-[13px] text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink-tertiary)] focus:border-[var(--color-danger)]"
+            />
+            <div className="flex gap-2">
+              <Button variant="ghost" className="flex-1" onClick={() => setAsking(false)}>
+                {t('common.cancel')}
+              </Button>
+              <Button variant="danger" className="flex-1" loading={busy} disabled={reason.trim().length < 3} onClick={() => run(() => apiBlockClient(row.id, reason.trim()), t('clients.blocked_toast'))}>
+                {t('clients.block_short')}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button variant="secondary" className="mt-4 w-full" onClick={() => setAsking(true)}>
+            {t('clients.block_short')}
+          </Button>
+        ))}
+
+      {canOpen && (
+        <Link to={`/clients/${row.id}`} className="mt-3 flex items-center justify-center gap-1.5 rounded-xl py-2 text-[13.5px] font-medium text-[var(--color-primary)] hover:bg-[var(--color-surface-alt)]">
+          {t('common.details')} <ArrowRight size={14} />
+        </Link>
+      )}
+    </div>
+  )
+}
+
 /**
- * "Mijozlar": numbers on top (everyone / opened the app lately / opens it often — tap one to filter),
- * then a plain Notion-like list, 40 per page.
+ * "Mijozlar": three numbers on top (tap one to filter), the list 40 per page with the server's sort,
+ * and the picked client on the right.
  */
 export function ClientsPage() {
   const { t } = useI18n()
-  const navigate = useNavigate()
-  const canOpen = usePermission('clients.detail') // root_admin only watches the list
   const [q, setQ] = useState('')
   const [debouncedQ, setDebouncedQ] = useState('')
   const [sort, setSort] = useState<ClientsSort>('balance')
   const [filter, setFilter] = useState<ClientsFilter | undefined>(undefined)
   const [page, setPage] = useState(1)
+  const [pickedId, setPickedId] = useState<string | null>(null)
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQ(q.trim()), 300)
@@ -62,7 +156,7 @@ export function ClientsPage() {
   )
 
   const rows = data?.items ?? []
-  const words = { today: t('clients.today'), yesterday: t('clients.yesterday') }
+  const picked = rows.find((r) => r.id === pickedId) ?? rows[0] ?? null
   const from = data && data.total > 0 ? (data.page - 1) * data.pageSize + 1 : 0
   const to = data ? (data.page - 1) * data.pageSize + rows.length : 0
 
@@ -71,152 +165,127 @@ export function ClientsPage() {
     setPage(1)
   }
 
-  const tiles: { key: ClientsFilter | undefined; label: string; value: number | undefined; hint: string }[] = [
-    { key: undefined, label: t('clients.stat_total'), value: stats?.total, hint: stats ? t('clients.stat_today', { n: stats.today }) : '' },
-    { key: 'recent', label: t('clients.stat_recent'), value: stats?.recent, hint: stats ? t('clients.stat_recent_hint', { n: stats.recentDays }) : '' },
-    { key: 'frequent', label: t('clients.stat_frequent'), value: stats?.frequent, hint: stats ? t('clients.stat_frequent_hint', { n: stats.frequentMinDays, d: stats.frequentWindowDays }) : '' },
+  const columns: DataTableColumn<ClientListRow>[] = [
+    { id: 'name', header: 'common.name', sortable: false, accessor: (r) => r.name, cell: (r) => <span className="font-semibold">{r.name || '—'}</span> },
+    { id: 'phone', header: 'common.phone', sortable: false, accessor: (r) => r.phone ?? '', cell: (r) => <span className="font-mono text-[13.5px] text-[var(--color-ink-secondary)]">{r.phone ? formatPhone(r.phone) : '—'}</span> },
+    { id: 'balance', header: 'clients.balance', sortable: false, numeric: true, accessor: (r) => r.balance, cell: (r) => <Som n={r.balance} /> },
+    {
+      id: 'status',
+      header: 'common.status',
+      sortable: false,
+      accessor: (r) => r.blocked,
+      cell: (r) => <span className={cn('font-medium', r.blocked ? 'text-[var(--color-danger)]' : 'text-[var(--color-success)]')}>{r.blocked ? t('common.blocked') : t('common.active')}</span>,
+    },
   ]
+
+  const pager = data && data.total > 0 && (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <p className="font-mono text-[13px] text-[var(--color-ink-tertiary)]">{t('clients.range', { from, to, total: formatNumber(data.total) })}</p>
+      {data.pages > 1 && (
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" disabled={data.page <= 1} onClick={() => setPage(data.page - 1)} aria-label={t('clients.prev')}>
+            <ChevronLeft size={15} />
+          </Button>
+          {pageWindow(data.page, data.pages).map((p, i) =>
+            p === '…' ? (
+              <span key={`gap-${i}`} className="px-1 text-[var(--color-ink-tertiary)]">
+                …
+              </span>
+            ) : (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPage(p)}
+                className={cn('h-8 min-w-8 rounded-lg px-2 font-mono text-[13px] font-medium', p === data.page ? 'bg-[var(--color-primary)] text-[var(--color-primary-ink)]' : 'text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]')}
+              >
+                {p}
+              </button>
+            ),
+          )}
+          <Button variant="ghost" size="sm" disabled={data.page >= data.pages} onClick={() => setPage(data.page + 1)} aria-label={t('clients.next')}>
+            <ChevronRight size={15} />
+          </Button>
+        </div>
+      )}
+    </div>
+  )
 
   return (
     <div className="w-full">
-      <div>
-        <h2 className="flex items-center gap-2 text-[26px] font-bold tracking-tight text-[var(--color-ink)]">
-          {t('nav.clients')} <NewBadge since="2026-10-17" />
-        </h2>
-        <p className="mt-1 text-[13px] text-[var(--color-ink-tertiary)]">{t('clients.subtitle')}</p>
-      </div>
-
-      <div className="mt-5 grid gap-2.5 sm:grid-cols-3">
-        {tiles.map((tile) => (
-          <button
-            key={tile.key ?? 'all'}
-            type="button"
-            onClick={() => pick(setFilter, tile.key)}
-            className={cn(
-              'rounded-xl border px-4 py-3 text-left transition-colors',
-              filter === tile.key ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)]' : 'border-[var(--color-border)] hover:bg-[var(--color-surface-alt)]',
-            )}
-          >
-            <p className="text-[12px] font-medium text-[var(--color-ink-secondary)]">{tile.label}</p>
-            <p className="tnum mt-0.5 text-[26px] font-bold leading-tight text-[var(--color-ink)]">{tile.value === undefined ? <Skeleton className="mt-1 h-7 w-16" /> : formatNumber(tile.value)}</p>
-            <p className="mt-0.5 text-[11.5px] text-[var(--color-ink-tertiary)]">{tile.hint || ' '}</p>
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-5 flex flex-wrap items-center gap-3">
-        <input
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value)
-            setPage(1)
-          }}
-          placeholder={t('clients.search')}
-          className="h-10 w-full max-w-sm rounded-lg border border-[var(--color-border)] bg-transparent px-3 text-[13px] outline-none focus:border-[var(--color-primary)]"
-        />
-        <div className="inline-flex gap-1 rounded-lg border border-[var(--color-border)] p-0.5">
-          {SORTS.map((s) => (
-            <button
-              key={s.key}
-              type="button"
-              onClick={() => pick(setSort, s.key)}
-              className={cn('rounded-md px-3 py-1.5 text-[12.5px] font-medium', sort === s.key ? 'bg-[var(--color-primary)] text-[var(--color-primary-ink)]' : 'text-[var(--color-ink-secondary)]')}
-            >
-              {t(s.label)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-4">
-        {error ? (
-          <ErrorState message={t('common.load_failed')} onRetry={() => mutate()} />
-        ) : isLoading ? (
-          <div className="space-y-2">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full" />
-            ))}
-          </div>
-        ) : rows.length === 0 ? (
-          <p className="py-16 text-center text-[14px] text-[var(--color-ink-tertiary)]">{t('clients.empty')}</p>
-        ) : (
+      <PageTitle
+        title={
           <>
-            <div className="flex items-center gap-4 border-b border-[var(--color-border)] px-2 pb-2 text-[11.5px] font-semibold uppercase tracking-[0.1em] text-[var(--color-ink-tertiary)]">
-              <span className="min-w-0 flex-1">{t('common.name')}</span>
-              <span className="hidden w-[150px] shrink-0 md:block">{t('common.phone')}</span>
-              <span className="w-[120px] shrink-0 text-right">{t('clients.balance')}</span>
-              <span className="hidden w-[130px] shrink-0 lg:block">{t('clients.last_seen')}</span>
-              <span className="hidden w-[70px] shrink-0 text-right xl:block" title={t('clients.days_hint')}>
-                {t('clients.days')}
-              </span>
-              <span className="hidden w-[110px] shrink-0 xl:block">{t('clients.registered')}</span>
-              <span className="w-[104px] shrink-0">{t('common.status')}</span>
-              {canOpen && <span className="w-4 shrink-0" />}
-            </div>
-            <ul className={cn(isLoading && 'opacity-60')}>
-              {rows.map((r) => (
-                <li key={r.id}>
-                  <button
-                    type="button"
-                    disabled={!canOpen}
-                    onClick={() => navigate(`/clients/${r.id}`)}
-                    className={cn(
-                      'group flex w-full items-center gap-4 rounded-md px-2 py-2.5 text-left outline-none transition-colors',
-                      canOpen && 'hover:bg-[var(--color-surface-alt)] focus-visible:bg-[var(--color-surface-alt)]',
-                    )}
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className={cn('block truncate text-[14.5px] font-medium text-[var(--color-ink)]', canOpen && 'group-hover:text-[var(--color-primary)]')}>{r.name || '—'}</span>
-                      <span className="block truncate text-[12px] text-[var(--color-ink-tertiary)] md:hidden">{r.phone ? formatPhone(r.phone) : '—'}</span>
-                    </span>
-                    <span className="tnum hidden w-[150px] shrink-0 text-[13px] text-[var(--color-ink-secondary)] md:block">{r.phone ? formatPhone(r.phone) : '—'}</span>
-                    <span className="tnum w-[120px] shrink-0 text-right text-[13.5px] font-medium text-[var(--color-ink)]">{formatMoneyFull(r.balance)}</span>
-                    <span className="hidden w-[130px] shrink-0 text-[12.5px] text-[var(--color-ink-secondary)] lg:block">{r.lastSeenAt ? formatSeen(r.lastSeenAt, words) : '—'}</span>
-                    <span className="tnum hidden w-[70px] shrink-0 text-right text-[13px] text-[var(--color-ink-secondary)] xl:block">{r.activeDays > 0 ? r.activeDays : '—'}</span>
-                    <span className="tnum hidden w-[110px] shrink-0 text-[12.5px] text-[var(--color-ink-tertiary)] xl:block">{formatDateTime(r.registeredAt)}</span>
-                    <span className="w-[104px] shrink-0">
-                      <Badge tone={r.blocked ? 'danger' : 'success'}>{r.blocked ? t('common.blocked') : t('common.active')}</Badge>
-                    </span>
-                    {canOpen && <ChevronRight size={15} className="w-4 shrink-0 text-[var(--color-ink-tertiary)]" />}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {t('nav.clients')} <NewBadge since="2026-10-17" />
           </>
-        )}
+        }
+        sub={t('clients.subtitle')}
+      />
 
-        {data && data.total > 0 && (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border)] pt-3">
-            <p className="tnum text-[12.5px] text-[var(--color-ink-tertiary)]">{t('clients.range', { from, to, total: data.total })}</p>
-            {data.pages > 1 && (
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="sm" disabled={data.page <= 1} onClick={() => setPage(data.page - 1)} aria-label={t('clients.prev')}>
-                  <ChevronLeft size={15} />
-                </Button>
-                {pageWindow(data.page, data.pages).map((p, i) =>
-                  p === '…' ? (
-                    <span key={`gap-${i}`} className="px-1 text-[var(--color-ink-tertiary)]">…</span>
-                  ) : (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPage(p)}
-                      className={cn(
-                        'tnum h-8 min-w-8 rounded-md px-2 text-[13px] font-medium',
-                        p === data.page ? 'bg-[var(--color-primary)] text-[var(--color-primary-ink)]' : 'text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]',
-                      )}
-                    >
-                      {p}
-                    </button>
-                  ),
-                )}
-                <Button variant="ghost" size="sm" disabled={data.page >= data.pages} onClick={() => setPage(data.page + 1)} aria-label={t('clients.next')}>
-                  <ChevronRight size={15} />
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
+      <StatStrip
+        items={[
+          { key: 'all', label: t('clients.stat_total'), value: stats && formatNumber(stats.total), hint: stats ? t('clients.stat_today', { n: stats.today }) : '', onClick: () => pick(setFilter, undefined), active: filter === undefined },
+          { key: 'recent', label: t('clients.stat_recent'), value: stats && formatNumber(stats.recent), hint: stats ? t('clients.stat_recent_hint', { n: stats.recentDays }) : '', onClick: () => pick(setFilter, 'recent' as ClientsFilter), active: filter === 'recent' },
+          {
+            key: 'frequent',
+            label: t('clients.stat_frequent'),
+            value: stats && formatNumber(stats.frequent),
+            hint: stats ? t('clients.stat_frequent_hint', { n: stats.frequentMinDays, d: stats.frequentWindowDays }) : '',
+            onClick: () => pick(setFilter, 'frequent' as ClientsFilter),
+            active: filter === 'frequent',
+          },
+        ]}
+      />
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
+        <div className={cn('min-w-0', isLoading && data && 'opacity-60')}>
+          <DataTable
+            columns={columns}
+            data={rows}
+            loading={isLoading && !data}
+            error={error ? t('common.load_failed') : undefined}
+            onRetry={() => mutate()}
+            getRowId={(r) => r.id}
+            onRowClick={(r) => setPickedId(r.id)}
+            selectedId={picked?.id}
+            indexOffset={from > 0 ? from - 1 : 0}
+            emptyMessage={t('clients.empty')}
+            maxHeight={1100}
+            title={
+              <>
+                {t('common.showing')}: <span className="font-bold text-[var(--color-ink)]">{rows.length}</span>
+              </>
+            }
+            actions={
+              <>
+                <select
+                  value={sort}
+                  onChange={(e) => pick(setSort, e.target.value as ClientsSort)}
+                  aria-label={t('clients.sort_balance')}
+                  className="h-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-[13.5px] text-[var(--color-ink)] outline-none focus:border-[var(--color-primary)]"
+                >
+                  {SORTS.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {t(s.label)}
+                    </option>
+                  ))}
+                </select>
+                <SearchInput
+                  value={q}
+                  onChange={(v) => {
+                    setQ(v)
+                    setPage(1)
+                  }}
+                  placeholder={t('clients.search_short')}
+                  className="w-full sm:w-[280px]"
+                />
+              </>
+            }
+            bottom={pager || undefined}
+          />
+        </div>
+        <div className="xl:sticky xl:top-4 xl:self-start">
+          <ClientPanel row={picked} onChanged={() => void mutate()} />
+        </div>
       </div>
     </div>
   )

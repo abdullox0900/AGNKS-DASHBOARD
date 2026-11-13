@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import useSWR from 'swr'
 import { Download, Search, X } from 'lucide-react'
-import { Card } from '@/shared/ui/Card'
+import { PageTitle } from '@/shared/ui/PageTitle'
+import { StatStrip } from '@/shared/ui/StatStrip'
 import { Button } from '@/shared/ui/Button'
 import { Badge } from '@/shared/ui/Badge'
 import { Chip } from '@/shared/ui/Chip'
-import { Skeleton } from '@/shared/ui/Skeleton'
 import { DataTable, type DataTableColumn } from '@/shared/ui/DataTable'
 import { useToast } from '@/shared/ui/Toast'
 import { useGlobalFilters } from '@/features/global-filters/useGlobalFilters'
@@ -21,7 +21,7 @@ import {
 } from '@/shared/api/bonusReport'
 import type { Filter } from '@/shared/api/client'
 import { formatDateTime } from '@/shared/lib/dates'
-import { formatMoneyFull, formatNumber } from '@/shared/lib/format'
+import { formatNumber } from '@/shared/lib/format'
 import { formatPhone } from '@/shared/lib/phone'
 import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
@@ -30,27 +30,8 @@ type Tab = 'stations' | 'clients' | 'ops'
 const PAGE = 50
 
 const keyOf = (name: string, f: Filter, ...rest: unknown[]) => [name, f.stationIds?.join(',') ?? 'all', f.from.toISOString(), f.to.toISOString(), ...rest]
-const money = (n: number) => formatMoneyFull(n)
-
-function Kpi({ label, value, tone, hint }: { label: string; value: string; tone?: 'earn' | 'spend' | 'warn'; hint?: string }) {
-  return (
-    <Card>
-      <p className="text-[12.5px] font-medium text-[var(--color-ink-secondary)]">{label}</p>
-      <p
-        className={cn(
-          'tnum mt-1 text-[24px] font-bold',
-          tone === 'earn' && 'text-[var(--color-success)]',
-          tone === 'spend' && 'text-[var(--color-primary)]',
-          tone === 'warn' && 'text-[var(--color-amber)]',
-          !tone && 'text-[var(--color-ink)]',
-        )}
-      >
-        {value}
-      </p>
-      {hint && <p className="mt-0.5 text-[11.5px] text-[var(--color-ink-tertiary)]">{hint}</p>}
-    </Card>
-  )
-}
+/** plain grouped numbers (the column / card title already says it is money) */
+const money = (n: number) => formatNumber(n)
 
 function Pager({ offset, total, onChange }: { offset: number; total: number; onChange: (o: number) => void }) {
   const { t } = useI18n()
@@ -115,58 +96,59 @@ export function BonusReportPage() {
   }
 
   return (
-    <div className="space-y-5">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-[24px] font-bold text-[var(--color-ink)]">{t('bonusrep.title')}</h1>
-          <p className="mt-1 max-w-[640px] text-[13px] text-[var(--color-ink-tertiary)]">{t('bonusrep.subtitle')}</p>
-        </div>
-        <Button onClick={download} loading={downloading}>
-          <Download size={15} /> {t('bonusrep.export')}
-        </Button>
-      </header>
+    <div>
+      <PageTitle
+        title={t('bonusrep.title')}
+        sub={t('bonusrep.subtitle')}
+        right={
+          <Button variant="secondary" onClick={download} loading={downloading}>
+            <Download size={15} /> Excel
+          </Button>
+        }
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {sumLoading && !totals ? (
-          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[92px] w-full rounded-2xl" />)
-        ) : (
-          <>
-            <Kpi label={t('bonusrep.kpi_earned')} value={money(totals?.earned ?? 0)} tone="earn" hint={`${formatNumber(totals?.receiptsCount ?? 0)} · ${money(totals?.receiptsSum ?? 0)}`} />
-            <Kpi label={t('bonusrep.kpi_redeemed')} value={money(totals?.redeemed ?? 0)} tone="spend" hint={formatNumber(totals?.redeemCount ?? 0)} />
-            <Kpi label={t('bonusrep.kpi_diff')} value={money((totals?.earned ?? 0) - (totals?.redeemed ?? 0))} />
-            <Kpi label={t('bonusrep.kpi_pending')} value={money(totals?.pending ?? 0)} tone="warn" />
-            {!!totals?.adjusted && <Kpi label={t('bonusrep.kpi_adjusted')} value={`${totals.adjusted > 0 ? '+' : '−'}${money(Math.abs(totals.adjusted))}`} />}
-          </>
-        )}
-      </div>
+      <StatStrip
+        items={[
+          { key: 'earned', label: t('bonusrep.kpi_earned'), value: totals && money(totals.earned), hint: totals ? t('bonusrep.h_receipts', { n: formatNumber(totals.receiptsCount) }) : '' },
+          { key: 'redeemed', label: t('bonusrep.kpi_redeemed'), value: totals && money(totals.redeemed), hint: totals ? t('bonusrep.h_redeems', { n: formatNumber(totals.redeemCount) }) : '' },
+          { key: 'diff', label: t('bonusrep.kpi_diff'), value: totals && money(totals.earned - totals.redeemed), hint: t('bonusrep.h_diff') },
+          {
+            key: 'adjusted',
+            label: t('bonusrep.kpi_adjusted'),
+            value: totals && `${(totals.adjusted ?? 0) < 0 ? '−' : ''}${money(Math.abs(totals.adjusted ?? 0))}`,
+            hint: totals ? t('bonusrep.h_adjusted', { n: money(totals.pending ?? 0) }) : '',
+          },
+        ]}
+      />
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex gap-1 rounded-lg border border-[var(--color-border)] p-0.5">
+      <div className="dt-card mt-5 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div className="flex flex-wrap items-center gap-x-1 gap-y-2 border-b border-[var(--color-border)] px-5">
           {(['stations', 'clients', 'ops'] as Tab[]).map((key) => (
             <button
               key={key}
+              type="button"
               onClick={() => setTab(key)}
-              className={cn('rounded-md px-3 py-1.5 text-[13px] font-medium', tab === key ? 'bg-[var(--color-primary)] text-[var(--color-primary-ink)]' : 'text-[var(--color-ink-secondary)]')}
+              className={cn(
+                '-mb-px border-b-2 px-2.5 py-3.5 text-[14px] font-semibold transition-colors',
+                tab === key ? 'border-[var(--color-primary)] text-[var(--color-ink)]' : 'border-transparent text-[var(--color-ink-tertiary)] hover:text-[var(--color-ink-secondary)]',
+              )}
             >
               {t(key === 'stations' ? 'bonusrep.tab_stations' : key === 'clients' ? 'bonusrep.tab_clients' : 'bonusrep.tab_ops')}
             </button>
           ))}
+          {station && (
+            <button onClick={() => setStation(null)} className="ml-auto flex h-8 items-center gap-1.5 rounded-full bg-[var(--color-primary-soft)] px-3 text-[12.5px] font-medium text-[var(--color-primary)]">
+              {t('bonusrep.station_filter', { name: station.name })} <X size={13} />
+            </button>
+          )}
         </div>
-        {station && (
-          <button
-            onClick={() => setStation(null)}
-            className="flex h-8 items-center gap-1.5 rounded-full bg-[var(--color-primary-soft)] px-3 text-[12.5px] font-medium text-[var(--color-primary)]"
-          >
-            {t('bonusrep.station_filter', { name: station.name })} <X size={13} />
-          </button>
-        )}
-      </div>
 
       {tab === 'stations' && (
         <StationsTab loading={sumLoading} error={!!sumError} onRetry={() => sumMutate()} rows={summary?.stations ?? []} totals={totals} onOpen={openStation} />
       )}
       {tab === 'clients' && <ClientsTab filter={effective} />}
       {tab === 'ops' && <OperationsTab filter={effective} />}
+      </div>
     </div>
   )
 }
@@ -174,18 +156,19 @@ export function BonusReportPage() {
 function StationsTab({ rows, totals, loading, error, onRetry, onOpen }: { rows: StationBonus[]; totals?: BonusTotals; loading: boolean; error: boolean; onRetry: () => void; onOpen: (s: StationBonus) => void }) {
   const { t } = useI18n()
   const columns: DataTableColumn<StationBonus>[] = [
-    { id: 'name', header: 'common.station', accessor: (r) => r.name, sticky: true },
+    { id: 'name', header: 'common.station', accessor: (r) => r.name, sticky: true, cell: (r) => <span className="font-semibold">{r.name}</span> },
     { id: 'receipts', header: 'bonusrep.col_receipts', accessor: (r) => r.receiptsCount, numeric: true, cell: (r) => formatNumber(r.receiptsCount) },
     { id: 'base', header: 'bonusrep.col_receipts_sum', accessor: (r) => r.receiptsSum, numeric: true, cell: (r) => money(r.receiptsSum) },
-    { id: 'earned', header: 'bonusrep.col_earned', accessor: (r) => r.earned, numeric: true, cell: (r) => <span className="font-semibold text-[var(--color-success)]">{money(r.earned)}</span> },
-    { id: 'redeemed', header: 'bonusrep.col_redeemed', accessor: (r) => r.redeemed, numeric: true, cell: (r) => <span className="font-semibold text-[var(--color-primary)]">{money(r.redeemed)}</span> },
+    { id: 'earned', header: 'bonusrep.col_earned', accessor: (r) => r.earned, numeric: true, cell: (r) => money(r.earned) },
+    { id: 'redeemed', header: 'bonusrep.col_redeemed', accessor: (r) => r.redeemed, numeric: true, cell: (r) => money(r.redeemed) },
     { id: 'redeems', header: 'bonusrep.col_redeems', accessor: (r) => r.redeemCount, numeric: true, cell: (r) => formatNumber(r.redeemCount) },
     { id: 'diff', header: 'bonusrep.col_diff', accessor: (r) => r.earned - r.redeemed, numeric: true, cell: (r) => money(r.earned - r.redeemed) },
   ]
   return (
-    <div>
-      <p className="mb-2 text-[12px] text-[var(--color-ink-tertiary)]">{t('bonusrep.hint_station_row')}</p>
+    <div title={t('bonusrep.hint_station_row')}>
       <DataTable
+        bare
+        index={false}
         columns={columns}
         data={rows}
         loading={loading}
@@ -200,8 +183,8 @@ function StationsTab({ rows, totals, loading, error, onRetry, onOpen }: { rows: 
                 name: t('bonusrep.total'),
                 receipts: formatNumber(totals.receiptsCount),
                 base: money(totals.receiptsSum),
-                earned: <span className="text-[var(--color-success)]">{money(totals.earned)}</span>,
-                redeemed: <span className="text-[var(--color-primary)]">{money(totals.redeemed)}</span>,
+                earned: money(totals.earned),
+                redeemed: money(totals.redeemed),
                 redeems: formatNumber(totals.redeemCount),
                 diff: money(totals.earned - totals.redeemed),
               }
@@ -226,10 +209,14 @@ function ClientsTab({ filter }: { filter: Filter }) {
     { id: 'balance', header: 'bonusrep.col_balance', accessor: (r) => r.balance, numeric: true, cell: (r) => money(r.balance) },
   ]
   return (
-    <div className="space-y-3">
-      <SearchBox value={q} onChange={(v) => { setQ(v); setOffset(0) }} />
-      <DataTable columns={columns} data={data?.items ?? []} loading={isLoading} error={error ? t('common.load_failed') : undefined} onRetry={() => mutate()} getRowId={(r) => r.userId} emptyMessage={t('bonusrep.empty')} />
-      <Pager offset={offset} total={data?.total ?? 0} onChange={setOffset} />
+    <div>
+      <div className="px-5 py-3">
+        <SearchBox value={q} onChange={(v) => { setQ(v); setOffset(0) }} />
+      </div>
+      <DataTable bare indexOffset={offset} columns={columns} data={data?.items ?? []} loading={isLoading} error={error ? t('common.load_failed') : undefined} onRetry={() => mutate()} getRowId={(r) => r.userId} emptyMessage={t('bonusrep.empty')} />
+      <div className="px-5 pb-3">
+        <Pager offset={offset} total={data?.total ?? 0} onChange={setOffset} />
+      </div>
     </div>
   )
 }
@@ -256,8 +243,8 @@ function OperationsTab({ filter }: { filter: Filter }) {
     { id: 'status', header: 'common.status', accessor: (r) => r.status, cell: (r) => <Badge tone={statusTone(r)}>{statusLabel(r)}</Badge> },
   ]
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
+    <div>
+      <div className="flex flex-wrap items-center gap-2 px-5 py-3">
         {([undefined, 'earn', 'spend'] as const).map((k) => (
           <Chip key={k ?? 'all'} active={type === k} onClick={() => { setType(k); setOffset(0) }}>
             {t(k === undefined ? 'bonusrep.type_all' : k === 'earn' ? 'bonusrep.type_earn' : 'bonusrep.type_spend')}
@@ -267,8 +254,10 @@ function OperationsTab({ filter }: { filter: Filter }) {
           <SearchBox value={q} onChange={(v) => { setQ(v); setOffset(0) }} />
         </div>
       </div>
-      <DataTable columns={columns} data={data?.items ?? []} loading={isLoading} error={error ? t('common.load_failed') : undefined} onRetry={() => mutate()} getRowId={(r) => `${r.type}-${r.id}`} emptyMessage={t('bonusrep.empty')} />
-      <Pager offset={offset} total={data?.total ?? 0} onChange={setOffset} />
+      <DataTable bare indexOffset={offset} columns={columns} data={data?.items ?? []} loading={isLoading} error={error ? t('common.load_failed') : undefined} onRetry={() => mutate()} getRowId={(r) => `${r.type}-${r.id}`} emptyMessage={t('bonusrep.empty')} />
+      <div className="px-5 pb-3">
+        <Pager offset={offset} total={data?.total ?? 0} onChange={setOffset} />
+      </div>
     </div>
   )
 }

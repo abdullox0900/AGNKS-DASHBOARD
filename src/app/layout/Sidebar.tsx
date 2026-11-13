@@ -22,7 +22,6 @@ import {
   Users,
   Users2,
   ScanFace,
-  UserCheck,
 } from 'lucide-react'
 import { cn } from '@/shared/lib/cn'
 import { roleHasPermission, type Permission } from '@/shared/lib/permissions'
@@ -80,7 +79,7 @@ const GROUPS: NavGroup[] = [
       { to: '/stations', label: 'nav.stations', icon: Store, permission: 'stations.view' },
       { to: '/cashiers', label: 'nav.cashiers', icon: Users2, permission: 'cashiers.view' },
       { to: '/clients', label: 'nav.clients', icon: Users, permission: 'clients.view' },
-      { to: '/attendants', label: 'nav.attendants', icon: UserCheck, permission: 'attendants.view', newSince: '2026-10-12' },
+      // "Zapravkachilar" (/attendants) is hidden from the menu for now — the page and its route stay.
       { to: '/faceid', label: 'nav.faceid', icon: ScanFace, permission: 'faceid.view', newSince: '2026-11-13' },
     ],
   },

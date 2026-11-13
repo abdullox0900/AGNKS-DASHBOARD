@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { MoreHorizontal, Pencil, Plus, Trash2, TriangleAlert } from 'lucide-react'
 import { Button } from '@/shared/ui/Button'
-import { Badge } from '@/shared/ui/Badge'
+import { PageTitle } from '@/shared/ui/PageTitle'
+import { SearchInput } from '@/shared/ui/SearchInput'
 import { DataTable, type DataTableColumn } from '@/shared/ui/DataTable'
 import { Drawer } from '@/shared/ui/Drawer'
 import { usePermission } from '@/shared/lib/permissions'
@@ -39,6 +40,7 @@ export function CashiersPage() {
   const [editing, setEditing] = useState<Cashier | null>(null)
   const [deleting, setDeleting] = useState<Cashier | null>(null)
   const canManage = usePermission('cashiers.manage') // root_admin sees the list only
+  const [q, setQ] = useState('')
 
   const allColumns: DataTableColumn<Cashier>[] = [
     {
@@ -46,23 +48,16 @@ export function CashiersPage() {
       header: 'common.name',
       accessor: (r) => r.firstName,
       sticky: true,
-      cell: (r) => (
-        <span className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[12.5px] font-bold text-[var(--color-primary)]">
-            {r.firstName.charAt(0).toUpperCase()}
-          </span>
-          <span className="font-medium">{r.firstName}</span>
-        </span>
-      ),
+      cell: (r) => <span className="font-semibold">{r.firstName}</span>,
     },
-    { id: 'phone', header: 'common.phone', accessor: (r) => formatPhone(r.phone) },
+    { id: 'phone', header: 'common.phone', accessor: (r) => formatPhone(r.phone), cell: (r) => <span className="font-mono text-[13.5px] text-[var(--color-ink-secondary)]">{formatPhone(r.phone)}</span> },
     { id: 'station', header: 'common.station', accessor: (r) => stations?.find((s) => s.id === r.stationId)?.name ?? r.stationName ?? '' },
-    { id: 'terminals', header: 'cashiers.terminals', accessor: (r) => r.terminalIds.length },
+    { id: 'terminals', header: 'cashiers.terminals', accessor: (r) => r.terminalIds.length, numeric: true },
     {
       id: 'status',
       header: 'common.status',
       accessor: (r) => r.status,
-      cell: (r) => <Badge tone={r.status === 'active' ? 'success' : 'danger'}>{r.status === 'active' ? t('common.active') : t('common.blocked')}</Badge>,
+      cell: (r) => <span className={r.status === 'active' ? 'font-medium text-[var(--color-success)]' : 'font-medium text-[var(--color-danger)]'}>{r.status === 'active' ? t('common.active') : t('common.blocked')}</span>,
     },
     { id: 'password', header: 'common.password', sortable: false, accessor: (r) => r.password ?? '', cell: (r) => <PasswordCell password={r.password} /> },
     {
@@ -96,19 +91,31 @@ export function CashiersPage() {
 
   const columns = canManage ? allColumns : allColumns.filter((c) => c.id !== 'actions' && c.id !== 'password')
 
-  return (
-    <div className="space-y-4">
-      {canManage && (
-        <div className="flex justify-end">
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus size={15} /> {t('cashiers.add')}
-          </Button>
-        </div>
-      )}
+  const needle = q.trim().toLowerCase()
+  const stationName = (r: Cashier) => stations?.find((s) => s.id === r.stationId)?.name ?? r.stationName ?? ''
+  const rows = (cashiers ?? []).filter((r) => !needle || r.firstName.toLowerCase().includes(needle) || r.phone.includes(needle.replace(/\D/g, '') || '\u0000') || stationName(r).toLowerCase().includes(needle))
 
+  return (
+    <div>
+      <PageTitle title={t('nav.cashiers')} sub={t('nav.group.network')} />
       <DataTable
         columns={columns}
-        data={cashiers ?? []}
+        title={
+          <>
+            {t('common.total')}: <span className="font-bold text-[var(--color-ink)]">{rows.length}</span>
+          </>
+        }
+        actions={
+          <>
+            <SearchInput value={q} onChange={setQ} placeholder={t('common.search')} className="w-full sm:w-[320px]" />
+            {canManage && (
+              <Button onClick={() => setFormOpen(true)}>
+                <Plus size={15} /> {t('cashiers.add')}
+              </Button>
+            )}
+          </>
+        }
+        data={rows}
         loading={isLoading}
         error={error ? t('common.load_failed') : undefined}
         onRetry={() => mutate()}
