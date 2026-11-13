@@ -24,7 +24,7 @@ const initials = (n: string) =>
 export function Person({ e, size = 34, status }: { e: Pick<Employee, 'name'>; size?: number; status?: Status }) {
   return (
     <span
-      className="relative inline-flex shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] font-semibold text-[var(--color-primary)]"
+      className="relative inline-flex shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-alt)] font-medium text-[var(--color-ink-secondary)]"
       style={{ width: size, height: size, fontSize: size * 0.36 }}
     >
       {initials(e.name)}
@@ -84,7 +84,7 @@ export function FaceTabs({ unrecognized }: { unrecognized?: number }) {
           key={tab.to}
           to={`${tab.to}${tab.to === '/faceid/timesheet' ? '' : keep}`}
           end={tab.end}
-          className={({ isActive }) => cn('flex items-center gap-1.5 rounded-md px-3.5 py-1.5', isActive ? 'bg-[var(--color-primary)] text-[var(--color-primary-ink)]' : 'text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]')}
+          className={({ isActive }) => cn('flex items-center gap-1.5 rounded-md px-3.5 py-1.5', isActive ? 'bg-[var(--color-surface-alt)] text-[var(--color-ink)]' : 'text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]')}
         >
           {t(tab.label)}
           {tab.to === '/faceid/unrecognized' && !!unrecognized && <span className="tnum rounded-full bg-[var(--color-amber)] px-1.5 text-[10.5px] font-bold text-[var(--color-bg)]">{unrecognized}</span>}
