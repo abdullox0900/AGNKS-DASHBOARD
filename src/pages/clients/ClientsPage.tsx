@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import useSWR from 'swr'
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/shared/ui/Button'
+import { ClientAvatar } from '@/shared/ui/ClientAvatar'
 import { DataTable, type DataTableColumn } from '@/shared/ui/DataTable'
 import { NewBadge } from '@/shared/ui/NewBadge'
 import { PageTitle } from '@/shared/ui/PageTitle'
@@ -82,7 +83,10 @@ function ClientPanel({ row, onChanged }: { row: ClientListRow | null; onChanged:
   return (
     <div className="dt-card rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-5">
       <p className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink-tertiary)]">{t('clients.panel_label')}</p>
-      <p className="mt-1 break-words text-[22px] font-bold leading-tight text-[var(--color-ink)]">{row.name || '—'}</p>
+      <div className="mt-2 flex items-center gap-3">
+        <ClientAvatar name={row.name} src={row.photoUrl} size={52} />
+        <p className="min-w-0 break-words text-[22px] font-bold leading-tight text-[var(--color-ink)]">{row.name || '—'}</p>
+      </div>
       <div className="mt-3">
         {line(t('common.phone'), <span className="font-mono font-semibold text-[var(--color-ink)]">{row.phone ? formatPhone(row.phone) : '—'}</span>)}
         {line(t('clients.balance'), <Som n={row.balance} />)}
@@ -166,7 +170,12 @@ export function ClientsPage() {
   }
 
   const columns: DataTableColumn<ClientListRow>[] = [
-    { id: 'name', header: 'common.name', sortable: false, accessor: (r) => r.name, cell: (r) => <span className="font-semibold">{r.name || '—'}</span> },
+    { id: 'name', header: 'common.name', sortable: false, accessor: (r) => r.name, cell: (r) => (
+        <span className="flex items-center gap-3">
+          <ClientAvatar name={r.name} src={r.photoUrl} size={34} />
+          <span className="font-semibold">{r.name || '—'}</span>
+        </span>
+      ) },
     { id: 'phone', header: 'common.phone', sortable: false, accessor: (r) => r.phone ?? '', cell: (r) => <span className="font-mono text-[13.5px] text-[var(--color-ink-secondary)]">{r.phone ? formatPhone(r.phone) : '—'}</span> },
     { id: 'balance', header: 'clients.balance', sortable: false, numeric: true, accessor: (r) => r.balance, cell: (r) => <Som n={r.balance} /> },
     {

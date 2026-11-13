@@ -613,6 +613,8 @@ export interface ClientListRow {
   lastSeenAt: string | null
   /** on how many of the last 30 days the person opened the app */
   activeDays: number
+  /** signed path of the Telegram profile picture (null without Telegram) */
+  photoUrl?: string | null
 }
 
 export type ClientsSort = 'balance' | 'seen' | 'registered'
@@ -652,6 +654,7 @@ export interface ClientProfile {
     createdAt: string
     telegramLinked: boolean
     marketingOptIn: boolean
+    photoUrl?: string | null
   }
   card: { number: string; balance: number; pending: number; blocked: boolean; blockedReason: string | null; blockedAt: string | null; lastActivityAt: string | null; createdAt: string }
   stats: {
