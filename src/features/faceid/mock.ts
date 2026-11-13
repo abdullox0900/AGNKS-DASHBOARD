@@ -17,11 +17,14 @@ export interface Branch {
   name: string
   terminal: Terminal
 }
+export type Shift = 'day' | 'night'
+export type Reason = 'sick' | 'leave' | 'none' | 'trip' | 'other'
 export interface Employee {
   id: string
   name: string
   position: string
   branch: number
+  shift: Shift
 }
 export interface DayRecord {
   employee: Employee
@@ -30,8 +33,12 @@ export interface DayRecord {
   out?: string
   /** minutes late (status 'late') */
   late?: number
+  /** minutes before the shift start (came early) */
+  early?: number
   /** worked minutes so far / in total */
   worked?: number
+  /** why the employee did not come (status 'absent') */
+  reason?: Reason
   /** still at work right now */
   now?: boolean
 }
@@ -55,35 +62,23 @@ export interface Rejected {
 }
 
 export const SHIFT_START = '08:00'
+export const SHIFT_HOURS: Record<Shift, string> = { day: '08:00–20:00', night: '20:00–08:00' }
 /** the moment "today" is simulated at, in hours */
 export const NOW_H = 13.33
 export const NOW_LABEL = '13:20'
 
-const BRANCH_NAMES = ['Markaz', 'Mustaqillik', 'Sanoat', "Beshariq yo'li", "Farg'ona yo'li", "Quva yo'li", "Rishton yo'li"]
+const BRANCH_NAMES = ['Нурсух', 'ДП-ГМС Кукон', 'DP-GMS КУВА', 'Маргулон', 'DP-GMS BESHARIQ', 'IDEAL GAZ GROUP', 'Намуна']
+const BRANCH_SIZES = [14, 13, 11, 12, 10, 11, 9]
+/** only the first three terminals report in the sample */
 export const BRANCHES: Branch[] = BRANCH_NAMES.map((name, id) => ({
   id,
   name,
-  terminal: { id: `T-${id + 1}`, name: `Terminal ${id + 1}`, online: id !== 5, lastSeenMin: id === 5 ? 140 : undefined },
+  terminal: { id: `T-${id + 1}`, name: `Terminal ${id + 1}`, online: id < 3, lastSeenMin: id < 3 ? undefined : 140 + id * 25 },
 }))
 
-const PEOPLE: [string, string, number][] = [
-  ['Aziz Rahimov', 'Smena boshlig\'i', 0], ['Dilnoza Karimova', 'Kassir', 0], ['Sardor Mirzayev', 'Zapravkachi', 0], ['Jasur Toshmatov', 'Zapravkachi', 0], ['Nargiza Olimova', 'Operator', 0],
-  ['Malika Yusupova', 'Smena boshlig\'i', 1], ['Bobur Aliyev', 'Zapravkachi', 1], ['Nilufar Saidova', 'Kassir', 1], ['Otabek Ismoilov', 'Zapravkachi', 1], ['Laylo Hamidova', 'Operator', 1],
-  ['Zarina Qodirova', 'Kassir', 2], ['Sherzod Nazarov', 'Zapravkachi', 2], ['Madina Rustamova', 'Operator', 2], ['Doniyor Qosimov', 'Zapravkachi', 2],
-  ['Javohir Abdullayev', 'Smena boshlig\'i', 3], ['Kamola Hasanova', 'Kassir', 3], ['Ulugbek Sobirov', 'Zapravkachi', 3], ['Muxlisa Azimova', 'Operator', 3], ['Shahzod Ergashev', 'Zapravkachi', 3],
-  ['Anvar Komilov', 'Smena boshlig\'i', 4], ['Feruza Mamatova', 'Kassir', 4], ['Timur Valiyev', 'Zapravkachi', 4], ['Gulnora Sattorova', 'Operator', 4],
-  ['Rustam Yoqubov', 'Smena boshlig\'i', 5], ['Sevara Nuriddinova', 'Kassir', 5], ['Behzod Tursunov', 'Zapravkachi', 5], ['Lola Ahmedova', 'Operator', 5],
-  ['Islom Karimov', 'Smena boshlig\'i', 6], ['Mohira Davronova', 'Kassir', 6], ['Sanjar Xudoyberdiyev', 'Zapravkachi', 6], ['Ruxshona Botirova', 'Operator', 6],
-]
-export const EMPLOYEES: Employee[] = PEOPLE.map(([name, position, branch], i) => ({ id: `e${i + 1}`, name, position, branch }))
-export const employeeById = (id: string) => EMPLOYEES.find((e) => e.id === id)
-
-// ---------- dates (all in Tashkent calendar days, as YYYY-MM-DD) ----------
-export const todayStr = (): string => new Date(Date.now() + 5 * 3600_000).toISOString().slice(0, 10)
-export const addDays = (d: string, n: number): string => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10)
-/** 0 = Sunday */
-export const dow = (d: string): number => new Date(`${d}T00:00:00Z`).getUTCDay()
-export const daysInMonth = (y: number, m: number): number => new Date(Date.UTC(y, m, 0)).getUTCDate()
+const FIRST = ['Dilnoza', 'Ikromjon', 'Oybek', 'Ruzmatjon', 'Marhaboxon', 'Rahmatxon', 'Hasan', 'Samadjon', 'Ixtiyor', 'Murodjon', 'Aziz', 'Javlon', 'Zuhriddin', 'Dilshod', 'Ugilxon', 'Bekzod', 'Sardor', 'Otabek', 'Nargiza', 'Malika', 'Jasur', 'Bobur', 'Laylo', 'Zarina', 'Shahzod', 'Madina', 'Kamola', 'Feruza', 'Timur', 'Gulnora', 'Islom', 'Mohira', 'Sanjar', 'Ruxshona', 'Anvar', 'Sevara', 'Behzod', 'Lola', 'Rustam', 'Doniyor']
+const LAST = ['Karimov', 'Isakov', 'Soliјonov', 'Xolmatov', 'Xodjayev', 'Haydarov', 'Churayev', 'Hakimov', 'Yuldashev', 'Jurayev', 'Toshmatov', 'Abdullayev', 'Ergashev', 'Nazarov', 'Rustamov', 'Mirzayev', 'Qodirov', 'Aliyev', 'Sobirov', 'Ismoilov'].map((x) => x.replace('ј', 'j'))
+const POSITIONS = ['Kassir', 'Operator', "Gaz to'ldiruvchi", 'Mashinist', 'Qorovul', 'Smena rahbari', 'Oshpaz', 'Tozalovchi']
 
 function rnd(seed: string): number {
   let h = 2166136261
@@ -93,27 +88,71 @@ function rnd(seed: string): number {
   h ^= h >>> 13
   return ((h >>> 0) % 10_000) / 10_000
 }
-const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
-const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3))
+
+export const EMPLOYEES: Employee[] = (() => {
+  const out: Employee[] = []
+  let n = 0
+  BRANCH_SIZES.forEach((size, branch) => {
+    for (let k = 0; k < size; k++, n++) {
+      const id = `e${n + 1}`
+      out.push({
+        id,
+        name: `${FIRST[(n * 7 + 3) % FIRST.length]} ${LAST[(n * 11 + 5 + Math.floor(n / 40) * 7) % LAST.length]}`,
+        position: k === 0 ? 'Filial mas\'uli' : POSITIONS[(n + k) % POSITIONS.length],
+        branch,
+        shift: rnd(`${id}|shift`) < 0.14 ? 'night' : 'day',
+      })
+    }
+  })
+  return out
+})()
+export const employeeById = (id: string) => EMPLOYEES.find((e) => e.id === id)
+
+// ---------- dates (all in Tashkent calendar days, as YYYY-MM-DD) ----------
+export const todayStr = (): string => new Date(Date.now() + 5 * 3600_000).toISOString().slice(0, 10)
+export const addDays = (d: string, n: number): string => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10)
+/** 0 = Sunday */
+export const dow = (d: string): number => new Date(`${d}T00:00:00Z`).getUTCDay()
+export const daysInMonth = (y: number, m: number): number => new Date(Date.UTC(y, m, 0)).getUTCDate()
+
+export const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
+export const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3))
 
 /** One employee's day. Sundays are rest days; days after "today" have no record. */
 export function dayRecord(e: Employee, date: string): DayRecord | null {
   const today = todayStr()
   if (date > today) return null
   if (dow(date) === 0) return { employee: e, status: 'off' }
-  const r = rnd(`${e.id}|${date}`)
-  if (r < 0.07) return { employee: e, status: 'absent' }
   const isToday = date === today
+  // today the offline terminals have reported nothing: nobody from there is known yet
+  if (isToday && !BRANCHES[e.branch].terminal.online) return { employee: e, status: 'pending' }
+  const r = rnd(`${e.id}|${date}`)
+  if (r < 0.08) {
+    const w = rnd(`${e.id}|${date}|why`)
+    return { employee: e, status: 'absent', reason: w < 0.41 ? 'sick' : w < 0.67 ? 'leave' : w < 0.85 ? 'none' : w < 0.94 ? 'trip' : 'other' }
+  }
   // today only: some people work the afternoon shift and have not arrived yet
   if (isToday && rnd(`${e.id}|${date}|s`) < 0.13) return { employee: e, status: 'pending' }
-  const late = r > 0.83
-  const inMin = late ? 8 * 60 + 6 + Math.floor(rnd(`${e.id}|${date}|l`) * 58) : 7 * 60 + 42 + Math.floor(rnd(`${e.id}|${date}|i`) * 18)
+  const late = r > 0.82
+  const spread = rnd(`${e.id}|${date}|i`)
+  const inMin = late ? 8 * 60 + 6 + Math.floor(Math.pow(rnd(`${e.id}|${date}|l`), 1.6) * 85) : 8 * 60 - 2 - Math.floor(spread * spread * 75)
   // today only: some people have already left (half-day / morning shift)
   const leftEarly = isToday && rnd(`${e.id}|${date}|x`) < 0.2
-  const leaveMin = leftEarly ? 11 * 60 + 20 + Math.floor(rnd(`${e.id}|${date}|y`) * 100) : 17 * 60 + Math.floor((rnd(`${e.id}|${date}|o`) - 0.5) * 40)
-  const out = isToday && !leftEarly ? undefined : hhmm(leaveMin)
+  const leaveMin = leftEarly ? 11 * 60 + 20 + Math.floor(rnd(`${e.id}|${date}|y`) * 100) : 18 * 60 + Math.floor((rnd(`${e.id}|${date}|o`) - 0.5) * 40)
+  // a few past days have no exit scan (forgot to scan out)
+  const noOut = !isToday && rnd(`${e.id}|${date}|n`) < 0.012
+  const out = (isToday && !leftEarly) || noOut ? undefined : hhmm(leaveMin)
   const end = isToday && !leftEarly ? Math.round(NOW_H * 60) : leaveMin
-  return { employee: e, status: late ? 'late' : 'came', in: hhmm(inMin), out, late: late ? inMin - 8 * 60 : undefined, worked: Math.max(0, end - inMin - (isToday || leftEarly ? 0 : 60)), now: isToday && !leftEarly }
+  return {
+    employee: e,
+    status: late ? 'late' : 'came',
+    in: hhmm(inMin),
+    out,
+    late: late ? inMin - 8 * 60 : undefined,
+    early: !late && inMin < 8 * 60 ? 8 * 60 - inMin : undefined,
+    worked: noOut ? undefined : Math.max(0, end - inMin),
+    now: isToday && !leftEarly,
+  }
 }
 
 export const dayRecords = (date: string): DayRecord[] => EMPLOYEES.flatMap((e) => dayRecord(e, date) ?? [])
@@ -183,5 +222,124 @@ export function monthTotals(days: (DayRecord | null)[]): MonthTotals {
     absent: rec.filter((r) => r.status === 'absent').length,
     workedMin: came.reduce((s, r) => s + (r.worked ?? 0), 0),
     avgIn: ins.length ? hhmm(Math.round(ins.reduce((a, b) => a + b, 0) / ins.length)) : '—',
+  }
+}
+
+// ---------- notes (reason written by a manager for a late / absent day) ----------
+const DEFAULT_NOTE: Partial<Record<Reason, string>> = { sick: "Kasal, rahbarga xabar bergan", leave: 'Ruxsat olgan', trip: 'Xizmat safari' }
+export const defaultNote = (r: DayRecord): string => (r.status === 'absent' && r.reason ? DEFAULT_NOTE[r.reason] ?? '' : '')
+
+// ---------- analytics ----------
+export interface Analytics {
+  attendance: number
+  attendanceDelta: number
+  avgIn: string
+  avgInDelta: number
+  lateShare: number
+  lateShareDelta: number
+  avgWorked: string
+  avgWorkedDelta: string
+  byHour: { hour: number; n: number }[]
+  top: { employee: Employee; pct: number; onTime: number; days: number }[]
+  lates7: { dow: number; n: number }[]
+  reasons: { reason: Reason; n: number }[]
+  frequent: { employee: Employee; n: number }[]
+  attention: { terminals: number; noReason: number; repeat: number; noExit: number }
+}
+
+interface Agg {
+  came: number
+  absent: number
+  late: number
+  inSum: number
+  workedSum: number
+  workedN: number
+}
+function aggregate(from: string, to: string): Agg {
+  const a: Agg = { came: 0, absent: 0, late: 0, inSum: 0, workedSum: 0, workedN: 0 }
+  for (let d = from; d <= to; d = addDays(d, 1)) {
+    for (const r of dayRecords(d)) {
+      if (r.status === 'absent') a.absent++
+      if (r.status === 'came' || r.status === 'late') {
+        a.came++
+        if (r.status === 'late') a.late++
+        a.inSum += toMin(r.in!)
+        if (r.worked !== undefined && !r.now) (a.workedSum += r.worked, a.workedN++)
+      }
+    }
+  }
+  return a
+}
+const hm = (min: number) => `${Math.floor(min / 60)}:${String(Math.round(min % 60)).padStart(2, '0')}`
+
+export function analytics(days: number): Analytics {
+  const today = todayStr()
+  const from = addDays(today, -(days - 1))
+  const cur = aggregate(from, today)
+  const prev = aggregate(addDays(from, -days), addDays(from, -1))
+  const pct = (a: Agg) => (a.came + a.absent ? (a.came / (a.came + a.absent)) * 100 : 0)
+  const share = (a: Agg) => (a.came ? (a.late / a.came) * 100 : 0)
+  const avgIn = (a: Agg) => (a.came ? a.inSum / a.came : 0)
+  const avgW = (a: Agg) => (a.workedN ? a.workedSum / a.workedN : 0)
+
+  const byHour = Array.from({ length: 14 }, (_, i) => ({ hour: 6 + i, n: 0 }))
+  const perEmp = new Map<string, { onTime: number; days: number; late: number }>()
+  const reasons = new Map<Reason, number>()
+  for (let d = from; d <= today; d = addDays(d, 1)) {
+    for (const r of dayRecords(d)) {
+      if (r.status === 'off' || r.status === 'pending') continue
+      const m = perEmp.get(r.employee.id) ?? { onTime: 0, days: 0, late: 0 }
+      m.days++
+      if (r.status === 'came') m.onTime++
+      if (r.status === 'late') m.late++
+      perEmp.set(r.employee.id, m)
+      if (r.in) byHour[Math.min(13, Math.max(0, Math.floor(toMin(r.in) / 60) - 6))].n++
+      if (r.status === 'absent' && r.reason) reasons.set(r.reason, (reasons.get(r.reason) ?? 0) + 1)
+    }
+  }
+  const emp = (id: string) => employeeById(id)!
+  const top = [...perEmp.entries()]
+    .map(([id, m]) => ({ employee: emp(id), onTime: m.onTime, days: m.days, pct: Math.round((m.onTime / m.days) * 100) }))
+    .sort((x, y) => y.pct - x.pct || y.days - x.days)
+    .slice(0, 7)
+  const frequent = [...perEmp.entries()]
+    .map(([id, m]) => ({ employee: emp(id), n: m.late }))
+    .filter((x) => x.n > 0)
+    .sort((x, y) => y.n - x.n)
+    .slice(0, 5)
+
+  // last 7 days by weekday (Mon..Sun)
+  const lates7 = Array.from({ length: 7 }, (_, i) => ({ dow: (i + 1) % 7, n: 0 }))
+  const week = { terminals: 0, noReason: 0, repeat: 0, noExit: 0 }
+  const lateCount = new Map<string, number>()
+  for (let k = 0; k < 7; k++) {
+    const d = addDays(today, -k)
+    for (const r of dayRecords(d)) {
+      if (r.status === 'late') {
+        lates7[(dow(d) + 6) % 7].n++
+        lateCount.set(r.employee.id, (lateCount.get(r.employee.id) ?? 0) + 1)
+      }
+    }
+  }
+  week.terminals = BRANCHES.filter((b) => !b.terminal.online).length
+  week.noReason = dayRecords(today).filter((r) => r.status === 'absent' && r.reason === 'none').length
+  week.repeat = [...lateCount.values()].filter((n) => n >= 3).length
+  week.noExit = dayRecords(addDays(today, -1)).filter((r) => r.in && !r.out).length || 0
+
+  return {
+    attendance: Math.round(pct(cur)),
+    attendanceDelta: Math.round(pct(cur) - pct(prev)),
+    avgIn: hhmm(Math.round(avgIn(cur))),
+    avgInDelta: Math.round(avgIn(cur) - avgIn(prev)),
+    lateShare: Math.round(share(cur)),
+    lateShareDelta: Math.round(share(cur) - share(prev)),
+    avgWorked: hm(avgW(cur)),
+    avgWorkedDelta: (avgW(cur) - avgW(prev) >= 0 ? '+' : '−') + hm(Math.abs(avgW(cur) - avgW(prev))),
+    byHour: byHour.map((h) => ({ ...h, n: Math.round(h.n / days) })),
+    top,
+    lates7,
+    reasons: [...reasons.entries()].map(([reason, n]) => ({ reason, n })).sort((x, y) => y.n - x.n),
+    frequent,
+    attention: week,
   }
 }

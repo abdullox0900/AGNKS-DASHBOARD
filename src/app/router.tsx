@@ -22,11 +22,10 @@ import { ProfilePage } from '@/pages/profile/ProfilePage'
 import { ChangelogPage } from '@/pages/changelog/ChangelogPage'
 import { AttendantsPage } from '@/pages/attendants/AttendantsPage'
 import { FaceIdLayout } from '@/pages/faceid/FaceIdLayout'
-import { TodayPage } from '@/pages/faceid/TodayPage'
+import { FaceOverviewPage } from '@/pages/faceid/OverviewPage'
+import { EmployeesPage } from '@/pages/faceid/EmployeesPage'
+import { FaceAnalyticsPage } from '@/pages/faceid/AnalyticsPage'
 import { BranchesPage } from '@/pages/faceid/BranchesPage'
-import { LogPage } from '@/pages/faceid/LogPage'
-import { TimesheetPage } from '@/pages/faceid/TimesheetPage'
-import { UnrecognizedPage } from '@/pages/faceid/UnrecognizedPage'
 import { EmployeePage } from '@/pages/faceid/EmployeePage'
 import { ChangelogPostPage } from '@/pages/changelog/ChangelogPostPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
@@ -81,20 +80,12 @@ export const router = createBrowserRouter([
           </RequirePermission>
         ),
         children: [
-          { index: true, element: <TodayPage /> },
+          { index: true, element: <FaceOverviewPage /> },
+          { path: 'employees', element: <EmployeesPage /> },
+          { path: 'employees/:id', element: <EmployeePage /> },
           { path: 'branches', element: <BranchesPage /> },
-          { path: 'log', element: <LogPage /> },
-          { path: 'timesheet', element: <TimesheetPage /> },
-          { path: 'unrecognized', element: <UnrecognizedPage /> },
+          { path: 'analytics', element: <FaceAnalyticsPage /> },
         ],
-      },
-      {
-        path: '/faceid/employees/:id',
-        element: (
-          <RequirePermission permission="faceid.view">
-            <EmployeePage />
-          </RequirePermission>
-        ),
       },
       {
         path: '/attendants',

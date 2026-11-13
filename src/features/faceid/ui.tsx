@@ -1,18 +1,62 @@
 import { NavLink, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CircleAlert, CircleCheck, CircleX, Clock, LogOut, type LucideIcon } from 'lucide-react'
+import { create } from 'zustand'
 import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
-import { addDays, dayLabel, todayStr, type Employee, type Status } from './mock'
+import { addDays, dayLabel, defaultNote, todayStr, type DayRecord, type Employee, type Status } from './mock'
 import type { DictKey } from '@/shared/config/dictionaries'
 
-export const STATUS_META: Record<Status, { label: DictKey; dot: string; chip: string; cell: string }> = {
-  came: { label: 'fid.s_came', dot: 'bg-[var(--color-success)]', chip: 'bg-[var(--color-success-soft)] text-[var(--color-success)]', cell: 'bg-[var(--color-success-soft)] text-[var(--color-success)]' },
-  late: { label: 'fid.s_late', dot: 'bg-[var(--color-amber)]', chip: 'bg-[var(--color-amber-soft)] text-[var(--color-amber)]', cell: 'bg-[var(--color-amber-soft)] text-[var(--color-amber)]' },
-  absent: { label: 'fid.s_absent', dot: 'bg-[var(--color-danger)]', chip: 'bg-[var(--color-danger-soft)] text-[var(--color-danger)]', cell: 'bg-[var(--color-danger-soft)] text-[var(--color-danger)]' },
-  pending: { label: 'fid.s_pending', dot: 'border border-[var(--color-ink-tertiary)] bg-transparent', chip: 'border border-[var(--color-border)] text-[var(--color-ink-tertiary)]', cell: 'bg-[var(--color-surface-alt)] text-[var(--color-ink-tertiary)]' },
-  off: { label: 'fid.s_off', dot: 'bg-[var(--color-ink-tertiary)]', chip: 'bg-[var(--color-surface-alt)] text-[var(--color-ink-tertiary)]', cell: 'bg-[var(--color-surface-alt)] text-[var(--color-ink-tertiary)]' },
+/** Display state of one day: what the table shows. "late" stays at work, "left" has scanned out. */
+export type DState = 'here' | 'late' | 'left' | 'absent' | 'pending'
+
+export const dstate = (r: DayRecord, isToday: boolean): DState => {
+  if (r.status === 'absent') return 'absent'
+  if (r.status === 'pending' || r.status === 'off') return 'pending'
+  if (isToday && r.out) return 'left'
+  return r.status === 'late' ? 'late' : 'here'
 }
 
+export const DSTATE_META: Record<DState, { icon: LucideIcon; text: string; bg: string }> = {
+  here: { icon: CircleCheck, text: 'text-[var(--color-success)]', bg: 'bg-[var(--color-success-soft)]' },
+  late: { icon: CircleAlert, text: 'text-[var(--color-amber)]', bg: 'bg-[var(--color-amber-soft)]' },
+  left: { icon: LogOut, text: 'text-[var(--color-ink-secondary)]', bg: 'bg-[var(--color-surface-alt)]' },
+  absent: { icon: CircleX, text: 'text-[var(--color-danger)]', bg: 'bg-[var(--color-danger-soft)]' },
+  pending: { icon: Clock, text: 'text-[var(--color-ink-tertiary)]', bg: 'bg-[var(--color-surface-alt)]' },
+}
+
+/** Icon + coloured word — never colour alone. */
+export function StateLabel({ state, isToday = true }: { state: DState; isToday?: boolean }) {
+  const { t } = useI18n()
+  const m = DSTATE_META[state]
+  const label = state === 'here' ? (isToday ? t('fid.col_here') : t('fid.s_came')) : state === 'late' ? t('fid.col_late') : state === 'left' ? t('fid.col_left') : state === 'absent' ? t('fid.col_absent') : t('fid.t_pending')
+  return (
+    <span className={cn('inline-flex items-center gap-1.5 whitespace-nowrap text-[13px] font-medium', m.text)}>
+      <m.icon size={16} />
+      {label}
+    </span>
+  )
+}
+
+/** Arrival time with "x min early / late" under it. */
+export function ArrivalCell({ r }: { r: DayRecord }) {
+  const { t } = useI18n()
+  if (!r.in) return <span className="text-[var(--color-ink-tertiary)]">—</span>
+  return (
+    <span className="block leading-tight">
+      <span className={cn('tnum block text-[13px] font-semibold', r.status === 'late' ? 'text-[var(--color-amber)]' : 'text-[var(--color-ink)]')}>{r.in}</span>
+      {(r.late || r.early) && <span className={cn('block text-[11.5px]', r.late ? 'text-[var(--color-amber)]' : 'text-[var(--color-success)]')}>{r.late ? t('fid.late_by', { n: r.late }) : t('fid.early', { n: r.early! })}</span>}
+    </span>
+  )
+}
+
+export const hoursLabel = (min?: number, now?: boolean, t?: (k: DictKey) => string) =>
+  now ? (t ? t('fid.at_work') : '…') : min === undefined ? '—' : `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
+
+const hue = (n: string) => {
+  let h = 0
+  for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) % 360
+  return h
+}
 const initials = (n: string) =>
   n
     .split(' ')
@@ -20,74 +64,54 @@ const initials = (n: string) =>
     .slice(0, 2)
     .join('')
 
-/** Round initials badge standing in for the face photo; the dot shows today's status. */
-export function Person({ e, size = 34, status }: { e: Pick<Employee, 'name'>; size?: number; status?: Status }) {
+/** Round initials badge standing in for the face photo. */
+export function Person({ e, size = 34 }: { e: Pick<Employee, 'name'>; size?: number }) {
+  const h = hue(e.name)
   return (
     <span
-      className="relative inline-flex shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-alt)] font-medium text-[var(--color-ink-secondary)]"
-      style={{ width: size, height: size, fontSize: size * 0.36 }}
+      className="inline-flex shrink-0 items-center justify-center rounded-full font-semibold"
+      style={{ width: size, height: size, fontSize: size * 0.34, background: `hsl(${h} 50% 50% / 0.16)`, color: `hsl(${h} 60% 62%)` }}
     >
       {initials(e.name)}
-      {status && <span className={cn('absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[var(--color-surface)]', STATUS_META[status].dot)} />}
     </span>
   )
 }
 
-export function StatusChip({ status, extra }: { status: Status; extra?: string }) {
-  const { t } = useI18n()
-  return (
-    <span className={cn('inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[12px] font-medium', STATUS_META[status].chip)}>
-      {t(STATUS_META[status].label)}
-      {extra ? ` · ${extra}` : ''}
-    </span>
-  )
+// ---------- manager notes (sample: lives in memory until the section is connected) ----------
+interface NoteState {
+  notes: Record<string, string>
+  set: (key: string, text: string) => void
+}
+export const useNotes = create<NoteState>((set) => ({ notes: {}, set: (key, text) => set((s) => ({ notes: { ...s.notes, [key]: text } })) }))
+export const noteKey = (r: DayRecord, date: string) => `${r.employee.id}|${date}`
+export function useNote(r: DayRecord, date: string): [string, (text: string) => void] {
+  const stored = useNotes((s) => s.notes[noteKey(r, date)])
+  const set = useNotes((s) => s.set)
+  return [stored ?? defaultNote(r), (text) => set(noteKey(r, date), text)]
 }
 
-export function Legend() {
-  const { t } = useI18n()
-  return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-[var(--color-ink-secondary)]">
-      {(['came', 'late', 'absent', 'off'] as Status[]).map((s) => (
-        <span key={s} className="flex items-center gap-1.5">
-          <span className={cn('h-2 w-2 rounded-full', STATUS_META[s].dot)} /> {t(STATUS_META[s].label)}
-        </span>
-      ))}
-    </div>
-  )
-}
-
-export function Tile({ label, value, tone }: { label: string; value: React.ReactNode; tone?: string }) {
-  return (
-    <div className="rounded-xl border border-[var(--color-border)] px-4 py-3">
-      <p className="text-[12px] font-medium text-[var(--color-ink-secondary)]">{label}</p>
-      <p className={cn('tnum mt-0.5 text-[26px] font-bold leading-tight', tone ?? 'text-[var(--color-ink)]')}>{value}</p>
-    </div>
-  )
-}
-
+// ---------- shell ----------
 const TABS: { to: string; label: DictKey; end?: boolean }[] = [
-  { to: '/faceid', label: 'fid.tab_today', end: true },
+  { to: '/faceid', label: 'fid.tab_overview', end: true },
+  { to: '/faceid/employees', label: 'fid.tab_employees' },
   { to: '/faceid/branches', label: 'fid.tab_branches' },
-  { to: '/faceid/log', label: 'fid.tab_log' },
-  { to: '/faceid/timesheet', label: 'fid.tab_timesheet' },
-  { to: '/faceid/unrecognized', label: 'fid.tab_unrecognized' },
+  { to: '/faceid/analytics', label: 'fid.tab_analytics' },
 ]
 
-export function FaceTabs({ unrecognized }: { unrecognized?: number }) {
+export function FaceTabs() {
   const { t } = useI18n()
   const [params] = useSearchParams()
   const keep = params.get('d') ? `?d=${params.get('d')}` : ''
   return (
-    <nav className="inline-flex gap-1 rounded-lg border border-[var(--color-border)] p-0.5 text-[13px] font-medium">
+    <nav className="flex flex-wrap gap-1.5 text-[13.5px] font-medium">
       {TABS.map((tab) => (
         <NavLink
           key={tab.to}
-          to={`${tab.to}${tab.to === '/faceid/timesheet' ? '' : keep}`}
+          to={`${tab.to}${tab.to === '/faceid/analytics' ? '' : keep}`}
           end={tab.end}
-          className={({ isActive }) => cn('flex items-center gap-1.5 rounded-md px-3.5 py-1.5', isActive ? 'bg-[var(--color-surface-alt)] text-[var(--color-ink)]' : 'text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]')}
+          className={({ isActive }) => cn('rounded-lg px-3.5 py-2 transition-colors', isActive ? 'bg-[var(--color-primary-soft)] text-[var(--color-primary)]' : 'text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-alt)]')}
         >
           {t(tab.label)}
-          {tab.to === '/faceid/unrecognized' && !!unrecognized && <span className="tnum rounded-full bg-[var(--color-amber)] px-1.5 text-[10.5px] font-bold text-[var(--color-bg)]">{unrecognized}</span>}
         </NavLink>
       ))}
     </nav>
@@ -132,3 +156,5 @@ export function DateNav({ date, onChange }: { date: string; onChange: (d: string
     </div>
   )
 }
+
+export type { Status }
