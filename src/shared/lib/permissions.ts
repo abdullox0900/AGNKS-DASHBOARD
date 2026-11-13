@@ -54,7 +54,6 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'clients.detail',
     'changelog.view',
     'attendants.view',
-    'faceid.view',
   ],
   // View-only by product decision: sees everything below, changes nothing, and has no Admins section.
   // (The backend enforces this too: any non-GET request from root_admin is refused.)

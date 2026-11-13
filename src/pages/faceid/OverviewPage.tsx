@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom'
 import { ArrowDownLeft, ArrowUpRight, CircleAlert, Clock, Download, LogOut, UserCheck, UserX } from 'lucide-react'
 import { Button } from '@/shared/ui/Button'
 import { useToast } from '@/shared/ui/Toast'
-import { Person, StateLabel, dstate, useFaceDate, useNote, type DState } from '@/features/faceid/ui'
-import { BRANCHES, NOW_LABEL, countOf, dayLabel, dayRecords, scanEvents, todayStr, workedLabel, type DayRecord } from '@/features/faceid/mock'
+import { FaceWait, Person, REASON_KEYS, StateLabel, dstate, useFaceDate, useNote, type DState } from '@/features/faceid/ui'
+import { useFaceData } from '@/features/faceid/useFaceData'
+import { BRANCHES, countOf, nowLabel, dayLabel, dayRecords, scanEvents, todayStr, workedLabel, type DayRecord } from '@/features/faceid/mock'
 import { PageHead } from './FaceIdLayout'
 import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
@@ -27,14 +28,14 @@ function Stat({ icon: Icon, label, value, sub, tone }: { icon: typeof UserCheck;
 
 function AbsentRow({ r, date }: { r: DayRecord; date: string }) {
   const { t } = useI18n()
-  const [note] = useNote(r, date)
+  const { note, reason } = useNote(r, date)
   return (
     <Link to={`/faceid/employees/${r.employee.id}`} className="flex items-center gap-3 border-t border-[var(--color-border)] px-4 py-2.5 first:border-0 hover:bg-[var(--color-surface-alt)]">
       <Person e={r.employee} size={34} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[13.5px] font-semibold text-[var(--color-ink)]">{r.employee.name}</span>
         <span className="block truncate text-[12px] text-[var(--color-ink-tertiary)]">
-          {BRANCHES[r.employee.branch].name} · {note || t('fid.rs_none')}
+          {BRANCHES[r.employee.branch].name} · {note || t(REASON_KEYS[reason ?? 'none'])}
         </span>
       </span>
       <CircleAlert size={16} className="text-[var(--color-danger)]" />
@@ -47,10 +48,12 @@ export function FaceOverviewPage() {
   const { t, locale } = useI18n()
   const { show } = useToast()
   const [date] = useFaceDate()
+  const load = useFaceData({ day: date, events: date })
   const isToday = date === todayStr()
   const records = dayRecords(date)
   const staff = records.filter((r) => r.status !== 'off')
   const [mode, setMode] = useState<Mode>('all')
+  if (!load.ready) return <FaceWait load={load} />
 
   const st = (r: DayRecord) => dstate(r, isToday)
   const came = staff.filter((r) => r.status === 'came' || r.status === 'late')
@@ -206,7 +209,7 @@ export function FaceOverviewPage() {
           </table>
         </div>
         <div className="flex items-center justify-between border-t border-[var(--color-border)] px-5 py-3 text-[12.5px]">
-          <span className="text-[var(--color-ink-tertiary)]">{t('fid.asof', { date: dateText, time: isToday ? NOW_LABEL : '23:59' })}</span>
+          <span className="text-[var(--color-ink-tertiary)]">{t('fid.asof', { date: dateText, time: isToday ? nowLabel() : '23:59' })}</span>
           <Link to="/faceid/employees" className="font-medium text-[var(--color-primary)]">
             {t('fid.see_all', { n: staff.length })} →
           </Link>

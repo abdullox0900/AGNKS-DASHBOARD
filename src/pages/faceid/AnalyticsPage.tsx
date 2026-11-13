@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, CalendarDays, CircleX, Clock, HeartPulse, LogOut, Plane, Timer, TrendingUp, TriangleAlert, WifiOff, MoreHorizontal, Repeat, type LucideIcon } from 'lucide-react'
-import { Person } from '@/features/faceid/ui'
-import { BRANCHES, EMPLOYEES, analytics, type Reason } from '@/features/faceid/mock'
+import { FaceWait, Person } from '@/features/faceid/ui'
+import { useFaceData } from '@/features/faceid/useFaceData'
+import { BRANCHES, EMPLOYEES, addDays, analytics, todayStr, type Reason } from '@/features/faceid/mock'
 import { PageHead } from './FaceIdLayout'
 import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
@@ -42,7 +43,10 @@ const signed = (n: number, unit: string) => `${n >= 0 ? '+' : '−'}${Math.abs(n
 export function FaceAnalyticsPage() {
   const { t, locale } = useI18n()
   const [days, setDays] = useState<7 | 30 | 90>(30)
-  const a = useMemo(() => analytics(days), [days])
+  const load = useFaceData({ range: [addDays(todayStr(), -(days * 2 - 1)), todayStr()] })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const a = useMemo(() => analytics(days), [days, load.stamp])
+  if (!load.ready) return <FaceWait load={load} />
   const peak = a.byHour.reduce((m, h) => (h.n > m.n ? h : m), a.byHour[0])
   const maxHour = Math.max(1, ...a.byHour.map((h) => h.n))
   const maxLate = Math.max(1, ...a.lates7.map((d) => d.n))

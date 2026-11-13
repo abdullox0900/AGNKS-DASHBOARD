@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CircleAlert, CircleCheck, CircleX, LogOut, Search, Users } from 'lucide-react'
-import { ArrivalCell, Person, StateLabel, dstate, hoursLabel, useFaceDate, type DState } from '@/features/faceid/ui'
+import { ArrivalCell, FaceWait, Person, StateLabel, dstate, hoursLabel, useFaceDate, type DState } from '@/features/faceid/ui'
+import { useFaceData } from '@/features/faceid/useFaceData'
 import { BRANCHES, SHIFT_HOURS, dayRecords, monthDays, monthTotals, todayStr, type DayRecord } from '@/features/faceid/mock'
 import { PageHead } from './FaceIdLayout'
 import { cn } from '@/shared/lib/cn'
@@ -15,6 +16,9 @@ export function EmployeesPage() {
   const { t } = useI18n()
   const navigate = useNavigate()
   const [date] = useFaceDate()
+  const ym = date.slice(0, 7)
+  const monthEnd = `${ym}-${String(new Date(Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5)), 0)).getUTCDate()).padStart(2, '0')}`
+  const load = useFaceData({ day: date, range: [`${ym}-01`, monthEnd < todayStr() ? monthEnd : todayStr()] })
   const isToday = date === todayStr()
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<DState | 'all'>('all')
@@ -22,11 +26,12 @@ export function EmployeesPage() {
 
   const all = dayRecords(date).filter((r) => r.status !== 'off')
   const st = (r: DayRecord) => dstate(r, isToday)
-  const month = useMemo(() => new Map(all.map((r) => [r.employee.id, monthTotals(monthDays(r.employee, date.slice(0, 7)))])), [date]) // eslint-disable-line react-hooks/exhaustive-deps
+  const month = useMemo(() => new Map(all.map((r) => [r.employee.id, monthTotals(monthDays(r.employee, date.slice(0, 7)))])), [date, load.stamp]) // eslint-disable-line react-hooks/exhaustive-deps
   const needle = q.trim().toLowerCase()
   const list = all
     .filter((r) => (filter === 'all' ? true : filter === 'here' ? st(r) === 'here' || st(r) === 'late' : st(r) === filter))
     .filter((r) => !needle || r.employee.name.toLowerCase().includes(needle) || BRANCHES[r.employee.branch].name.toLowerCase().includes(needle))
+  if (!load.ready) return <FaceWait load={load} />
   const pages = Math.max(1, Math.ceil(list.length / PAGE))
   const cur = Math.min(page, pages - 1)
   const rows = list.slice(cur * PAGE, cur * PAGE + PAGE)

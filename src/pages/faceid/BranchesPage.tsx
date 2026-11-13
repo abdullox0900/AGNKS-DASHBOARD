@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Check, CircleAlert, CircleCheck, CircleX, Download, LogOut, Pencil, Search, Users, Wifi, WifiOff } from 'lucide-react'
+import { CircleAlert, CircleCheck, CircleX, Download, LogOut, Pencil, Search, Users, Wifi, WifiOff } from 'lucide-react'
 import { Button } from '@/shared/ui/Button'
 import { useToast } from '@/shared/ui/Toast'
-import { ArrivalCell, Person, StateLabel, dstate, hoursLabel, useFaceDate, useNote } from '@/features/faceid/ui'
+import { ArrivalCell, FaceWait, NoteEditor, Person, REASON_KEYS, StateLabel, dstate, hoursLabel, useFaceDate, useNote } from '@/features/faceid/ui'
+import { useFaceData } from '@/features/faceid/useFaceData'
 import { BRANCHES, SHIFT_HOURS, countOf, dayLabel, dayRecords, todayStr, type DayRecord } from '@/features/faceid/mock'
 import { PageHead } from './FaceIdLayout'
 import { cn } from '@/shared/lib/cn'
@@ -14,10 +15,8 @@ const th = 'px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[
 /** One employee row; for late / absent days the manager can write the reason under the state (pencil → save). */
 function Row({ r, date, isToday, blind }: { r: DayRecord; date: string; isToday: boolean; blind: boolean }) {
   const { t } = useI18n()
-  const { show } = useToast()
-  const [note, setNote] = useNote(r, date)
+  const { note, reason } = useNote(r, date)
   const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(note)
   const state = dstate(r, isToday)
   const canNote = r.status === 'absent' || r.status === 'late'
   return (
@@ -40,26 +39,14 @@ function Row({ r, date, isToday, blind }: { r: DayRecord; date: string; isToday:
       <td className="tnum px-3 py-2.5 text-[var(--color-ink-secondary)]">{blind || !r.in ? '—' : hoursLabel(r.worked, r.now, t)}</td>
       <td className="px-3 py-2.5">
         {blind ? <span className="text-[12.5px] text-[var(--color-ink-tertiary)]">{t('fid.no_data')}</span> : <StateLabel state={state} isToday={isToday} />}
-        {canNote && !editing && note && <span className="mt-1 block max-w-[210px] text-[12px] text-[var(--color-ink-tertiary)]">{note}</span>}
-        {editing && (
-          <span className="mt-1.5 flex items-center gap-1.5">
-            <input
-              autoFocus
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && (setNote(draft.trim()), setEditing(false), show(t('fid.note_saved')))}
-              placeholder={t('fid.note_ph')}
-              className="h-8 w-[190px] rounded-md border border-[var(--color-primary)] bg-[var(--color-bg)] px-2 text-[12.5px] text-[var(--color-ink)] outline-none"
-            />
-            <button type="button" aria-label={t('common.save')} onClick={() => (setNote(draft.trim()), setEditing(false), show(t('fid.note_saved')))} className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--color-primary)] text-[var(--color-primary-ink)]">
-              <Check size={14} />
-            </button>
-          </span>
+        {canNote && !editing && (note || reason) && (
+          <span className="mt-1 block max-w-[210px] text-[12px] text-[var(--color-ink-tertiary)]">{[reason ? t(REASON_KEYS[reason]) : '', note].filter(Boolean).join(' · ')}</span>
         )}
+        {editing && <NoteEditor r={r} date={date} onDone={() => setEditing(false)} />}
       </td>
       <td className="px-3 py-2.5 pr-5 text-right">
         {canNote && !editing && (
-          <button type="button" aria-label={t('fid.note')} onClick={() => (setDraft(note), setEditing(true))} className="flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-ink-tertiary)] hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-ink)]">
+          <button type="button" aria-label={t('fid.note')} onClick={() => setEditing(true)} className="flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-ink-tertiary)] hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-ink)]">
             <Pencil size={14} />
           </button>
         )}
@@ -73,6 +60,7 @@ export function BranchesPage() {
   const { t, locale } = useI18n()
   const { show } = useToast()
   const [date] = useFaceDate()
+  const load = useFaceData({ day: date })
   const isToday = date === todayStr()
   const records = dayRecords(date).filter((r) => r.status !== 'off')
   const { hash } = useLocation()
@@ -82,6 +70,7 @@ export function BranchesPage() {
     if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' })
   }, [hash])
 
+  if (!load.ready) return <FaceWait load={load} />
   const branches = BRANCHES.filter((b) => !q.trim() || b.name.toLowerCase().includes(q.trim().toLowerCase()))
   const online = BRANCHES.filter((b) => b.terminal.online).length
 

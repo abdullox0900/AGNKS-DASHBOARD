@@ -1,7 +1,10 @@
 /**
- * SAMPLE DATA for the FaceID section until it is connected to TimeFace (face-recognition terminals, separate system).
- * Deterministic: the same date always gives the same day, so the screens look the same on every visit.
+ * Data of the FaceID section. Two sources behind the same functions:
+ *  - SAMPLE (default): deterministic mock — the same date always gives the same day.
+ *  - LIVE: once AGNKS's backend has the TimeFace API key, `useFaceData` fills this store from the API and
+ *    `LIVE.on` flips; `dayRecord / dayRecords / scanEvents` then read the store, everything else keeps working.
  */
+import type { ApiBranch, ApiEmployee, ApiEvent, ApiNote, ApiRecord } from '@/shared/api/faceid'
 /** pending = a later shift that has not started yet (today only) */
 export type Status = 'came' | 'late' | 'absent' | 'off' | 'pending'
 
@@ -47,7 +50,7 @@ export interface ScanEvent {
   employee: Employee
   kind: 'in' | 'out'
   time: string
-  confidence: number
+  confidence?: number
   branch: Branch
 }
 export type RejectReason = 'unknown_face' | 'low_confidence' | 'not_registered'
@@ -66,6 +69,8 @@ export const SHIFT_HOURS: Record<Shift, string> = { day: '08:00–20:00', night:
 /** the moment "today" is simulated at, in hours */
 export const NOW_H = 13.33
 export const NOW_LABEL = '13:20'
+/** the clock shown next to "as of": the real time when live, the simulated one for the sample */
+export const nowLabel = (): string => (LIVE.on ? new Date(Date.now() + 5 * 3_600_000).toISOString().slice(11, 16) : NOW_LABEL)
 
 const BRANCH_NAMES = ['Нурсух', 'ДП-ГМС Кукон', 'DP-GMS КУВА', 'Маргулон', 'DP-GMS BESHARIQ', 'IDEAL GAZ GROUP', 'Намуна']
 const BRANCH_SIZES = [14, 13, 11, 12, 10, 11, 9]
@@ -108,6 +113,63 @@ export const EMPLOYEES: Employee[] = (() => {
 })()
 export const employeeById = (id: string) => EMPLOYEES.find((e) => e.id === id)
 
+// ---------- live store (TimeFace) ----------
+export const LIVE = {
+  on: false,
+  /** `${employeeId}|${date}` → that day */
+  rec: new Map<string, DayRecord>(),
+  /** keys filled from the full "day" call (knows now / pending) — a later range must not overwrite them */
+  full: new Set<string>(),
+  events: new Map<string, ScanEvent[]>(),
+  branchIdx: new Map<string, number>(),
+}
+
+export function applyBase(branches: ApiBranch[], employees: ApiEmployee[]): void {
+  LIVE.on = true
+  LIVE.branchIdx = new Map(branches.map((b, i) => [b.id, i]))
+  BRANCHES.splice(
+    0,
+    BRANCHES.length,
+    ...branches.map((b, i) => ({ id: i, name: b.name, terminal: { id: b.id, name: `Terminal ${i + 1}`, online: b.online, lastSeenMin: b.online ? undefined : (b.lastSeenMin ?? undefined) } })),
+  )
+  EMPLOYEES.splice(
+    0,
+    EMPLOYEES.length,
+    ...employees
+      .filter((e) => LIVE.branchIdx.has(e.branchId))
+      .map((e) => ({ id: e.id, name: e.name, position: e.position, branch: LIVE.branchIdx.get(e.branchId)!, shift: e.shift }) as Employee)
+      .sort((a, b) => a.branch - b.branch || a.name.localeCompare(b.name)),
+  )
+}
+
+export function applyRecords(records: ApiRecord[], notes: Record<string, ApiNote>, full: boolean): void {
+  const byId = new Map(EMPLOYEES.map((e) => [e.id, e]))
+  for (const r of records) {
+    const employee = byId.get(r.employeeId)
+    if (!employee) continue
+    const key = `${r.employeeId}|${r.date}`
+    if (!full && LIVE.full.has(key)) continue
+    const reason = r.status === 'absent' ? (notes[key]?.reason as Reason | null | undefined) ?? undefined : undefined
+    LIVE.rec.set(key, { employee, status: r.status, in: r.in, out: r.out, late: r.late, early: r.early, worked: r.worked, now: r.now, reason })
+    if (full) LIVE.full.add(key)
+  }
+}
+
+export function applyEvents(date: string, events: ApiEvent[]): void {
+  const byId = new Map(EMPLOYEES.map((e) => [e.id, e]))
+  const toMinutes = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5))
+  LIVE.events.set(
+    date,
+    events
+      .flatMap((ev) => {
+        const employee = byId.get(ev.employeeId)
+        const branch = [...LIVE.branchIdx.entries()].find(([uuid]) => uuid === ev.branchId)
+        return employee && branch ? [{ id: ev.id, employee, kind: ev.kind, time: ev.time, branch: BRANCHES[branch[1]] } as ScanEvent] : []
+      })
+      .sort((a, b) => toMinutes(b.time) - toMinutes(a.time)),
+  )
+}
+
 // ---------- dates (all in Tashkent calendar days, as YYYY-MM-DD) ----------
 export const todayStr = (): string => new Date(Date.now() + 5 * 3600_000).toISOString().slice(0, 10)
 export const addDays = (d: string, n: number): string => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10)
@@ -120,6 +182,7 @@ export const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(
 
 /** One employee's day. Sundays are rest days; days after "today" have no record. */
 export function dayRecord(e: Employee, date: string): DayRecord | null {
+  if (LIVE.on) return LIVE.rec.get(`${e.id}|${date}`) ?? null
   const today = todayStr()
   if (date > today) return null
   if (dow(date) === 0) return { employee: e, status: 'off' }
@@ -164,6 +227,7 @@ export const workedLabel = (min?: number) => (min === undefined ? '—' : `${Mat
 
 /** Scans of a day, newest first. */
 export function scanEvents(date: string): ScanEvent[] {
+  if (LIVE.on) return LIVE.events.get(date) ?? []
   const out: ScanEvent[] = []
   for (const r of dayRecords(date)) {
     if (!r.in) continue
@@ -294,7 +358,7 @@ export function analytics(days: number): Analytics {
       if (r.status === 'late') m.late++
       perEmp.set(r.employee.id, m)
       if (r.in) byHour[Math.min(13, Math.max(0, Math.floor(toMin(r.in) / 60) - 6))].n++
-      if (r.status === 'absent' && r.reason) reasons.set(r.reason, (reasons.get(r.reason) ?? 0) + 1)
+      if (r.status === 'absent') reasons.set(r.reason ?? 'none', (reasons.get(r.reason ?? 'none') ?? 0) + 1)
     }
   }
   const emp = (id: string) => employeeById(id)!
@@ -322,7 +386,7 @@ export function analytics(days: number): Analytics {
     }
   }
   week.terminals = BRANCHES.filter((b) => !b.terminal.online).length
-  week.noReason = dayRecords(today).filter((r) => r.status === 'absent' && r.reason === 'none').length
+  week.noReason = dayRecords(today).filter((r) => r.status === 'absent' && (!r.reason || r.reason === 'none')).length
   week.repeat = [...lateCount.values()].filter((n) => n >= 3).length
   week.noExit = dayRecords(addDays(today, -1)).filter((r) => r.in && !r.out).length || 0
 

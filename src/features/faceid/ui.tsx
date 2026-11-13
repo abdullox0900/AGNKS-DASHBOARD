@@ -1,9 +1,13 @@
+import { useState } from 'react'
 import { NavLink, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, CircleAlert, CircleCheck, CircleX, Clock, LogOut, type LucideIcon } from 'lucide-react'
-import { create } from 'zustand'
+import { Check, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, CircleX, Clock, LogOut, type LucideIcon } from 'lucide-react'
+import { useToast } from '@/shared/ui/Toast'
+import { apiFaceSaveNote } from '@/shared/api/faceid'
 import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
-import { addDays, dayLabel, defaultNote, todayStr, type DayRecord, type Employee, type Status } from './mock'
+import { LIVE, addDays, dayLabel, defaultNote, todayStr, type DayRecord, type Employee, type Reason, type Status } from './mock'
+import { useNotes } from './notes'
+import type { FaceLoad } from './useFaceData'
 import type { DictKey } from '@/shared/config/dictionaries'
 
 /** Display state of one day: what the table shows. "late" stays at work, "left" has scanned out. */
@@ -77,17 +81,87 @@ export function Person({ e, size = 34 }: { e: Pick<Employee, 'name'>; size?: num
   )
 }
 
-// ---------- manager notes (sample: lives in memory until the section is connected) ----------
-interface NoteState {
-  notes: Record<string, string>
-  set: (key: string, text: string) => void
-}
-export const useNotes = create<NoteState>((set) => ({ notes: {}, set: (key, text) => set((s) => ({ notes: { ...s.notes, [key]: text } })) }))
-export const noteKey = (r: DayRecord, date: string) => `${r.employee.id}|${date}`
-export function useNote(r: DayRecord, date: string): [string, (text: string) => void] {
-  const stored = useNotes((s) => s.notes[noteKey(r, date)])
+// ---------- manager notes (reason for a late / absent day) ----------
+export const REASON_KEYS: Record<Reason, DictKey> = { sick: 'fid.rs_sick', leave: 'fid.rs_leave', none: 'fid.rs_none', trip: 'fid.rs_trip', other: 'fid.rs_other' }
+const REASONS = Object.keys(REASON_KEYS) as Reason[]
+
+export function useNote(r: DayRecord, date: string) {
+  const key = `${r.employee.id}|${date}`
+  const stored = useNotes((s) => s.notes[key])
   const set = useNotes((s) => s.set)
-  return [stored ?? defaultNote(r), (text) => set(noteKey(r, date), text)]
+  const note = stored ? stored.note : LIVE.on ? '' : defaultNote(r)
+  const reason = ((stored ? stored.reason : r.reason) ?? null) as Reason | null
+  /** live: saved on the server first (throws if it refused); sample: memory only */
+  const save = async (text: string, why: Reason | null) => {
+    if (LIVE.on) await apiFaceSaveNote({ employeeId: r.employee.id, date, reason: why, note: text || null })
+    set(key, { note: text, reason: why })
+    r.reason = why ?? undefined
+  }
+  return { note, reason, save }
+}
+
+/** Inline editor: the note, plus the reason for an absent day. Enter or ✓ saves. */
+export function NoteEditor({ r, date, onDone, width = 190 }: { r: DayRecord; date: string; onDone: () => void; width?: number }) {
+  const { t } = useI18n()
+  const { show } = useToast()
+  const { note, reason, save } = useNote(r, date)
+  const [text, setText] = useState(note)
+  const [why, setWhy] = useState<Reason | ''>(reason ?? '')
+  const [busy, setBusy] = useState(false)
+  const submit = async () => {
+    setBusy(true)
+    try {
+      await save(text.trim(), why || null)
+      show(t('fid.note_saved'))
+      onDone()
+    } catch {
+      show(t('fid.err_note'))
+      setBusy(false)
+    }
+  }
+  return (
+    <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+      {r.status === 'absent' && (
+        <select value={why} onChange={(e) => setWhy(e.target.value as Reason | '')} className="h-8 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-1.5 text-[12.5px] text-[var(--color-ink)] outline-none">
+          <option value="">{t('fid.reason')}</option>
+          {REASONS.map((k) => (
+            <option key={k} value={k}>
+              {t(REASON_KEYS[k])}
+            </option>
+          ))}
+        </select>
+      )}
+      <input
+        autoFocus
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && !busy && void submit()}
+        placeholder={t('fid.note_ph')}
+        style={{ width }}
+        className="h-8 min-w-0 rounded-md border border-[var(--color-primary)] bg-[var(--color-bg)] px-2 text-[12.5px] text-[var(--color-ink)] outline-none"
+      />
+      <button type="button" disabled={busy} aria-label={t('common.save')} onClick={() => void submit()} className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--color-primary)] text-[var(--color-primary-ink)] disabled:opacity-50">
+        <Check size={14} />
+      </button>
+    </span>
+  )
+}
+
+/** What a FaceID screen shows until its data is here (or when TimeFace could not be reached). */
+export function FaceWait({ load }: { load: FaceLoad }) {
+  const { t } = useI18n()
+  if (load.error) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-16 text-center">
+        <CircleAlert size={26} className="text-[var(--color-amber)]" />
+        <p className="max-w-sm text-[14px] text-[var(--color-ink-secondary)]">{t('fid.err_unavailable')}</p>
+        <button type="button" onClick={load.retry} className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-[13px] font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-alt)]">
+          {t('common.retry')}
+        </button>
+      </div>
+    )
+  }
+  return <p className="py-20 text-center text-[14px] text-[var(--color-ink-tertiary)]">{t('common.loading')}</p>
 }
 
 // ---------- shell ----------

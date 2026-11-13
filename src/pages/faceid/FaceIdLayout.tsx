@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { Badge } from '@/shared/ui/Badge'
 import { DateNav, FaceTabs, useFaceDate } from '@/features/faceid/ui'
+import { useFaceMode } from '@/features/faceid/useFaceData'
 import { useI18n } from '@/app/providers/I18nProvider'
 
 const DATED = new Set(['/faceid', '/faceid/employees', '/faceid/branches'])
@@ -8,6 +9,7 @@ const DATED = new Set(['/faceid', '/faceid/employees', '/faceid/branches'])
 /** FaceID section shell: the four tabs, the sample-data notice and (where it matters) the day picker. */
 export function FaceIdLayout() {
   const { t } = useI18n()
+  const { sample } = useFaceMode()
   const [date, setDate] = useFaceDate()
   const { pathname } = useLocation()
   const dated = DATED.has(pathname.replace(/\/$/, ''))
@@ -17,7 +19,7 @@ export function FaceIdLayout() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <FaceTabs />
         <div className="flex flex-wrap items-center gap-2.5">
-          <Badge tone="warning">{t('fid.sample')}</Badge>
+          {sample && <Badge tone="warning">{t('fid.sample')}</Badge>}
           {dated && <DateNav date={date} onChange={setDate} />}
         </div>
       </div>

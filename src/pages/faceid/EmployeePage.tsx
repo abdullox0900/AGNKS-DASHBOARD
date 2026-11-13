@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { CalendarDays, Check, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, CircleX, Clock, Pencil } from 'lucide-react'
-import { useToast } from '@/shared/ui/Toast'
-import { Person, useNote } from '@/features/faceid/ui'
+import { CalendarDays, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, CircleX, Clock, Pencil } from 'lucide-react'
+import { FaceWait, NoteEditor, Person, REASON_KEYS, useNote } from '@/features/faceid/ui'
+import { useFaceData } from '@/features/faceid/useFaceData'
 import { BRANCHES, MONTH_NAMES, MONTH_NAMES_RU, SHIFT_HOURS, dow, employeeById, monthDays, monthTotals, todayStr, workedLabel, type DayRecord } from '@/features/faceid/mock'
 import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
@@ -39,15 +39,13 @@ const CELL: Record<string, string> = {
 
 function RecentRow({ r, date }: { r: DayRecord; date: string }) {
   const { t } = useI18n()
-  const { show } = useToast()
-  const [note, setNote] = useNote(r, date)
+  const { note, reason } = useNote(r, date)
   const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(note)
   const [, m, d] = date.split('-')
   const tone = r.status === 'late' ? 'text-[var(--color-amber)]' : r.status === 'absent' ? 'text-[var(--color-danger)]' : r.now ? 'text-[var(--color-ink-secondary)]' : 'text-[var(--color-success)]'
   const Icon = r.status === 'late' ? CircleAlert : r.status === 'absent' ? CircleX : r.now ? Clock : CircleCheck
   const label = r.status === 'late' ? t('fid.s_late') : r.status === 'absent' ? t('fid.s_absent') : r.now ? t('fid.col_here') : t('fid.s_came')
-  const save = () => (setNote(draft.trim()), setEditing(false), show(t('fid.note_saved')))
+  const text = [reason ? t(REASON_KEYS[reason]) : '', note].filter(Boolean).join(' · ')
   return (
     <div className="border-t border-[var(--color-border)] px-5 py-3 first:border-0">
       <div className="flex items-center gap-3">
@@ -55,28 +53,19 @@ function RecentRow({ r, date }: { r: DayRecord; date: string }) {
           {d}.{m}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="tnum block text-[13.5px] font-medium text-[var(--color-ink)]">
-            {r.in ? `${r.in} → ${r.out ?? t('fid.at_work')}` : '—'}
-          </span>
+          <span className="tnum block text-[13.5px] font-medium text-[var(--color-ink)]">{r.in ? `${r.in} → ${r.out ?? t('fid.at_work')}` : '—'}</span>
           {r.worked !== undefined && r.in && <span className="tnum block text-[12px] text-[var(--color-ink-tertiary)]">{workedLabel(r.worked)}</span>}
         </span>
         <span className={cn('flex items-center gap-1.5 text-[13px] font-medium', tone)}>
           <Icon size={15} /> {label}
         </span>
-        <button type="button" aria-label={t('fid.note')} onClick={() => (setDraft(note), setEditing((v) => !v))} className="flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-ink-tertiary)] hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-ink)]">
+        <button type="button" aria-label={t('fid.note')} onClick={() => setEditing((v) => !v)} className="flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-ink-tertiary)] hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-ink)]">
           <Pencil size={14} />
         </button>
       </div>
-      {editing ? (
-        <div className="mt-2 flex items-center gap-1.5 pl-[60px]">
-          <input autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} placeholder={t('fid.note_ph')} className="h-8 min-w-0 flex-1 rounded-md border border-[var(--color-primary)] bg-[var(--color-bg)] px-2 text-[12.5px] text-[var(--color-ink)] outline-none" />
-          <button type="button" aria-label={t('common.save')} onClick={save} className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--color-primary)] text-[var(--color-primary-ink)]">
-            <Check size={14} />
-          </button>
-        </div>
-      ) : (
-        note && <p className="mt-1 pl-[60px] text-[12px] text-[var(--color-ink-tertiary)]">{note}</p>
-      )}
+      <div className="pl-[60px]">
+        {editing ? <NoteEditor r={r} date={date} width={170} onDone={() => setEditing(false)} /> : text && <p className="mt-1 text-[12px] text-[var(--color-ink-tertiary)]">{text}</p>}
+      </div>
     </div>
   )
 }
@@ -88,7 +77,10 @@ export function EmployeePage() {
   const e = employeeById(id ?? '')
   const currentYm = todayStr().slice(0, 7)
   const [ym, setYm] = useState(currentYm)
+  const last = ym === currentYm ? todayStr() : `${ym}-${String(new Date(Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5)), 0)).getUTCDate()).padStart(2, '0')}`
+  const load = useFaceData({ range: [`${ym}-01`, last], day: ym === currentYm ? todayStr() : undefined })
 
+  if (!load.ready) return <FaceWait load={load} />
   if (!e) return <p className="py-20 text-center text-[14px] text-[var(--color-ink-tertiary)]">{t('fid.none')}</p>
   const [y, m] = ym.split('-').map(Number)
   const days = monthDays(e, ym)
