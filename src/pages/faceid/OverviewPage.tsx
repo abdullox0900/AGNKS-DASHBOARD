@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
-import { ArrowDownLeft, ArrowUpRight, CircleAlert, Clock, Download, LogOut, UserCheck, UserX } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, CircleAlert, CircleCheck, Clock, Download, LogOut, UserX } from 'lucide-react'
 import { Button } from '@/shared/ui/Button'
 import { useToast } from '@/shared/ui/Toast'
 import { FaceWait, Person, REASON_KEYS, StateLabel, dstate, useFaceDate, useNote, type DState } from '@/features/faceid/ui'
 import { useFaceData } from '@/features/faceid/useFaceData'
 import { BRANCHES, countOf, nowLabel, dayLabel, dayRecords, scanEvents, todayStr, workedLabel, type DayRecord } from '@/features/faceid/mock'
-import { PageHead } from './FaceIdLayout'
 import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
 
@@ -14,14 +14,15 @@ const card = 'fid-card rounded-2xl border border-[var(--color-border)] bg-[var(-
 const th = 'px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-ink-tertiary)]'
 type Mode = 'all' | 'here' | 'late' | 'left'
 
-function Stat({ icon: Icon, label, value, sub, tone }: { icon: typeof UserCheck; label: string; value: number; sub: string; tone: string }) {
+/** A stat card inside the navy band. */
+function Stat({ icon: Icon, label, value, sub, tone }: { icon: typeof UserX; label: string; value: number; sub?: string; tone?: string }) {
   return (
-    <div className={cn(card, 'p-4')}>
-      <p className={cn('flex items-center gap-2 text-[11.5px] font-semibold uppercase tracking-[0.1em]', tone)}>
-        <Icon size={16} /> <span className="text-[var(--color-ink-secondary)]">{label}</span>
+    <div className="min-h-[112px] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5">
+      <p className="flex items-center gap-2 text-[13.5px] text-[var(--color-ink-secondary)]">
+        <Icon size={17} className={tone} /> {label}
       </p>
-      <p className={cn('tnum mt-2 text-[30px] font-bold leading-none', tone)}>{value}</p>
-      <p className="mt-2 text-[12.5px] text-[var(--color-ink-tertiary)]">{sub}</p>
+      <p className="tnum mt-1.5 text-[34px] font-bold leading-none">{value}</p>
+      {sub && <p className="mt-2 text-[12.5px] text-[var(--color-ink-secondary)]">{sub}</p>}
     </div>
   )
 }
@@ -53,6 +54,8 @@ export function FaceOverviewPage() {
   const records = dayRecords(date)
   const staff = records.filter((r) => r.status !== 'off')
   const [mode, setMode] = useState<Mode>('all')
+  const [slot, setSlot] = useState<HTMLElement | null>(null)
+  useEffect(() => setSlot(document.getElementById('fid-hero')), [])
   if (!load.ready) return <FaceWait load={load} />
 
   const st = (r: DayRecord) => dstate(r, isToday)
@@ -90,20 +93,32 @@ export function FaceOverviewPage() {
 
   return (
     <div>
-      <PageHead
-        title={t('fid.ov_title')}
-        sub={t(isToday ? 'fid.ov_sub' : 'fid.ov_sub_past', { date: dateText, total: staff.length, n: nHere })}
-        right={<span className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 font-mono text-[12.5px] text-[var(--color-ink-secondary)]">{t('fid.attendance', { p: attendance })}</span>}
-      />
+      {slot &&
+        createPortal(
+          <div className="mt-5 grid gap-6 pb-1 xl:grid-cols-[auto_minmax(0,1fr)] xl:items-end">
+            <div>
+              <p className="text-[13px] text-[var(--color-ink-secondary)]">
+                {dateText} · {t('fid.attendance', { p: attendance })}
+              </p>
+              <p className="mt-1 flex items-end gap-3">
+                <span className="tnum text-[84px] font-bold leading-[0.9] tracking-tight">{nHere}</span>
+                <span className="pb-1">
+                  <span className="tnum block text-[30px] font-semibold leading-none text-[var(--color-ink-tertiary)]">/ {staff.length}</span>
+                  <span className="mt-1 block text-[14px] font-medium">{isToday ? t('fid.hero_now') : t('fid.hero_came')}</span>
+                </span>
+              </p>
+            </div>
+            <div className={cn('grid gap-3 sm:grid-cols-2 xl:ml-auto xl:w-full xl:max-w-[760px]', isToday ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
+              <Stat icon={CircleCheck} label={isToday ? t('fid.col_here') : t('fid.t_came')} value={nHere} tone="text-[var(--color-success)]" sub={lateHere || (!isToday && nLate) ? t('fid.of_late', { n: isToday ? lateHere : nLate }) : undefined} />
+              {isToday && <Stat icon={LogOut} label={t('fid.col_left')} value={nLeft} />}
+              <Stat icon={UserX} label={t('fid.col_absent')} value={nAbsent} />
+              {isToday ? <Stat icon={Clock} label={t('fid.t_pending')} value={nPending} /> : <Stat icon={Clock} label={t('fid.col_late')} value={nLate} />}
+            </div>
+          </div>,
+          slot,
+        )}
 
-      <div className={cn('grid gap-3 sm:grid-cols-2', isToday ? 'xl:grid-cols-4' : 'xl:grid-cols-3')}>
-        <Stat icon={UserCheck} label={isToday ? t('fid.col_here') : t('fid.t_came')} value={nHere} tone="text-[var(--color-success)]" sub={lateHere || (!isToday && nLate) ? t('fid.of_late', { n: isToday ? lateHere : nLate }) : ' '} />
-        {isToday && <Stat icon={LogOut} label={t('fid.col_left')} value={nLeft} tone="text-[var(--color-ink-secondary)]" sub={t('fid.sub_left')} />}
-        <Stat icon={UserX} label={t('fid.col_absent')} value={nAbsent} tone="text-[var(--color-danger)]" sub={t('fid.sub_absent')} />
-        {isToday && <Stat icon={Clock} label={t('fid.t_pending')} value={nPending} tone="text-[var(--color-primary)]" sub={t('fid.sub_pending')} />}
-      </div>
-
-      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-4">
       {/* branches */}
       <section className={cn(card, 'overflow-hidden')}>

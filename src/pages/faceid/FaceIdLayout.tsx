@@ -16,12 +16,17 @@ export function FaceIdLayout() {
 
   return (
     <div className="w-full">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <FaceTabs />
-        <div className="flex flex-wrap items-center gap-2.5">
-          {sample && <Badge tone="warning">{t('fid.sample')}</Badge>}
-          {dated && <DateNav date={date} onChange={setDate} />}
+      {/* always-dark band (like the login art): its children read the same colour variables, overridden in .fid-band */}
+      <div className="fid-band rounded-2xl px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <FaceTabs />
+          <div className="flex flex-wrap items-center gap-2.5">
+            {sample && <Badge tone="warning">{t('fid.sample')}</Badge>}
+            {dated && <DateNav date={date} onChange={setDate} />}
+          </div>
         </div>
+        {/* "Umumiy" portals its big counter here */}
+        <div id="fid-hero" />
       </div>
       <div className="mt-5">
         <Outlet />

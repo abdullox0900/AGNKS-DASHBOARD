@@ -257,3 +257,19 @@ body {
 .fid-card { box-shadow: var(--shadow-card); }
 [data-theme='light'] .fid-card { border-color: var(--color-border-strong); box-shadow: 0 1px 2px rgb(15 23 42 / 0.06), 0 4px 14px rgb(15 23 42 / 0.05); }
 [data-theme='light'] .fid-card thead { background: var(--color-surface-alt); }
+
+/* FaceID top band: navy in both themes; the variables are re-pointed so tabs, day picker and stat cards inside read light-on-navy */
+.fid-band {
+  background: #12244a;
+  color: #fff;
+  --color-ink: #ffffff;
+  --color-ink-secondary: rgb(255 255 255 / 0.74);
+  --color-ink-tertiary: rgb(255 255 255 / 0.52);
+  --color-border: rgb(255 255 255 / 0.16);
+  --color-surface: rgb(255 255 255 / 0.07);
+  --color-surface-alt: rgb(255 255 255 / 0.1);
+  --color-primary: #ffffff;
+  --color-primary-soft: rgb(255 255 255 / 0.16);
+  --color-success: #86efac;
+  --color-amber: #fcd34d;
+}
