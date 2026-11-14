@@ -498,7 +498,8 @@ interface RawReceipt {
   reviewedBy: string | null
   reviewNote: string | null
   station: { name: string }
-  card?: { cachedBalance?: string | number; user: { firstName: string; phone: string | null } }
+  card?: { cachedBalance?: string | number; user: { id?: string; firstName: string; phone: string | null } }
+  clientPhotoUrl?: string | null
   soliqLink?: string
   createdAt?: string
   qrR?: string
@@ -530,6 +531,8 @@ function toReceipt(raw: RawReceipt): ReceiptRecord {
     checkNumber: raw.qrR,
     terminalCode: raw.terminal?.code ?? raw.qrT,
     clientBalance: raw.card?.cachedBalance === undefined ? undefined : toNum(raw.card.cachedBalance),
+    clientId: raw.card?.user.id,
+    clientPhotoUrl: raw.clientPhotoUrl ?? null,
   }
 }
 

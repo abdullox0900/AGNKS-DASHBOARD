@@ -76,6 +76,10 @@ export interface ReceiptRecord {
   /** fiscal module id from the QR (`t`) — the terminal code */
   terminalCode?: string
   clientBalance?: number
+  /** user id of the client (for the link to their page) */
+  clientId?: string
+  /** signed Telegram picture path */
+  clientPhotoUrl?: string | null
 }
 
 export type SpendStatus = 'applied' | 'reversed'

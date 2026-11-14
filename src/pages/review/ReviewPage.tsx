@@ -3,6 +3,8 @@ import useSWR, { useSWRConfig } from 'swr'
 import { Bot, Check, ExternalLink, X } from 'lucide-react'
 import { NewBadge } from '@/shared/ui/NewBadge'
 import { PageTitle } from '@/shared/ui/PageTitle'
+import { ClientAvatar } from '@/shared/ui/ClientAvatar'
+import { Link } from 'react-router-dom'
 import { Button } from '@/shared/ui/Button'
 import { Skeleton } from '@/shared/ui/Skeleton'
 import { EmptyState } from '@/shared/ui/EmptyState'
@@ -34,6 +36,7 @@ function ReviewQueue() {
   const [rejectNote, setRejectNote] = useState('')
   const [manualAmount, setManualAmount] = useState('')
   const canDecide = usePermission('review.decide') // root_admin may look, not decide
+  const canOpenClient = usePermission('clients.detail')
 
   useEffect(() => {
     if (queue && queue.length > 0 && !selectedId) setSelectedId(queue[0].id)
@@ -120,9 +123,12 @@ function ReviewQueue() {
                 r.id === selectedId ? 'bg-[var(--color-primary-soft)]' : 'hover:bg-[var(--color-surface-alt)]',
               )}
             >
-              <span className="truncate text-[15px] font-semibold text-[var(--color-ink)]">{r.clientName || t('common.client')}</span>
+              <span className="flex min-w-0 items-center gap-2.5">
+                <ClientAvatar name={r.clientName} src={r.clientPhotoUrl} size={26} />
+                <span className="truncate text-[15px] font-semibold text-[var(--color-ink)]">{r.clientName || t('common.client')}</span>
+              </span>
               <span className="text-right font-mono text-[13px] text-[var(--color-ink-tertiary)]">{r.checkNumber ? `№ ${r.checkNumber}` : ''}</span>
-              <span className="truncate text-[13px] text-[var(--color-ink-tertiary)]">{r.stationName}</span>
+              <span className="truncate pl-[36px] text-[13px] text-[var(--color-ink-tertiary)]">{r.stationName}</span>
               <span className="text-right text-[13px] text-[var(--color-ink-tertiary)]">{formatDateTime(r.receiptAt)}</span>
             </button>
           ))}
@@ -132,9 +138,18 @@ function ReviewQueue() {
       {selected && (
         <section className={cn(card, 'p-6')}>
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h2 className="truncate text-[24px] font-bold text-[var(--color-ink)]">{selected.clientName || t('common.client')}</h2>
-              {selected.clientPhone && <p className="mt-0.5 font-mono text-[14px] text-[var(--color-ink-tertiary)]">{formatPhone(selected.clientPhone)}</p>}
+            <div className="flex min-w-0 items-center gap-3.5">
+              <ClientAvatar name={selected.clientName} src={selected.clientPhotoUrl} size={52} />
+              <div className="min-w-0">
+                {selected.clientId && canOpenClient ? (
+                  <Link to={`/clients/${selected.clientId}`} className="block truncate text-[24px] font-bold text-[var(--color-primary)] hover:underline">
+                    {selected.clientName || t('common.client')}
+                  </Link>
+                ) : (
+                  <h2 className="truncate text-[24px] font-bold text-[var(--color-primary)]">{selected.clientName || t('common.client')}</h2>
+                )}
+                {selected.clientPhone && <p className="mt-0.5 font-mono text-[14px] text-[var(--color-ink-tertiary)]">{formatPhone(selected.clientPhone)}</p>}
+              </div>
             </div>
             {selected.reviewReasons.length > 0 && (
               <span className="flex items-center gap-2 text-[14px] font-medium text-[var(--color-danger)]">
@@ -149,7 +164,7 @@ function ReviewQueue() {
             <Field label={t('review.f_check')} value={selected.checkNumber ? `№ ${selected.checkNumber}` : '—'} />
             <Field label={t('review.f_check_time')} value={formatDateTime(selected.receiptAt)} />
             <Field label={t('review.f_terminal').replace(/ \(.*\)$/, '')} value={selected.terminalCode ?? '—'} />
-            <Field label={t('review.f_balance')} value={selected.clientBalance === undefined ? '—' : formatMoneyFull(selected.clientBalance)} />
+            <Field label={t('review.f_balance')} value={selected.clientBalance === undefined ? '—' : formatMoneyFull(selected.clientBalance)} tone="text-[var(--color-success)] font-mono font-semibold" />
             <Field label={t('review.rate')} value={`${(selected.rateBps / 100).toFixed(1)}%`} />
             <Field label={t('review.f_scanned_at')} value={selected.createdAt ? formatDateTime(selected.createdAt) : '—'} />
           </div>
@@ -172,7 +187,7 @@ function ReviewQueue() {
                 disabled={!canDecide}
                 value={manualAmount ? formatNumber(Number(manualAmount)) : ''}
                 onChange={(e) => setManualAmount(e.target.value.replace(/\D/g, '').slice(0, 9))}
-                placeholder={t('review.amount_ph')}
+                placeholder={t('review.sum_title')}
                 className="min-w-0 flex-1 bg-transparent font-mono text-[24px] font-bold text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink-tertiary)]/60 disabled:cursor-not-allowed"
               />
               <span className="text-[14px] text-[var(--color-ink-tertiary)]">so‘m</span>
@@ -243,11 +258,11 @@ function ReviewQueue() {
   )
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
     <div className="min-w-0">
       <p className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink-tertiary)]">{label}</p>
-      <p className="mt-1 break-words text-[15px] font-medium text-[var(--color-ink)]">{value}</p>
+      <p className={cn('mt-1 break-words text-[15px] font-medium text-[var(--color-ink)]', tone)}>{value}</p>
     </div>
   )
 }
