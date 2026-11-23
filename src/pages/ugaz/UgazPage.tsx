@@ -19,7 +19,8 @@ import { formatMonthYear } from '@/shared/lib/dates'
 import { formatNumber } from '@/shared/lib/format'
 import { cn } from '@/shared/lib/cn'
 import { useI18n } from '@/app/providers/I18nProvider'
-import { dictionaries, type DictKey } from '@/shared/config/dictionaries'
+import { dictionaries, translate, type DictKey } from '@/shared/config/dictionaries'
+import { getLocale } from '@/shared/config/uiStore'
 
 type Metric = 'vol' | 'sum' | 'ops'
 /** what the station boxes add up: the chosen day, its month, its year, or everything since the start */
@@ -34,14 +35,41 @@ const DASH = '—'
 
 /** m³ without the fraction — the uGaz app drops it rather than rounding */
 const fmtVol = (v: number) => formatNumber(Math.floor(v))
-/** so'm → "mln so'm" number: 289 959 625 → "290", 7 142 936 → "7.1" */
-const fmtMln = (sum: number) => {
-  const v = sum / 1e6
-  return v >= 100 ? formatNumber(v) : v.toFixed(1)
+/**
+ * so'm with the unit picked by size, three significant digits:
+ * 850 → "850", 950 000 → "950 ming", 7 142 936 → "7.14 mln", 289 959 625 → "290 mln", 7 194 000 000 → "7.19 mlrd", 1.2e12 → "1.2 trln".
+ */
+function sumParts(sum: number): { num: string; scale: string } {
+  const abs = Math.abs(sum)
+  const steps = [
+    [1e12, 'common.trln'],
+    [1e9, 'common.mlrd'],
+    [1e6, 'common.mln'],
+    [1e3, 'common.k'],
+  ] as const
+  for (const [size, key] of steps) {
+    // 999.6 mln would round to "1000 mln" — the next unit takes it instead
+    if (abs >= size * 0.9995) {
+      const v = sum / size
+      const digits = Math.abs(v) >= 99.95 ? 0 : Math.abs(v) >= 9.995 ? 1 : 2
+      const fixed = v.toFixed(digits)
+      return { num: digits ? fixed.replace(/\.?0+$/, '') : fixed, scale: translate(getLocale(), key) }
+    }
+  }
+  return { num: formatNumber(sum), scale: '' }
 }
+/** "7.19 mlrd" — for table cells whose header already says so'm */
+const fmtSumShort = (sum: number) => {
+  const { num, scale } = sumParts(sum)
+  return scale ? `${num} ${scale}` : num
+}
+/** the unit that goes after the number: "mlrd so'm" */
+const sumUnit = (sum: number) => `${sumParts(sum).scale} ${translate(getLocale(), 'common.sum_unit')}`.trim()
+/** "7.19 mlrd so'm" */
+const fmtSum = (sum: number) => `${sumParts(sum).num} ${sumUnit(sum)}`
 const METRICS: Record<Metric, { label: DictKey; value: (n: UgazNums) => number; text: (v: number, t: T) => string }> = {
   vol: { label: 'ugaz.m_vol', value: (n) => Math.floor(n.vol), text: (v, t) => `${formatNumber(v)} ${t('ugaz.m3')}` },
-  sum: { label: 'ugaz.m_sum', value: (n) => n.sum, text: (v, t) => `${fmtMln(v)} ${t('ugaz.mln_sum')}` },
+  sum: { label: 'ugaz.m_sum', value: (n) => n.sum, text: (v) => fmtSum(v) },
   ops: { label: 'ugaz.m_ops', value: (n) => n.ops, text: (v) => formatNumber(v) },
 }
 
@@ -124,7 +152,7 @@ function StationBox({ icon: Icon, color, name, nums, share, selected, onClick }:
             <span className="font-sans text-[11px] font-medium tracking-normal text-[var(--color-ink-tertiary)]">{t('ugaz.m3')}</span>
           </p>
           <p className="mt-2 truncate text-[11.5px] text-[var(--color-ink-tertiary)]">
-            <span className="font-mono font-semibold text-[var(--color-ink-secondary)]">{fmtMln(nums.sum)}</span> {t('ugaz.mln_sum')}
+            <span className="font-mono font-semibold text-[var(--color-ink-secondary)]">{sumParts(nums.sum).num}</span> {sumUnit(nums.sum)}
           </p>
           <p className="truncate text-[11.5px] text-[var(--color-ink-tertiary)]">
             <span className="font-mono font-semibold text-[var(--color-ink-secondary)]">{formatNumber(nums.ops)}</span> {t('ugaz.cars')}
@@ -163,8 +191,8 @@ function PeriodCard({ label, sub, nums, before, live, perCar }: { label: string;
           </p>
           <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[var(--color-border)] pt-3">
             <div>
-              <p className="font-mono text-[18px] font-bold text-[var(--color-ink)]">{fmtMln(nums.sum)}</p>
-              <p className="text-[12.5px] text-[var(--color-ink-tertiary)]">{t('ugaz.mln_sum')}</p>
+              <p className="font-mono text-[18px] font-bold text-[var(--color-ink)]">{sumParts(nums.sum).num}</p>
+              <p className="text-[12.5px] text-[var(--color-ink-tertiary)]">{sumUnit(nums.sum)}</p>
             </div>
             <div>
               <p className="font-mono text-[18px] font-bold text-[var(--color-ink)]">{formatNumber(nums.ops)}</p>
@@ -262,7 +290,7 @@ export function UgazPage() {
         ),
       },
       num('dayVol', 'ugaz.c_day_vol', (r) => r.day.vol, fmtVol),
-      num('daySum', 'ugaz.c_day_sum', (r) => r.day.sum, fmtMln),
+      num('daySum', 'ugaz.c_day_sum', (r) => r.day.sum, fmtSumShort),
       num('dayOps', 'ugaz.c_day_ops', (r) => r.day.ops, formatNumber),
       {
         id: 'delta',
@@ -278,7 +306,7 @@ export function UgazPage() {
         },
       },
       num('monthVol', 'ugaz.c_month_vol', (r) => r.month.vol, fmtVol),
-      num('monthSum', 'ugaz.c_month_sum', (r) => r.month.sum, fmtMln),
+      num('monthSum', 'ugaz.c_month_sum', (r) => r.month.sum, fmtSumShort),
       num('monthOps', 'ugaz.c_month_ops', (r) => r.month.ops, formatNumber),
       num('yearVol', 'ugaz.c_year_vol', (r) => r.year.vol, fmtVol),
     ]
@@ -288,11 +316,11 @@ export function UgazPage() {
   const footer = total && {
     name: <span className="font-semibold">{t('ugaz.total')}</span>,
     dayVol: fmtVol(total.day.vol),
-    daySum: fmtMln(total.day.sum),
+    daySum: fmtSumShort(total.day.sum),
     dayOps: formatNumber(total.day.ops),
     delta: prev.data ? <Delta now={Math.floor(total.day.vol)} before={Math.floor(prev.data.total.vol)} /> : null,
     monthVol: fmtVol(total.month.vol),
-    monthSum: fmtMln(total.month.sum),
+    monthSum: fmtSumShort(total.month.sum),
     monthOps: formatNumber(total.month.ops),
     yearVol: fmtVol(total.year.vol),
   }
@@ -489,7 +517,7 @@ export function UgazPage() {
       <section className={cn(card, 'mt-5 p-5')}>
         <CardHead
           title={t('ugaz.disp_title')}
-          sub={dispRow?.has ? `${fmtVol(dispRow.vol)} ${t('ugaz.m3')} · ${fmtMln(dispRow.sum)} ${t('ugaz.mln_sum')} · ${formatNumber(dispRow.ops)} ${t('ugaz.cars')}` : undefined}
+          sub={dispRow?.has ? `${fmtVol(dispRow.vol)} ${t('ugaz.m3')} · ${fmtSum(dispRow.sum)} · ${formatNumber(dispRow.ops)} ${t('ugaz.cars')}` : undefined}
           right={
             <div className="flex flex-wrap items-center gap-2">
               {rows.length > 0 && (
@@ -542,7 +570,7 @@ export function UgazPage() {
                             <span className="block h-full rounded-full" style={{ width: `${(d.vol / dispMax) * 100}%`, background: COLORS[((selected ?? 1) - 1) % COLORS.length] }} />
                           </span>
                           <p className="mt-1 text-[12.5px] text-[var(--color-ink-tertiary)]">
-                            {fmtMln(d.sum)} {t('ugaz.mln_sum')} · {formatNumber(d.ops)} {t('ugaz.cars')}
+                            {fmtSum(d.sum)} · {formatNumber(d.ops)} {t('ugaz.cars')}
                           </p>
                         </div>
                       ))}
