@@ -5,12 +5,14 @@ import type { TrendChart as TrendImpl } from './TrendChart'
 import type { ComboChart as ComboImpl } from './ComboChart'
 import type { HBarChart as HBarImpl } from './HBarChart'
 import type { DonutChart as DonutImpl } from './DonutChart'
+import type { MultiLineChart as MultiLineImpl } from './MultiLineChart'
 
 // recharts is large — keep it out of the initial bundle (TZ-3 §14 budget); a skeleton holds the space meanwhile.
 const Trend = lazyWithReload(() => import('./TrendChart').then((m) => ({ default: m.TrendChart })))
 const Combo = lazyWithReload(() => import('./ComboChart').then((m) => ({ default: m.ComboChart })))
 const HBar = lazyWithReload(() => import('./HBarChart').then((m) => ({ default: m.HBarChart })))
 const Donut = lazyWithReload(() => import('./DonutChart').then((m) => ({ default: m.DonutChart })))
+const MultiLine = lazyWithReload(() => import('./MultiLineChart').then((m) => ({ default: m.MultiLineChart })))
 
 export function TrendChart(props: ComponentProps<typeof TrendImpl>) {
   return (
@@ -40,6 +42,14 @@ export function DonutChart(props: ComponentProps<typeof DonutImpl>) {
   return (
     <Suspense fallback={<Skeleton className="mx-auto rounded-full" style={{ width: props.size ?? 190, height: props.size ?? 190 }} />}>
       <Donut {...props} />
+    </Suspense>
+  )
+}
+
+export function MultiLineChart(props: ComponentProps<typeof MultiLineImpl>) {
+  return (
+    <Suspense fallback={<Skeleton className="w-full" style={{ height: props.height ?? 300 }} />}>
+      <MultiLine {...props} />
     </Suspense>
   )
 }

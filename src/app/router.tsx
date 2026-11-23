@@ -22,6 +22,7 @@ import { ProfilePage } from '@/pages/profile/ProfilePage'
 import { ChangelogPage } from '@/pages/changelog/ChangelogPage'
 import { AttendantsPage } from '@/pages/attendants/AttendantsPage'
 import { FaceIdLayout } from '@/pages/faceid/FaceIdLayout'
+import { UgazPage } from '@/pages/ugaz/UgazPage'
 import { FaceOverviewPage } from '@/pages/faceid/OverviewPage'
 import { EmployeesPage } from '@/pages/faceid/EmployeesPage'
 import { FaceAnalyticsPage } from '@/pages/faceid/AnalyticsPage'
@@ -61,6 +62,14 @@ export const router = createBrowserRouter([
           { path: 'branches', element: <BranchesPage /> },
           { path: 'analytics', element: <FaceAnalyticsPage /> },
         ],
+      },
+      {
+        path: '/ugaz',
+        element: (
+          <RequirePermission permission="ugaz.view">
+            <UgazPage />
+          </RequirePermission>
+        ),
       },
       {
         path: '/attendants',

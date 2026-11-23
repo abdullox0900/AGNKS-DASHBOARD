@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom'
 import {
   BarChart3,
   ClipboardList,
+  Flame,
   Fuel,
   Gauge,
   PanelLeftClose,
@@ -48,6 +49,7 @@ const MENU: NavItem[] = [
   { to: '/clients', label: 'nav.clients', icon: Users, permission: 'clients.view' },
   // "Zapravkachilar" (/attendants) is hidden from the menu for now — the page and its route stay.
   { to: '/faceid', label: 'nav.faceid', icon: ScanFace, permission: 'faceid.view', newSince: '2026-11-13' },
+  { to: '/ugaz', label: 'nav.ugaz', icon: Flame, permission: 'ugaz.view', newSince: '2026-11-23' },
   { to: '/bonus', label: 'nav.bonus', icon: Percent, permission: 'bonus.view' },
   { to: '/bonus-report', label: 'nav.bonus_report', icon: Coins, permission: 'bonusReport.view' },
 ]

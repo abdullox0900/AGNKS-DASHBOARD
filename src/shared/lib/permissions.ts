@@ -33,6 +33,7 @@ export type Permission =
   | 'changelog.manage'
   | 'attendants.view'
   | 'faceid.view'
+  | 'ugaz.view'
   | 'attendants.manage'
   | 'feedback.templates'
   | 'feedback.delete'
@@ -73,6 +74,7 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'changelog.view',
     'attendants.view',
     'faceid.view',
+    'ugaz.view',
   ],
   // The only role that changes things network-wide (stations, admins, clients, bonus, broadcasts...).
   seo: [
@@ -107,6 +109,7 @@ const ROLE_PERMISSIONS: Record<DashboardRole, Permission[]> = {
     'changelog.manage',
     'attendants.view',
     'faceid.view',
+    'ugaz.view',
     'attendants.manage',
     'feedback.templates',
     'feedback.delete',
