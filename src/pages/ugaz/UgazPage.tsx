@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import useSWR from 'swr'
-import { TriangleAlert } from 'lucide-react'
+import { Fuel, Sigma, TriangleAlert, type LucideIcon } from 'lucide-react'
 import { Chip } from '@/shared/ui/Chip'
 import { DataTable, type DataTableColumn } from '@/shared/ui/DataTable'
 import { Delta } from '@/shared/ui/Delta'
@@ -13,7 +13,7 @@ import { Skeleton } from '@/shared/ui/Skeleton'
 import { MultiLineChart, TrendChart } from '@/shared/ui/charts/lazy'
 import { DateNav } from '@/features/faceid/ui'
 import { addDays, dayLabel, daysInMonth, todayStr } from '@/features/faceid/mock'
-import { apiUgazDaily, apiUgazStats, apiUgazStatus, apiUgazSummary, type UgazNums, type UgazPeriod, type UgazSummaryRow } from '@/shared/api/ugaz'
+import { apiUgazAllTime, apiUgazDaily, apiUgazStats, apiUgazStatus, apiUgazSummary, type UgazNums, type UgazPeriod, type UgazSummaryRow } from '@/shared/api/ugaz'
 import { ApiError, apiErrorMessage } from '@/shared/api/errors'
 import { formatMonthYear } from '@/shared/lib/dates'
 import { formatNumber } from '@/shared/lib/format'
@@ -22,12 +22,14 @@ import { useI18n } from '@/app/providers/I18nProvider'
 import { dictionaries, type DictKey } from '@/shared/config/dictionaries'
 
 type Metric = 'vol' | 'sum' | 'ops'
+/** what the station boxes add up: the chosen day, its month, its year, or everything since the start */
+type Scope = UgazPeriod | 'all'
 type T = ReturnType<typeof useI18n>['t']
 
 const card = 'dt-card rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]'
 const SWR_OPTS = { revalidateOnFocus: false, shouldRetryOnError: false } as const
 /** one colour per report row (1–7) */
-const COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-5)', 'var(--chart-6)', 'var(--chart-4)', 'var(--color-ink-secondary)']
+const COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-5)', 'var(--chart-6)', 'var(--chart-4)', '#fb923c']
 const DASH = '—'
 
 /** m³ without the fraction — the uGaz app drops it rather than rounding */
@@ -80,6 +82,61 @@ function CardHead({ title, sub, right }: { title: string; sub?: string; right?: 
       </div>
       {right}
     </div>
+  )
+}
+
+/** One station (or the total) as a tinted tile: icon, name, share, volume as the headline, revenue and cars under it. */
+function StationBox({ icon: Icon, color, name, nums, share, bar, selected, onClick }: { icon: LucideIcon; color: string; name: string; nums?: UgazNums | null; share?: number; bar?: number; selected?: boolean; onClick?: () => void }) {
+  const { t } = useI18n()
+  const Tag = onClick ? 'button' : 'div'
+  return (
+    <Tag
+      type={onClick ? 'button' : undefined}
+      onClick={onClick}
+      aria-pressed={onClick ? !!selected : undefined}
+      className={cn('dt-card block w-full rounded-2xl border p-4 text-left transition-shadow', onClick && 'hover:brightness-105')}
+      style={{
+        borderColor: `color-mix(in srgb, ${color} ${selected ? 75 : 30}%, var(--color-border))`,
+        background: `linear-gradient(140deg, color-mix(in srgb, ${color} 15%, var(--color-surface)), var(--color-surface) 72%)`,
+        boxShadow: selected ? `0 0 0 1px ${color}` : undefined,
+      }}
+    >
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `color-mix(in srgb, ${color} 20%, transparent)`, color }}>
+          <Icon size={20} />
+        </span>
+        <span className="min-w-0 flex-1 text-[14px] font-semibold leading-tight text-[var(--color-ink)]">{name}</span>
+        {share !== undefined && nums && (
+          <span className="shrink-0 rounded-full px-2 py-0.5 font-mono text-[12px] font-semibold" style={{ background: `color-mix(in srgb, ${color} 16%, transparent)`, color }} title={t('ugaz.share')}>
+            {Math.round(share * 100)}%
+          </span>
+        )}
+      </div>
+      {nums === undefined ? (
+        <Skeleton className="mt-3 h-[58px] w-full" />
+      ) : nums === null ? (
+        <p className="mt-3 h-[58px] font-mono text-[26px] font-bold text-[var(--color-ink-tertiary)]" title={t('ugaz.no_data')}>
+          {DASH}
+        </p>
+      ) : (
+        <>
+          <p className="mt-3 flex items-baseline gap-1.5 font-mono text-[26px] font-bold leading-none tracking-tight text-[var(--color-ink)]">
+            {fmtVol(nums.vol)}
+            <span className="font-sans text-[13px] font-medium tracking-normal text-[var(--color-ink-tertiary)]">{t('ugaz.m3')}</span>
+          </p>
+          <p className="mt-2 text-[13px] text-[var(--color-ink-secondary)]">
+            <span className="font-mono font-semibold text-[var(--color-ink)]">{fmtMln(nums.sum)}</span> {t('ugaz.mln_sum')}
+            <span className="text-[var(--color-ink-tertiary)]"> · </span>
+            <span className="font-mono font-semibold text-[var(--color-ink)]">{formatNumber(nums.ops)}</span> {t('ugaz.cars')}
+          </p>
+        </>
+      )}
+      {bar !== undefined && (
+        <span className="mt-3 block h-1 overflow-hidden rounded-full bg-[var(--color-track)]">
+          <span className="block h-full rounded-full" style={{ width: `${Math.max(0, Math.min(1, bar)) * 100}%`, background: color }} />
+        </span>
+      )}
+    </Tag>
   )
 }
 
@@ -148,6 +205,7 @@ export function UgazPage() {
   const [hover, setHover] = useState<number | null>(null)
   const [picked, setPicked] = useState<number | null>(null)
   const [dispPeriod, setDispPeriod] = useState<UgazPeriod>('day')
+  const [scope, setScope] = useState<Scope>('month')
 
   const [y, m] = date.split('-').map(Number)
   const monthFrom = `${date.slice(0, 8)}01`
@@ -160,14 +218,15 @@ export function UgazPage() {
   const summary = useSWR(on ? ['ugaz:summary', date] : null, () => apiUgazSummary(date), refresh(date))
   const prev = useSWR(on ? ['ugaz:stats', 'day', addDays(date, -1), false] : null, () => apiUgazStats('day', addDays(date, -1), false), SWR_OPTS)
   const daily = useSWR(on ? ['ugaz:daily', monthFrom, monthTo] : null, () => apiUgazDaily(monthFrom, monthTo), { ...refresh(monthTo), keepPreviousData: true })
+  const allTime = useSWR(on && scope === 'all' ? 'ugaz:alltime' : null, apiUgazAllTime, SWR_OPTS)
   const disp = useSWR(on ? ['ugaz:stats', dispPeriod, date, true] : null, () => apiUgazStats(dispPeriod, date, true), refresh(date))
 
   const rows = summary.data?.rows ?? []
   const selected = picked ?? rows.find((r) => r.has)?.row ?? null
   const prevBy = useMemo(() => new Map((prev.data?.rows ?? []).filter((r) => r.has).map((r) => [r.row, r])), [prev.data])
-  const warnings = [...new Set([...(summary.data?.warnings ?? []), ...(daily.data?.warnings ?? []), ...(disp.data?.warnings ?? [])])]
-  const error = status.error ?? summary.error ?? daily.error ?? disp.error
-  const retry = () => void Promise.all([status.mutate(), summary.mutate(), prev.mutate(), daily.mutate(), disp.mutate()])
+  const warnings = [...new Set([...(summary.data?.warnings ?? []), ...(daily.data?.warnings ?? []), ...(disp.data?.warnings ?? []), ...(allTime.data?.warnings ?? [])])]
+  const error = status.error ?? summary.error ?? daily.error ?? disp.error ?? allTime.error
+  const retry = () => void Promise.all([status.mutate(), summary.mutate(), prev.mutate(), daily.mutate(), disp.mutate(), allTime.mutate()])
   const mx = METRICS[metric]
   const monthName = formatMonthYear(new Date(`${date}T12:00:00+05:00`))
 
@@ -243,8 +302,15 @@ export function UgazPage() {
     yearVol: fmtVol(total.year.vol),
   }
 
-  const shareRows = rows.filter((r) => r.has).sort((a, b) => b.month.vol - a.month.vol)
-  const shareTotal = shareRows.reduce((s, r) => s + r.month.vol, 0) || 1
+  // the station boxes and the shares follow one period switch
+  const scoped: { rows: { row: number; name: string; nums: UgazNums | null }[]; total: UgazNums } | undefined =
+    scope === 'all'
+      ? allTime.data && { rows: allTime.data.rows.map((r) => ({ row: r.row, name: r.name, nums: r.has ? r : null })), total: allTime.data.total }
+      : summary.data && { rows: rows.map((r) => ({ row: r.row, name: r.name, nums: r.has ? r[scope] : null })), total: summary.data.total[scope] }
+  const scopeLabel = scope === 'day' ? dayLabel(date, locale) : scope === 'month' ? monthName : scope === 'year' ? String(y) : allTime.data ? t('ugaz.since', { y: allTime.data.from }) : t('ugaz.p_all')
+  const scopeMax = Math.max(1, ...(scoped?.rows ?? []).map((r) => r.nums?.vol ?? 0))
+  const shareOf = (v: number) => (scoped && scoped.total.vol > 0 ? v / scoped.total.vol : 0)
+  const shareRows = (scoped?.rows ?? []).flatMap((r) => (r.nums ? [{ row: r.row, name: r.name, vol: r.nums.vol }] : [])).sort((a, b) => b.vol - a.vol)
 
   const dispRow = disp.data?.rows.find((r) => r.row === selected)
   const dispMax = Math.max(1, ...(dispRow?.stations ?? []).flatMap((s) => (s.dispensers ?? []).map((d) => d.vol)))
@@ -307,6 +373,31 @@ export function UgazPage() {
         <PeriodCard label={t('ugaz.p_year')} sub={String(y)} nums={total?.year} />
       </div>
 
+      <section className="mt-6">
+        <CardHead
+          title={t('ugaz.boxes_title')}
+          sub={scopeLabel}
+          right={<Seg value={scope} onChange={setScope} options={(['day', 'month', 'year', 'all'] as const).map((p) => ({ value: p, label: t(`ugaz.p_${p}`) }))} />}
+        />
+        <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {(scoped?.rows ?? rows.map((r) => ({ row: r.row, name: r.name, nums: undefined }))).map((r) => (
+            <StationBox
+              key={r.row}
+              icon={Fuel}
+              color={COLORS[(r.row - 1) % COLORS.length]}
+              name={r.name}
+              nums={r.nums}
+              share={r.nums ? shareOf(r.nums.vol) : undefined}
+              bar={r.nums ? r.nums.vol / scopeMax : 0}
+              selected={r.row === selected}
+              onClick={() => setPicked(r.row)}
+            />
+          ))}
+          {!scoped && rows.length === 0 && Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-[150px] w-full rounded-2xl" />)}
+          <StationBox icon={Sigma} color="var(--color-primary)" name={t('ugaz.total')} nums={scoped?.total} />
+        </div>
+      </section>
+
       <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
         <section className={cn(card, 'min-w-0 p-5')}>
           <CardHead
@@ -362,20 +453,20 @@ export function UgazPage() {
         </section>
 
         <section className={cn(card, 'p-5')}>
-          <CardHead title={t('ugaz.share_title')} sub={t('ugaz.share_sub')} />
+          <CardHead title={t('ugaz.share_title')} sub={t('ugaz.share_sub', { p: scopeLabel })} />
           <div className="mt-4 space-y-4">
-            {!summary.data
+            {!scoped
               ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)
               : shareRows.map((r) => (
                   <div key={r.row}>
                     <p className="flex items-baseline justify-between gap-3 text-[14px]">
                       <span className="truncate font-semibold text-[var(--color-ink)]">{r.name}</span>
                       <span className="shrink-0 font-mono text-[13px] text-[var(--color-ink-secondary)]">
-                        {fmtVol(r.month.vol)} · {Math.round((r.month.vol / shareTotal) * 100)}%
+                        {fmtVol(r.vol)} · {Math.round(shareOf(r.vol) * 100)}%
                       </span>
                     </p>
                     <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-[var(--color-track)]">
-                      <span className="block h-full rounded-full" style={{ width: `${(r.month.vol / (shareRows[0]?.month.vol || 1)) * 100}%`, background: COLORS[(r.row - 1) % COLORS.length] }} />
+                      <span className="block h-full rounded-full" style={{ width: `${(r.vol / (shareRows[0]?.vol || 1)) * 100}%`, background: COLORS[(r.row - 1) % COLORS.length] }} />
                     </span>
                   </div>
                 ))}

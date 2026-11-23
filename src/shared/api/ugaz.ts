@@ -58,3 +58,14 @@ export const apiUgazSummary = (date: string) => unwrap<UgazSummary>(http.get('/a
 export const apiUgazStats = (period: UgazPeriod, date: string, dispensers: boolean) =>
   unwrap<UgazStats>(http.get('/admin/ugaz/stats', { params: { period, date, dispensers: dispensers ? 1 : 0 } }))
 export const apiUgazDaily = (from: string, to: string) => unwrap<UgazDaily>(http.get('/admin/ugaz/daily', { params: { from, to } }))
+
+/** everything since the stations started working (whole years added up on the backend) */
+export interface UgazAllTime {
+  /** first year that has data */
+  from: number
+  to: string
+  rows: (UgazNums & { row: number; name: string; has: boolean })[]
+  total: UgazNums
+  warnings: string[]
+}
+export const apiUgazAllTime = () => unwrap<UgazAllTime>(http.get('/admin/ugaz/alltime'))
