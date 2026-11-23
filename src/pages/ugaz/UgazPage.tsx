@@ -85,56 +85,51 @@ function CardHead({ title, sub, right }: { title: string; sub?: string; right?: 
   )
 }
 
-/** One station (or the total) as a tinted tile: icon, name, share, volume as the headline, revenue and cars under it. */
-function StationBox({ icon: Icon, color, name, nums, share, bar, selected, onClick }: { icon: LucideIcon; color: string; name: string; nums?: UgazNums | null; share?: number; bar?: number; selected?: boolean; onClick?: () => void }) {
+/** One station (or the total) as a small borderless tile; only the gradient tint tells the stations apart. */
+function StationBox({ icon: Icon, color, name, nums, share, selected, onClick }: { icon: LucideIcon; color: string; name: string; nums?: UgazNums | null; share?: number; selected?: boolean; onClick?: () => void }) {
   const { t } = useI18n()
   const Tag = onClick ? 'button' : 'div'
+  const chip = 'bg-[color-mix(in_srgb,var(--color-ink)_10%,transparent)] text-[var(--color-ink)]'
   return (
     <Tag
       type={onClick ? 'button' : undefined}
       onClick={onClick}
       aria-pressed={onClick ? !!selected : undefined}
-      className={cn('dt-card block w-full rounded-2xl border p-4 text-left transition-shadow', onClick && 'hover:brightness-105')}
-      style={{
-        borderColor: `color-mix(in srgb, ${color} ${selected ? 75 : 30}%, var(--color-border))`,
-        background: `linear-gradient(140deg, color-mix(in srgb, ${color} 15%, var(--color-surface)), var(--color-surface) 72%)`,
-        boxShadow: selected ? `0 0 0 1px ${color}` : undefined,
-      }}
+      className={cn('block w-full min-w-0 rounded-xl p-3 text-left', onClick && 'transition-[filter] hover:brightness-110')}
+      style={{ background: `linear-gradient(150deg, color-mix(in srgb, ${color} ${selected ? 42 : 24}%, var(--color-surface)), var(--color-surface) 85%)` }}
     >
-      <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `color-mix(in srgb, ${color} 20%, transparent)`, color }}>
-          <Icon size={20} />
+      <div className="flex items-center justify-between gap-2">
+        <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-lg', chip)}>
+          <Icon size={15} />
         </span>
-        <span className="min-w-0 flex-1 text-[14px] font-semibold leading-tight text-[var(--color-ink)]">{name}</span>
         {share !== undefined && nums && (
-          <span className="shrink-0 rounded-full px-2 py-0.5 font-mono text-[12px] font-semibold" style={{ background: `color-mix(in srgb, ${color} 16%, transparent)`, color }} title={t('ugaz.share')}>
+          <span className={cn('rounded-full px-1.5 py-0.5 font-mono text-[11px] font-semibold', chip)} title={t('ugaz.share')}>
             {Math.round(share * 100)}%
           </span>
         )}
       </div>
+      <p className="mt-2 truncate text-[12.5px] font-semibold text-[var(--color-ink)]" title={name}>
+        {name}
+      </p>
       {nums === undefined ? (
-        <Skeleton className="mt-3 h-[58px] w-full" />
+        <Skeleton className="mt-1.5 h-[58px] w-full" />
       ) : nums === null ? (
-        <p className="mt-3 h-[58px] font-mono text-[26px] font-bold text-[var(--color-ink-tertiary)]" title={t('ugaz.no_data')}>
+        <p className="mt-1.5 h-[58px] font-mono text-[19px] font-bold text-[var(--color-ink-tertiary)]" title={t('ugaz.no_data')}>
           {DASH}
         </p>
       ) : (
         <>
-          <p className="mt-3 flex items-baseline gap-1.5 font-mono text-[26px] font-bold leading-none tracking-tight text-[var(--color-ink)]">
-            {fmtVol(nums.vol)}
-            <span className="font-sans text-[13px] font-medium tracking-normal text-[var(--color-ink-tertiary)]">{t('ugaz.m3')}</span>
+          <p className="mt-1.5 flex flex-wrap items-baseline gap-x-1 font-mono text-[17px] font-bold leading-tight tracking-tight text-[var(--color-ink)]">
+            <span className="whitespace-nowrap">{fmtVol(nums.vol)}</span>
+            <span className="font-sans text-[11px] font-medium tracking-normal text-[var(--color-ink-tertiary)]">{t('ugaz.m3')}</span>
           </p>
-          <p className="mt-2 text-[13px] text-[var(--color-ink-secondary)]">
-            <span className="font-mono font-semibold text-[var(--color-ink)]">{fmtMln(nums.sum)}</span> {t('ugaz.mln_sum')}
-            <span className="text-[var(--color-ink-tertiary)]"> · </span>
-            <span className="font-mono font-semibold text-[var(--color-ink)]">{formatNumber(nums.ops)}</span> {t('ugaz.cars')}
+          <p className="mt-2 truncate text-[11.5px] text-[var(--color-ink-tertiary)]">
+            <span className="font-mono font-semibold text-[var(--color-ink-secondary)]">{fmtMln(nums.sum)}</span> {t('ugaz.mln_sum')}
+          </p>
+          <p className="truncate text-[11.5px] text-[var(--color-ink-tertiary)]">
+            <span className="font-mono font-semibold text-[var(--color-ink-secondary)]">{formatNumber(nums.ops)}</span> {t('ugaz.cars')}
           </p>
         </>
-      )}
-      {bar !== undefined && (
-        <span className="mt-3 block h-1 overflow-hidden rounded-full bg-[var(--color-track)]">
-          <span className="block h-full rounded-full" style={{ width: `${Math.max(0, Math.min(1, bar)) * 100}%`, background: color }} />
-        </span>
       )}
     </Tag>
   )
@@ -308,7 +303,6 @@ export function UgazPage() {
       ? allTime.data && { rows: allTime.data.rows.map((r) => ({ row: r.row, name: r.name, nums: r.has ? r : null })), total: allTime.data.total }
       : summary.data && { rows: rows.map((r) => ({ row: r.row, name: r.name, nums: r.has ? r[scope] : null })), total: summary.data.total[scope] }
   const scopeLabel = scope === 'day' ? dayLabel(date, locale) : scope === 'month' ? monthName : scope === 'year' ? String(y) : allTime.data ? t('ugaz.since', { y: allTime.data.from }) : t('ugaz.p_all')
-  const scopeMax = Math.max(1, ...(scoped?.rows ?? []).map((r) => r.nums?.vol ?? 0))
   const shareOf = (v: number) => (scoped && scoped.total.vol > 0 ? v / scoped.total.vol : 0)
   const shareRows = (scoped?.rows ?? []).flatMap((r) => (r.nums ? [{ row: r.row, name: r.name, vol: r.nums.vol }] : [])).sort((a, b) => b.vol - a.vol)
 
@@ -379,7 +373,7 @@ export function UgazPage() {
           sub={scopeLabel}
           right={<Seg value={scope} onChange={setScope} options={(['day', 'month', 'year', 'all'] as const).map((p) => ({ value: p, label: t(`ugaz.p_${p}`) }))} />}
         />
-        <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
           {(scoped?.rows ?? rows.map((r) => ({ row: r.row, name: r.name, nums: undefined }))).map((r) => (
             <StationBox
               key={r.row}
@@ -388,12 +382,11 @@ export function UgazPage() {
               name={r.name}
               nums={r.nums}
               share={r.nums ? shareOf(r.nums.vol) : undefined}
-              bar={r.nums ? r.nums.vol / scopeMax : 0}
               selected={r.row === selected}
               onClick={() => setPicked(r.row)}
             />
           ))}
-          {!scoped && rows.length === 0 && Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-[150px] w-full rounded-2xl" />)}
+          {!scoped && rows.length === 0 && Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-[136px] w-full rounded-xl" />)}
           <StationBox icon={Sigma} color="var(--color-primary)" name={t('ugaz.total')} nums={scoped?.total} />
         </div>
       </section>
